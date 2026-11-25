@@ -17,7 +17,7 @@ sh tools/check.sh                  # everything CI checks below, in one go (add 
 go test ./...                      # tests
 test -z "$(gofmt -l .)" && go vet ./...   # format and vet (CI runs both)
 GOTOOLCHAIN=$(go env GOVERSION) go run honnef.co/go/tools/cmd/staticcheck@2026.2.2 ./...   # static analysis (CI runs it on Ubuntu)
-GOTOOLCHAIN=$(go env GOVERSION) go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...   # known vulnerabilities (CI runs it on Ubuntu)
+GOTOOLCHAIN=$(go env GOVERSION) go run golang.org/x/vuln/cmd/govulncheck@v1.10.0 ./...   # known vulnerabilities (CI runs it on Ubuntu)
 go run . serve                     # try it with your own history
 sh tools/screenshots/run.sh --html /tmp/kiroku-demo.html   # an HTML with dummy data
 ```

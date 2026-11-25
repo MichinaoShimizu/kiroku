@@ -114,7 +114,7 @@ const pctOf = (a, b) => b ? Math.round(a * 100 / b) : null;
 const MET = {
   limits: {f: (w, ws, we) => limitHits(ws, we).length, low: true, u: "", int: true},
   longctx: {f: (w, ws, we) => longCtxOf(ws, we).length, low: true, u: "", int: true},
-  heavy: {f: (w, ws, we) => w.usage && w.usage.cost >= 0.01 ? pctOf(idleOf(ws, we).c, w.usage.cost) : null, low: true, u: "%", cap: "Share of cost with no commit or PR"},
+  heavy: {f: (w, ws, we) => w.usage && w.usage.cost >= 0.01 ? pctOf(idleOf(ws, we).c, w.usage.cost) : null, low: true, u: "%", cap: "Share of estimated cost with no commit or PR"},
   cost: {f: w => w.usage ? w.usage.cost : null, low: true, fmt: v => usd(v)},
   costPerCommit: {f: w => w.costPerCommit, low: true, fmt: v => usd(v)},
   // コミットあたりのトークン：推定費用と同じく、Claude Code のセッション（期間に始まったもの）のトークン ÷ AI が実行したコミット
@@ -183,19 +183,20 @@ function metricAt(k, p){ if (!MET[k] || !p.S) return null; const v = MET[k].f(p.
 const SPN = 12;
 function spark(k, plain){ // 8 期間の推移（記録のない期間は飛ばす。記録のある最初の期間から、幅いっぱいに描く）。plain は「?」の説明に添えるもの（見直す向きは書かない）
   if (!MET[k]) return "";
-  const pts = []; for (let i = SPN; i >= 0; i--){ const p = periodBack(i); pts.push({v: metricAt(k, p), l: p.label}); }
+  // 記録の始まった週・月（途中から始まった期間）は、サマリーのグラフと同じく値を出さない（数日分だけの小さな値を、ほかの期間と並べない）
+  const hs = historyStart(), pts = []; for (let i = SPN; i >= 0; i--){ const p = periodBack(i), mid = p.ws < hs && p.we > hs; pts.push({v: p.ws < hs ? null : metricAt(k, p), l: p.label, mid}); }
   // 表示中の期間がまだ途中なら、そう書いて点を白抜きにする（数える指標は、途中の期間だけ小さく見えるので）
   const part = Date.now() / 1000 < periodBack(0).we; if (part) pts[SPN].l = t("{period} (so far)", {period: pts[SPN].l});
   const vs = pts.filter(p => p.v != null).map(p => p.v); if (vs.length < 2) return "";
   // 使い始めて間もないなど、はじめの期間に記録がないときは、その期間を描かずに記録のある最初の期間を左端にする（線が箱の途中から始まって短く見えないように）
-  const W = 168, H = 34, f0 = pts.findIndex(p => p.v != null), step = (W - 8) / (SPN - f0); // 値が 2 つ以上あるので f0 は SPN − 1 以下
-  const lo = Math.min(...vs), hi = Math.max(...vs), rng = lo === hi ? fmtM(k, lo) : `${fmtM(k, lo)}–${fmtM(k, hi)}`, x = i => 4 + (i - f0) * step, y = v => hi === lo ? H / 2 : H - 4 - (v - lo) / (hi - lo) * (H - 8);
+  const W = 168, H = 34, f0 = pts.findIndex(p => p.v != null || p.mid), step = (W - 8) / (SPN - f0); // 値が 2 つ以上あるので f0 は SPN − 1 以下。記録の始まった期間は「—」で左端に（サマリーのグラフと同じ）
+  const lo = Math.min(...vs), hi = Math.max(...vs), rng = lo === hi ? fmtM(k, lo) : `${fmtM(k, lo)}${isJA() ? "〜" : "–"}${fmtM(k, hi)}`, x = i => 4 + (i - f0) * step, y = v => hi === lo ? H / 2 : H - 4 - (v - lo) / (hi - lo) * (H - 8);
   const line = pts.map((p, i) => p.v == null ? null : `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).filter(Boolean).join(" ");
-  const list = pts.map(p => `${p.l} ${fmtM(k, p.v)}`).join(LSEP()), txt = st.mode === "month" ? t("{n}-month trend: {list}", {n: SPN + 1, list}) : t("{n}-week trend: {list}", {n: SPN + 1, list});
-  const hits = pts.map((p, i) => i < f0 ? "" : `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H}"${tipAttr(p.l, fmtM(k, p.v) === "—" ? t("No records") : fmtM(k, p.v))}/>`).join(""); // 点ごとに、その期間の値を出す
-  // 両端（記録のある最初の期間と、表示中の期間）には、触れなくても読めるよう期間と値を添える
-  const sl = i => { const p = periodBack(SPN - i), [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? MON[mm - 1] : dMD(new Date(yy, mm - 1, dd)); };
-  return `<span class="spark"><span class="sr">${esc(txt)}</span><span class="spk" aria-hidden="true"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><polyline points="${line}"/>${pts.map((p, i) => p.v == null ? "" : `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="1.6"/>`).join("")}${pts[SPN].v != null ? `<circle${part ? ' class="part"' : ""} cx="${x(SPN)}" cy="${y(pts[SPN].v)}" r="2.6"/>` : ""}${hits}</svg><span class="ends"><span>${sl(f0)} ${fmtM(k, pts[f0].v)}</span><span>${sl(SPN)}${part ? esc(t(" (so far)")) : ""} <b>${fmtM(k, pts[SPN].v)}</b></span></span></span><small aria-hidden="true">${esc((MET[k].cap ? `${t(MET[k].cap)} · ` : "") + (plain ? (st.mode === "month" ? t("{n}-month range {range}", {n: SPN + 1, range: rng}) : t("{n}-week range {range}", {n: SPN + 1, range: rng})) : `${GOTO[k] ? `${t(HELP[k].n)} · ` : ""}${st.mode === "month" ? (MET[k].low ? t("{n}-month range {range} · higher is worth a look", {n: SPN + 1, range: rng}) : t("{n}-month range {range} · lower is worth a look", {n: SPN + 1, range: rng})) : (MET[k].low ? t("{n}-week range {range} · higher is worth a look", {n: SPN + 1, range: rng}) : t("{n}-week range {range} · lower is worth a look", {n: SPN + 1, range: rng}))}`))}</small></span>`;
+  const list = pts.map(p => `${p.l} ${fmtM(k, p.v)}${p.mid ? paren(insMidS()) : ""}`).join(LSEP()), txt = st.mode === "month" ? t("{n}-month trend: {list}", {n: SPN + 1, list}) : t("{n}-week trend: {list}", {n: SPN + 1, list});
+  const hits = pts.map((p, i) => i < f0 ? "" : `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H}"${tipAttr(p.l, p.mid ? insMidT() : fmtM(k, p.v) === "—" ? t("No records") : fmtM(k, p.v))}/>`).join(""); // 点ごとに、その期間の値を出す
+  // 両端（記録のある最初の期間と、表示中の期間）には、触れなくても読めるよう期間と値を添える。記録の始まった期間（値を出さない）は「Jul 20 (partial)」と、わけを目に見える形で
+  const sl = i => { const p = periodBack(SPN - i), [yy, mm, dd] = p.key.split("-").map(Number); return st.mode === "month" ? (isJA() ? `${mm}月` : MON[mm - 1]) : dMD(new Date(yy, mm - 1, dd)); }; // 日本語の画面では「10月」（insight.js の月の目盛りと同じ）
+  return `<span class="spark"><span class="sr">${esc(txt)}</span><span class="spk" aria-hidden="true"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><polyline points="${line}"/>${pts.map((p, i) => p.v == null ? "" : `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="1.6"/>`).join("")}${pts[SPN].v != null ? `<circle${part ? ' class="part"' : ""} cx="${x(SPN)}" cy="${y(pts[SPN].v)}" r="2.6"/>` : ""}${hits}</svg><span class="ends"><span>${sl(f0)}${pts[f0].mid ? esc(insMidL()) : ` ${fmtM(k, pts[f0].v)}`}</span><span>${sl(SPN)}${part ? esc(t(" (so far)")) : ""} <b>${fmtM(k, pts[SPN].v)}</b></span></span></span><small aria-hidden="true">${esc((MET[k].cap ? `${t(MET[k].cap)} · ` : "") + (plain ? (st.mode === "month" ? t("{n}-month range {range}", {n: SPN + 1, range: rng}) : t("{n}-week range {range}", {n: SPN + 1, range: rng})) : `${GOTO[k] ? `${t(HELP[k].n)} · ` : ""}${st.mode === "month" ? (MET[k].low ? t("{n}-month range {range} · higher is worth a look", {n: SPN + 1, range: rng}) : t("{n}-month range {range} · lower is worth a look", {n: SPN + 1, range: rng})) : (MET[k].low ? t("{n}-week range {range} · higher is worth a look", {n: SPN + 1, range: rng}) : t("{n}-week range {range} · lower is worth a look", {n: SPN + 1, range: rng}))}`))}</small></span>`;
 } // 向き（高いほど・低いほど見直す）だけを書く。印が付いた基準（決まった値）は、ダイアログの見出しのすぐ下に出す
 /* 見直す候補：指標が決まった基準を超えたものを拾う（AI は使わない。判定ではなく、確かめる候補） */
 // 見直す候補の文（L）は、画面に出す今の言語の文。鍵は英語の文で、{name} を埋める
@@ -227,7 +228,7 @@ function findList(w, pw, unit){
   }
   const LT = lightOf(ws, we);
   if (u.cost >= 2 && LT.c >= Math.max(1, u.cost * 0.1))
-    add("modelfit", 24, tx("Short sessions with no edits spent {cost} ({pct}% of estimated cost) on Opus-, Fable- or Mythos-class models", {cost: usd(LT.c), pct: Math.round(LT.c*100/u.cost)}), tx("For research and questions, a lighter model is often enough"), tx("Sessions with ≤3 prompts, no edits and $0.3+ total 10%+ of all cost ($2+) and $1+"), LT.xs.map(s => s.id));
+    add("modelfit", 24, tx("Short sessions with no edits spent {cost} ({pct}% of estimated cost) on Opus-, Fable- or Mythos-class models", {cost: usd(LT.c), pct: Math.round(LT.c*100/u.cost)}), tx("For research and questions, a lighter model is often enough"), tx("Sessions mainly on these models with 3 or fewer prompts, no file edits and $0.3 or more each; together $1 or more and 10% or more of the period's estimated cost (when it is $2 or more)"), LT.xs.map(s => s.id));
   const {xs: idle, c: idleC} = idleOf(ws, we);
   if (u.cost >= 2 && idleC >= u.cost * 0.4)
     add("heavy", 30 + Math.round(idleC*50/u.cost), tx("{pct}% of estimated cost ({cost}) went to sessions with no commit or pull request", {pct: Math.round(idleC*100/u.cost), cost: usd(idleC)}), tx("Fine for research or discussion. If they stopped partway, it's worth finding out why"), tx("Sessions of $1+ total 40%+ of all cost ($2+)"), idle.map(s => s.id));
@@ -268,7 +269,9 @@ function openWorth(id, from, F = lastFlags){
 function placeFlags(R, F){ // 基準を超えた指標の名前の横に、小さな印だけを付ける（押すと「Worth a look」と同じダイアログ。中身はダイアログにだけ出し、サマリーで繰り返さない）
   [...new Set(F.map(f => GOTO[f.k] || f.k))].forEach(id => {
     // 「?」のない候補（コミットにつながらなかった費用など）は、関係する図の見出しの印の場所（data-flag）に置く
-    const hs = [...R.querySelectorAll(`.insight .hb[data-help="${id}"], .panel .hb[data-help="${id}"]`)], hb = hs.find(h => !h.closest("[hidden]")) || hs[0] || R.querySelector(`.insight [data-flag="${id}"]`); if (!hb) return; // パネルの切り替えで隠れた選択肢の「?」より、見えているものに
+    // モデルの選び方（GOTO の models）は、投入のパネルのモデル別のドーナツか、内訳の「どこに使ったか」の見出しに
+    const vis = h => !h.closest("[hidden]"), hs = [...R.querySelectorAll(`.insight .hb[data-help="${id}"], .panel .hb[data-help="${id}"]`)], fs = [...R.querySelectorAll(`.insight [data-flag="${id}"]`)];
+    const hb = hs.find(vis) || hs[0] || fs.find(vis) || fs[0]; if (!hb) return; // パネルの切り替えで隠れた選択肢の「?」より、見えているものに
     hb.insertAdjacentHTML("beforebegin", `<button class="fmark" data-goto="${id}" aria-haspopup="dialog" aria-label="${esc(t("Worth a look: {name}", {name: H()[id].n}))}" title="${esc(t("Crossed a threshold. Click to see why."))}">${ico("flag", "fdot")}</button>`);
     // 閉じた折りたたみの中の印は、見出しにも出す（開かずに、中に印があるとわかるように）。折りたたみが重なっていれば（③ からのパネルの中の「もっと見る」）、どれの見出しにも
     for (let dt = hb.closest("details"); dt; dt = dt.parentElement.closest("details")){ const sm = dt.querySelector(":scope > summary");

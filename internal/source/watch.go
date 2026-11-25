@@ -19,16 +19,27 @@ func (k *KiroCLI) Watch() []string {
 	for _, h := range kiroHomes(k.Home, k.Legacy) {
 		out = append(out, filepath.Join(h, "sessions", "cli"))
 	}
-	return append(out, k.CrewHome)
+	if k.CrewHome != "" {
+		out = append(out, k.CrewHome)
+	}
+	return out
 }
 
 // SQLite は書き込みが -wal に先に入るので、それも見る。
-func (q *QStore) Watch() []string { return []string{q.DB, q.DB + "-wal"} }
+func (q *QStore) Watch() []string {
+	if q.DB == "" {
+		return nil
+	}
+	return []string{q.DB, q.DB + "-wal"}
+}
 
 // WatchPaths は Source が読む場所。
 func WatchPaths(s Source) []string {
 	if w, ok := s.(Watcher); ok {
 		return w.Watch()
+	}
+	if s.Where() == "" {
+		return nil
 	}
 	return []string{s.Where()}
 }

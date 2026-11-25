@@ -39,8 +39,42 @@ fi
 
 say() { printf '%s\n' "$*"; }
 die() { printf '%skiroku: %s%s\n' "${c_bad:-}" "$*" "${c_off:-}" >&2; exit 1; }
+# gh などの出力を端末に出す前に、制御文字（エスケープシーケンス・BEL・CR など）を消す。改行とタブは残す。
+# 出力には証明書の値（リリースを作れる人が選べる文字）が入るので、そのまま出すと端末を操れてしまう
+clean() { LC_ALL=C tr -d '\000-\010\013-\037\177-\377'; } # 制御文字（C1 と、端末が C1 と読む UTF-8 も）を除く。gh のメッセージは ASCII
+
+usage() {
+  cat <<'USAGE'
+Usage: install.sh [-h | --help]
+
+Downloads kiroku from GitHub Releases, checks it against checksums.txt (and its
+build provenance with gh when the GitHub CLI is installed) and installs it.
+
+  curl -fsSL https://raw.githubusercontent.com/MichinaoShimizu/kiroku/main/install.sh | sh
+
+Environment variables:
+  KIROKU_VERSION                version to install (e.g. v0.1.1); the latest if unset
+  KIROKU_INSTALL_DIR            where to install; /usr/local/bin if unset
+                                (~/.local/bin when /usr/local/bin is not writable)
+  KIROKU_SKIP_ATTESTATION=1     don't check the build provenance (gh attestation verify)
+                                even when gh is installed
+  KIROKU_REQUIRE_ATTESTATION=1  require the build provenance check (stop when gh is missing,
+                                not logged in or cannot reach GitHub)
+USAGE
+}
 
 main() {
+# 引数は -h / --help だけ。ほかは、知らない指定を無視して入れてしまわないように止める
+if [ $# -eq 1 ]; then
+  case "$1" in
+    -h | --help) usage; exit 0 ;;
+  esac
+fi
+if [ $# -gt 0 ]; then
+  got=$(printf '%s' "$*" | clean) # 色の指定は除かず、渡された値だけを掃除する
+  printf '%skiroku: install.sh takes no arguments (got: %s); use KIROKU_VERSION or KIROKU_INSTALL_DIR instead (see "sh install.sh --help")%s\n' "${c_bad:-}" "$got" "${c_off:-}" >&2
+  exit 2
+fi
 command -v curl >/dev/null 2>&1 || die "curl is required"
 command -v tar >/dev/null 2>&1 || die "tar is required"
 
@@ -64,10 +98,16 @@ if [ -z "$version" ]; then
   version="${url##*/}"
 fi
 case "$version" in
-  v[0-9]*) ;;
   [0-9]*) version="v$version" ;;
-  *) die "unexpected version format: $version" ;;
 esac
+# tag.yml と kiroku update（validTag）と同じ形だけを認める。版はファイル名と URL に入るので、
+# 先に文字の種類で絞ってから（改行を含むものを grep が行ごとに通してしまわないように）形を確かめる
+ok=no
+case "$version" in
+  *[!0-9A-Za-z.v-]*) ;;
+  *) if printf '%s\n' "$version" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'; then ok=yes; fi ;;
+esac
+[ "$ok" = yes ] || die "unexpected version format: $(printf '%s' "$version" | LC_ALL=C tr -d '\000-\037\177')"
 
 file="kiroku_${version#v}_${os}_${arch}.tar.gz"
 base="https://github.com/$REPO/releases/download/$version"
@@ -144,7 +184,7 @@ if [ "$attest" = yes ]; then
   elif grep -Eqi 'expected [^ ]+ to be|no matching|no attestations|does not match|verification failed|failed to verify|HTTP 404' "$tmp/attest.log"; then
     # 証明が見つからない・合わない。gh の説明には証明書の値（ブランチ名・ワークフロー名など、リリースを作れる人が選べる文字）が
     # 入るので、下の「届かない」「古い gh」の言葉（timeout など）より先に見て、止める
-    grep . "$tmp/attest.log" >&2 || true
+    clean <"$tmp/attest.log" | grep . >&2 || true
     die "the build provenance of $file does not match $REPO (gh attestation verify failed; set KIROKU_SKIP_ATTESTATION=1 to skip this check)"
   elif [ "$status" -eq 4 ]; then
     # 4 は gh にログインしていないとき
@@ -156,11 +196,11 @@ if [ "$attest" = yes ]; then
     unchecked "this gh ${ghver:+($ghver) }is too old to check the build provenance (update it from your package manager or https://cli.github.com/)"
   elif grep -Eqi 'HTTP (401|403|429|5[0-9][0-9])|Sigstore verifier|dial tcp|no such host|connection (refused|reset)|timeout|TLS handshake|network is unreachable' "$tmp/attest.log"; then
     # GitHub に届かない・回数制限など。証明が合わないのとは別
-    grep . "$tmp/attest.log" | head -n 3 | sed 's/^/         /' >&2
+    clean <"$tmp/attest.log" | grep . | head -n 3 | sed 's/^/         /' >&2
     unchecked "gh could not reach GitHub, so the build provenance was not checked"
   else
     # 証明が見つからない（HTTP 404）・合わない
-    grep . "$tmp/attest.log" >&2 || true
+    clean <"$tmp/attest.log" | grep . >&2 || true
     die "the build provenance of $file does not match $REPO (gh attestation verify failed; set KIROKU_SKIP_ATTESTATION=1 to skip this check)"
   fi
 fi

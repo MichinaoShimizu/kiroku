@@ -1,6 +1,6 @@
 // docs/screenshot.png・docs/summary.png・docs/sum-io.png・docs/sum-unit.png・docs/sum-sankey.png・docs/worth.png・docs/session.png・docs/og.png を撮る。gen.py と mkgit.py で作ったダミーデータの HTML を使う。
 //   node capture.mjs <kiroku.html> <docs のディレクトリ>
-// Playwright が必要（このディレクトリで npm ci --ignore-scripts と npx playwright install chromium。版は package.json で固定）。英語表示（en-US）・プロジェクトごとの色分け（画面の既定ではない）・時刻は Asia/Tokyo・1440x900。
+// Playwright が必要（このディレクトリで npm ci --ignore-scripts と npx playwright install chromium。版は package.json で固定）。英語表示（en-US）・プロジェクトごとの色分け（画面の既定と同じ。前に選んだ色分けが残っていても、こちらに決める）・時刻は Asia/Tokyo・1440x900。
 import { chromium } from "playwright";
 import path from "node:path";
 
@@ -9,7 +9,7 @@ const [html, docs] = process.argv.slice(2);
 // 同じ時刻で撮り直すと同じ画像になるので、tools/screenshots/keep-changed.sh で本当に変わった画像だけを残せる
 const fakeNow = process.env.KIROKU_FAKE_NOW ? new Date(process.env.KIROKU_FAKE_NOW) : null;
 if (fakeNow && isNaN(fakeNow)) { console.error(`KIROKU_FAKE_NOW を日時として読めません: ${process.env.KIROKU_FAKE_NOW}`); process.exit(2); }
-// README と guide の画像は、プロジェクトごとの色分けで撮る（画面の既定はエージェントごと。説明の文と合わせる）。画面はいつもダーク。
+// README と guide の画像は、プロジェクトごとの色分けで撮る（画面の既定。説明の文と合わせる）。画面はいつもダーク。
 // 撮るためのどのコンテキストも clock を通るので、ここで決める
 const clock = async ctx => { if (fakeNow) await ctx.clock.install({ time: fakeNow });
   await ctx.addInitScript(() => { try { localStorage.setItem("kiroku:colorBy", '"project"'); } catch (e) {} });
@@ -42,7 +42,8 @@ await p.evaluate(() => { const e = document.querySelector("#review"), m = docume
 await p.waitForTimeout(500);
 await shotPair("#review .ik-cost", "#review .ik-out", "sum-io.png");
 await shotPair("#review .ik-uin", "#review .ik-unit", "sum-unit.png", 8);
-await p.locator("#review .iskw").screenshot({ path: path.join(docs, "sum-sankey.png") });
+// サンキーの枠（「From input to output」）。同じ段の「Estimated cost and output over time」も .iskw なので、最初の 1 つ
+await p.locator("#review .iskw").first().screenshot({ path: path.join(docs, "sum-sankey.png") });
 await p.setViewportSize({ width: 1440, height: 900 });
 await p.locator('#view button[data-v="cal"]').click(); // 以降の画像はカレンダーで
 await p.waitForTimeout(300);

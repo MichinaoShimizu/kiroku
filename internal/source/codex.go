@@ -70,15 +70,18 @@ func (c *Codex) ChecksFormat() bool { return true }
 // Watch は会話が入っている場所だけ。~/.codex の下にはログ（log/codex-tui.log）や history.jsonl などもあり、
 // ずっと書き換わるので、Home ごと見張ると何か書かれるたびに全部を読み直してしまう。
 func (c *Codex) Watch() []string {
+	if c.Home == "" {
+		return nil
+	}
 	return []string{filepath.Join(c.Home, "sessions"), filepath.Join(c.Home, "archived_sessions"), filepath.Join(c.Home, "session_index.jsonl")}
 }
 
-// DefaultCodexHome は CODEX_HOME か ~/.codex。
+// DefaultCodexHome は CODEX_HOME か ~/.codex（どちらもわからなければ ""）。
 func DefaultCodexHome() string {
 	if d := os.Getenv("CODEX_HOME"); d != "" {
 		return d
 	}
-	return filepath.Join(home(), ".codex")
+	return inHome(".codex")
 }
 
 type codexFile struct {
@@ -130,6 +133,9 @@ func codexSameWrite(copied []core.Obj, marker core.Obj) bool {
 
 func (c *Codex) files() []string {
 	var out []string
+	if c.Home == "" {
+		return nil // 今のフォルダからの相対パスを読まない
+	}
 	seen := map[string]bool{} // archived_sessions と同じファイル名は 1 回だけ
 	add := func(ps []string) {
 		for _, p := range ps {
@@ -152,6 +158,9 @@ func (c *Codex) files() []string {
 // titles は session_index.jsonl（{id, thread_name}、後のほうが新しい）。
 func (c *Codex) titles() map[string]string {
 	out := map[string]string{}
+	if c.Home == "" {
+		return out
+	}
 	core.ReadJSONL(filepath.Join(c.Home, "session_index.jsonl"), func(e core.Obj) {
 		if id, name := core.Str(e["id"]), core.Str(e["thread_name"]); id != "" && name != "" {
 			out[id] = name
@@ -1276,6 +1285,9 @@ func codexRateLimits(s *core.Builder, t *float64, rl core.Obj) {
 // 使用率が 100% 以上の枠（primary・secondary。100 を超えることもある）の resets_at で、どちらも当たっていれば遅いほう
 // （両方が戻るまで使えない）。当たった枠がない（クレジットの使い切りなど）か、resets_at がなければ 0。
 // limit_id が codex 以外（モデルごとの別の枠）のものも、当たったのはその枠なので同じに読む。
+// 当たった枠がなく、ワークスペースの使用量の上限（rate_limit_reached_type が workspace_owner_usage_limit_reached・
+// workspace_member_usage_limit_reached。管理者が決めた一人あたりの上限）に当たったときは、individual_limit の resets_at を使う
+// （protocol.rs の SpendControlLimitSnapshot）。クレジットの使い切り（*_credits_depleted）には解除の時刻がない。
 func codexResetAt(rl core.Obj) float64 {
 	at := 0.0
 	for _, slot := range []string{"primary", "secondary"} {
@@ -1285,6 +1297,14 @@ func codexResetAt(rl core.Obj) float64 {
 		}
 		if r, ok := core.Num(w["resets_at"]); ok && r > at {
 			at = r
+		}
+	}
+	if at == 0 {
+		switch core.Str(rl["rate_limit_reached_type"]) {
+		case "workspace_owner_usage_limit_reached", "workspace_member_usage_limit_reached":
+			if r, ok := core.Num(core.Get(rl, "individual_limit", "resets_at")); ok && r > 0 {
+				at = r
+			}
 		}
 	}
 	return at

@@ -38,7 +38,7 @@ jobs:
       # 標準ライブラリは go.mod の toolchain の版で見る（リリースもこの版でビルドする）
       - name: govulncheck
         if: runner.os == 'Linux'
-        run: GOTOOLCHAIN=$(go env GOVERSION) go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+        run: GOTOOLCHAIN=$(go env GOVERSION) go run golang.org/x/vuln/cmd/govulncheck@v1.10.0 ./...
       - run: go test ./...
       - run: go build -o kiroku-ci .
 
@@ -123,6 +123,7 @@ jobs:
         run: |
           sh tools/changelog.sh --check
           sh tools/changelog_test.sh > "$RUNNER_TEMP/changelog_test.log" || { cat "$RUNNER_TEMP/changelog_test.log"; exit 1; }
+          sh tools/verify-release_test.sh > "$RUNNER_TEMP/verify-release_test.log" || { cat "$RUNNER_TEMP/verify-release_test.log"; exit 1; }
           top=$(grep -m1 '^## ' CHANGELOG.md | cut -d' ' -f2)
           pending=$(sh tools/changelog.sh --print)
           # リリースの PR（いちばん上がまだタグのない版）に、まとめていない断片が残っていたら止める（その版に入らない）

@@ -1,0 +1,2 @@
+- `install.sh` accepts only versions of the form `vX.Y.Z` (with an optional `-pre` part), from `KIROKU_VERSION` or the latest-release redirect, like `kiroku update`; before, anything starting with `v` and a digit went into the download file name and URL
+- `install.sh` removes control characters (including C1 and other non-ASCII bytes) from the `gh attestation verify` output it shows, which can carry values chosen by whoever made the release

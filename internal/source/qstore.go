@@ -37,24 +37,38 @@ func (q *QStore) Name() string   { return q.Label }
 func (q *QStore) Family() string { return q.Fam }
 func (q *QStore) Where() string  { return q.DB }
 
-// DataDir は Rust の dirs::data_local_dir() と同じ場所。
+// DataDir は Rust の dirs::data_local_dir() と同じ場所。ホームがわからず（HOME が空など）、環境変数でも決まらなければ ""
+// （今のフォルダからの相対パスにしない）。
 func DataDir(app string) string {
-	switch runtime.GOOS {
+	return dataDir(runtime.GOOS, home(), os.Getenv, app)
+}
+
+// dataDir は OS ごとの DataDir（テストで OS を変えられるよう、ホームと環境変数を受け取る）。
+func dataDir(goos, home string, getenv func(string) string, app string) string {
+	var d string
+	switch goos {
 	case "darwin":
-		return filepath.Join(home(), "Library", "Application Support", app)
+		if home != "" {
+			d = filepath.Join(home, "Library", "Application Support")
+		}
 	case "windows":
-		d := os.Getenv("LOCALAPPDATA")
-		if d == "" {
-			d = filepath.Join(home(), "AppData", "Local")
+		d = getenv("LOCALAPPDATA")
+		if d == "" && home != "" {
+			d = filepath.Join(home, "AppData", "Local")
 		}
-		return filepath.Join(d, app)
 	default:
-		d := os.Getenv("XDG_DATA_HOME")
-		if d == "" {
-			d = filepath.Join(home(), ".local", "share")
+		d = getenv("XDG_DATA_HOME")
+		if !strings.HasPrefix(d, "/") { // XDG Base Directory: 相対パスの XDG_DATA_HOME は無視する（今のフォルダに書かない・読まない）
+			d = ""
 		}
-		return filepath.Join(d, app)
+		if d == "" && home != "" {
+			d = filepath.Join(home, ".local", "share")
+		}
 	}
+	if d == "" {
+		return ""
+	}
+	return filepath.Join(d, app)
 }
 
 // sqliteDSN は読み取り専用で開くための URI。Windows は file:///C:/… の形にする必要がある。

@@ -7,12 +7,14 @@ package archive
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/klauspost/compress/zstd"
@@ -26,25 +28,42 @@ const stamp = ".kiroku-archive"
 
 // DefaultDir は保存場所。KIROKU_ARCHIVE_DIR があればそこ。
 // Linux は $XDG_DATA_HOME か ~/.local/share、macOS は ~/Library/Application Support、Windows は %LocalAppData% の下の kiroku/archive。
+// ホームがわからず（HOME が空など）、環境変数でも決まらなければ ""（今のフォルダの下に履歴のコピーを書かない。使う側が断る）。
 func DefaultDir() string {
-	if d := os.Getenv("KIROKU_ARCHIVE_DIR"); d != "" {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		home = ""
+	}
+	return defaultDir(runtime.GOOS, home, os.Getenv)
+}
+
+// defaultDir は OS ごとの DefaultDir（テストで OS を変えられるよう、ホームと環境変数を受け取る）。
+func defaultDir(goos, home string, getenv func(string) string) string {
+	if d := getenv("KIROKU_ARCHIVE_DIR"); d != "" {
 		return d
 	}
-	home, _ := os.UserHomeDir()
 	var base string
-	switch runtime.GOOS {
+	switch goos {
 	case "darwin":
-		base = filepath.Join(home, "Library", "Application Support")
+		if home != "" {
+			base = filepath.Join(home, "Library", "Application Support")
+		}
 	case "windows":
-		base = os.Getenv("LocalAppData")
-		if base == "" {
+		base = getenv("LocalAppData")
+		if base == "" && home != "" {
 			base = filepath.Join(home, "AppData", "Local")
 		}
 	default:
-		base = os.Getenv("XDG_DATA_HOME")
-		if base == "" {
+		base = getenv("XDG_DATA_HOME")
+		if !strings.HasPrefix(base, "/") { // XDG Base Directory: 相対パスの XDG_DATA_HOME は無視する（今のフォルダに書かない・読まない）
+			base = ""
+		}
+		if base == "" && home != "" {
 			base = filepath.Join(home, ".local", "share")
 		}
+	}
+	if base == "" {
+		return ""
 	}
 	return filepath.Join(base, "kiroku", "archive")
 }
@@ -95,6 +114,10 @@ func Clear(dir string, subs []string) (int, error) {
 				dirs = append(dirs, p)
 				return nil
 			}
+			if isTemp(d) { // 止められて残った書きかけ（数えない）
+				_ = os.Remove(p)
+				return nil
+			}
 			if !isCopy(d) {
 				return nil // リンクやほかのファイル（kiroku が書かない名前）は残す
 			}
@@ -120,6 +143,32 @@ func Clear(dir string, subs []string) (int, error) {
 // isCopy は、kiroku が書くコピー（Sync が書く、ふつうのファイルの .jsonl.zst）か。Clear と Kept が同じ決まりで数える。
 func isCopy(d fs.DirEntry) bool {
 	return d.Type().IsRegular() && strings.HasSuffix(d.Name(), ".jsonl.zst")
+}
+
+// tmpPrefix は compress が書きかけのコピーに付ける名前。置きかえる前に止められる（kill -9 など）と残る
+const tmpPrefix = ".kiroku-tmp-"
+
+// staleTempAge より古い書きかけは、ほかの kiroku が書いている最中ではないので消してよい
+const staleTempAge = time.Hour
+
+func isTemp(d fs.DirEntry) bool {
+	return d.Type().IsRegular() && strings.HasPrefix(d.Name(), tmpPrefix)
+}
+
+// removeStaleTemps は、フォルダ dir に残った古い書きかけ（中身は履歴なので残さない）を消す
+func removeStaleTemps(dir string, now time.Time) {
+	es, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	for _, e := range es {
+		if !isTemp(e) {
+			continue
+		}
+		if fi, err := e.Info(); err == nil && now.Sub(fi.ModTime()) > staleTempAge {
+			_ = os.Remove(filepath.Join(dir, e.Name()))
+		}
+	}
 }
 
 // Kept は、Clear が消すもの（dir の下の subs の中の、kiroku が書いたコピー）の数と大きさ。消すかを聞くときに使う。
@@ -172,6 +221,26 @@ func Path(src, dst, file string) (string, bool) {
 	return filepath.Join(dst, rel) + ".zst", true
 }
 
+// ErrTooLarge は、コピーを残すには大きすぎるファイル（copyLimit より大きい）なので残さなかったこと。
+var ErrTooLarge = errors.New("too large to keep a copy")
+
+// maxCopy は、コピーを残すファイル 1 つの大きさの上限（バイト）。0 なら core.MaxZstd（kiroku がコピーを読むときにほどく上限。
+// それより大きいファイルのコピーは、残しても読めない）。履歴の名前でリンクされたほかの大きなファイルを、読み直しのたびに
+// 何 GB も圧縮して保存場所を埋めないため。テストで小さくする。
+var maxCopy int64
+
+func copyLimit() int64 {
+	if maxCopy > 0 {
+		return maxCopy
+	}
+	return core.MaxZstd
+}
+
+// tooLarge は、大きすぎて残さなかったファイルのエラー（読めなかったファイルと同じく、ファイル名をつけて知らせる）。
+func tooLarge(path string) error {
+	return fmt.Errorf("%s: %w (larger than %s)", path, ErrTooLarge, core.SizeLimit(copyLimit()))
+}
+
 // Sync は src の下の .jsonl を dst の下に圧縮して残す。前回から変わっていないファイルは圧縮し直さない。
 // 元のファイルが消えても、コピーは消さない。保存した（圧縮し直した）数を返す。
 func Sync(src, dst string) (int, error) {
@@ -198,8 +267,16 @@ func Sync(src, dst string) (int, error) {
 		if d.IsDir() || !strings.HasSuffix(p, ".jsonl") {
 			return nil
 		}
-		info, err := d.Info()
+		// 大きさと更新時刻はリンクの先のもので見る（d.Info は Lstat なので、.jsonl がシンボリックリンクだとリンク自身の
+		// 大きさで切ってしまい、先が変わっても残し直さない）。先がない・読めないものは飛ばす
+		info, err := os.Stat(p)
 		if err != nil || info.Size() == 0 {
+			return nil
+		}
+		if info.Size() > copyLimit() { // 開かずに飛ばす（compress も、開いたファイルの大きさで確かめ直す）
+			if first == nil {
+				first = tooLarge(p)
+			}
 			return nil
 		}
 		out, ok := Path(src, dst, p)
@@ -209,7 +286,7 @@ func Sync(src, dst string) (int, error) {
 		if prev, err := os.Stat(out); err == nil && prev.ModTime().Equal(info.ModTime()) {
 			return nil
 		}
-		if err := compress(p, out, info); err != nil {
+		if err := compress(p, out); err != nil {
 			if errors.Is(err, core.ErrNotRegular) {
 				return nil // ふつうのファイルでないもの（名前つきパイプなど）は残さない（大きさ 0 のものと同じ）
 			}
@@ -236,16 +313,25 @@ func resolve(p string) string {
 }
 
 // compress は src を zstd で圧縮して dst に書く。途中で失敗しても前のコピーは残る（一時ファイルに書いてから置きかえる）。
-func compress(src, dst string, info fs.FileInfo) error {
+// 大きさと更新時刻は、開いたファイル（シンボリックリンクなら、その先）から読む。
+func compress(src, dst string) error {
 	in, err := core.OpenRegular(src) // シンボリックリンクの先が名前つきパイプでも止まらない
 	if err != nil {
 		return err
 	}
 	defer in.Close()
+	info, err := in.Stat()
+	if err != nil {
+		return err
+	}
+	if info.Size() > copyLimit() { // Sync が大きさを見たあとで、リンクの先が変わっていても
+		return tooLarge(src)
+	}
 	if err := core.PrivateDir(filepath.Dir(dst)); err != nil {
 		return err
 	}
-	tmp, err := os.CreateTemp(filepath.Dir(dst), ".kiroku-tmp-*")
+	removeStaleTemps(filepath.Dir(dst), time.Now())
+	tmp, err := os.CreateTemp(filepath.Dir(dst), tmpPrefix+"*")
 	if err != nil {
 		return err
 	}

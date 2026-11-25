@@ -8,7 +8,7 @@ A change that breaks one of these is marked `BREAKING` in the changelog and, fro
 
 - **Commands**: `serve` (with `--check` and `--archive`), `update` and `help`, and their arguments (such as `serve --archive on|off` and the `ADDR` of `serve`). `open`, `html`, `archive`, `autostart`, `doctor` and `version` were removed in 5.0 and stop with a message naming what to use instead (`autostart` first removes a login item kiroku 4 registered), as `json` and `stats` do since 3.0
 - **Options**: the names, meanings and defaults listed under [Options](guide.md#options)
-- **Environment variables** kiroku reads: `KIROKU_ARCHIVE_DIR`, `KIROKU_CONFIG_DIR`, `KIROKU_LANG`, `KIROKU_REQUIRE_ATTESTATION` and `KIROKU_SKIP_ATTESTATION` (for `kiroku update` through `gh`, as in `install.sh`), and the agents' own (`CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME`)
+- **Environment variables** kiroku reads: `KIROKU_ARCHIVE_DIR`, `KIROKU_CONFIG_DIR`, `KIROKU_LANG`, `KIROKU_REQUIRE_ATTESTATION` and `KIROKU_SKIP_ATTESTATION` (for `kiroku update` through `gh`, as in `install.sh`), `KIROKU_AI` (removed in 4.0; it only prints a line saying so), and the agents' own (`CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME`, `CODEX_HOME`)
 - **Exit status**: 0 on success, and not 0 when a command fails
 - **The `--prices` file**: the JSON format described in [How you used AI](guide.md#how-you-used-ai), both the object and the array form
 - **`kiroku serve --archive` copies**: a later version still reads the copies an earlier one kept, and `kiroku serve --archive off` still recognizes the folder. The layout inside the folder may change if kiroku moves the old copies itself
@@ -23,6 +23,7 @@ A new major version costs everyone who scripts kiroku or packages it a round of 
 - **Deprecate first.** Something on the list above is first marked under `### Deprecated` in a minor release and keeps working, with a one-line notice where it is used, so it can be moved away from before it goes. Its `BREAKING:` fragment waits in a branch or an issue, not in `changes/`, until it is due.
 - **Batch.** Removals that are due go out together in one major version.
 - **At least 30 days apart.** `tools/release.sh` stops when a new major version would come less than 30 days after the previous one (`tools/major-gap.sh`). A security fix doesn't wait: it may break compatibility in any release (see below), and `KIROKU_MAJOR_OK=1` lets such a release through, with the reason in its pull request.
+- **Recorded exceptions.** v5.0.0 came three days after v4.0.0, with no `### Deprecated` release before it: the maintainer asked for it, and it went out with `KIROKU_MAJOR_OK=1` ([#557](https://github.com/MichinaoShimizu/kiroku/pull/557)). It was a one-off, not a precedent: `KIROKU_MAJOR_OK=1` stays for security fixes.
 
 ## May change in any release
 

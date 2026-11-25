@@ -1,0 +1,1 @@
+- `sh install.sh --help` (or `-h`) shows how to use it and installs nothing; any other argument stops it with an error. Before, arguments were ignored and it installed

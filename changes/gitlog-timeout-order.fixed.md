@@ -1,0 +1,2 @@
+- `kiroku serve`: when finding which git repository a project is in timed out, its commits no longer disappear from the view for 10 minutes; kiroku asks again on the next reload and reports the timeout in the terminal like other git timeouts
+- Commits made in the same second are listed in the same order every time (parent first)

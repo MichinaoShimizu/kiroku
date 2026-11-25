@@ -637,3 +637,123 @@ func TestLightOf(t *testing.T) {
 		t.Errorf("lightOf が違う:\n%s", out)
 	}
 }
+
+// 最後のセッションの終わり（calendar.js の lastEnd。記録のない週・月から、記録のある最後の期間へ行くボタン）。
+// 25 万セッションでも動くこと（Math.max(...DATA.map(…)) は引数が多すぎて RangeError になっていた）
+func TestLastEnd(t *testing.T) {
+	src, err := jsFiles.ReadFile("js/calendar.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := strings.ReplaceAll(string(src), "\r\n", "\n")
+	if regexp.MustCompile(`Math\.(max|min)\(\.\.\.DATA\b`).MatchString(s) {
+		t.Error("calendar.js spreads DATA into Math.max/min, which throws RangeError with ~200k sessions; use lastEnd")
+	}
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	m := regexp.MustCompile(`(?m)^const lastEnd = .*$`).FindString(s)
+	if m == "" {
+		t.Fatal("calendar.js に lastEnd が見つからない")
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "lastend_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "lastend.js")
+	if err := os.WriteFile(f, append([]byte(m+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("lastEnd が違う:\n%s", out)
+	}
+}
+
+// グラフの軸の名前を見た目の幅で切る（format.js の dispW・fitW）。日本語の名前を文字の数で切ると、英語のほぼ 2 倍の幅になって隣と重なった
+func TestFitW(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/format.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := strings.ReplaceAll(string(src), "\r\n", "\n")
+	code := regexp.MustCompile(`(?ms)^const WIDE = .*?^function fitW\(s, max\)\{.*?return o \+ "…"; \}$`).FindString(text)
+	if code == "" {
+		t.Fatal("format.js に WIDE から fitW までが見つからない")
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "fitw_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "fitw.js")
+	if err := os.WriteFile(f, append([]byte(code+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("dispW・fitW が違う:\n%s", out)
+	}
+}
+
+// いつもの範囲の両端（insight.js の insLoHi）。丸めた端が値をまたがないこと（「11.7：いつもの 9–12 より上」としない）、
+// 両端の小数の桁がそろうこと（「50.8%–64%」としない）。insLoHi・insEnds・insExpr を取り出し、MET と fmtM は置き換える。insBase が付ける b.fmt があっても桁がそろうこと
+func TestLoHi(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/insight.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := strings.ReplaceAll(string(src), "\r\n", "\n")
+	var m string
+	for _, re := range []string{`(?ms)^function insLoHi\(fm, b\)\{.*?^\}$`, `(?ms)^function insEnds\(fm, b\)\{.*?^\}$`, `(?ms)^function insExpr\(b\)\{.*?^\}$`} {
+		x := regexp.MustCompile(re).FindString(text)
+		if x == "" {
+			t.Fatalf("insight.js に %s が見つからない", re)
+		}
+		m += x + "\n"
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "lohi_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "lohi.js")
+	if err := os.WriteFile(f, append([]byte(i18nStub+m), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("insLoHi が違う:\n%s", out)
+	}
+}
+
+// 文の途中に入れる指標の名前（i18n.js の midName）。「No stretch where Estimated cost rose…」と大文字のまま入れない
+func TestMidName(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/i18n.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`(?m)^const midName = .*$`).FindString(strings.ReplaceAll(string(src), "\r\n", "\n"))
+	if m == "" {
+		t.Fatal("i18n.js に midName が見つからない")
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "midname_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "midname.js")
+	if err := os.WriteFile(f, append([]byte("let ja = false;\nconst isJA = () => ja;\n"+m+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("midName が違う:\n%s", out)
+	}
+}

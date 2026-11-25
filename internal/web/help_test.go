@@ -25,6 +25,9 @@ func block(t *testing.T, name string) string {
 	return template[i : i+j]
 }
 
+// numRe は、定義の文の中の数（「$0.3」「1,000」「10%」「4×」の数の部分）。
+var numRe = regexp.MustCompile(`\$?\d[\d,]*(?:\.\d+)?%?`)
+
 // guideMetricsHead は、ガイドの指標の表（定義と読み方を 1 つにした表）の見出しの行。
 const guideMetricsHead = "| Metric | Definition | Tells you | Doesn't tell you | What to try |"
 
@@ -35,7 +38,7 @@ func TestHelpMatchesGuide(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// 指標の表の行を、名前 → 読み方の 3 つの欄にする
+	// 指標の表の行を、名前 → 定義と読み方の 4 つの欄にする
 	rowsOf := map[string][]string{}
 	tables := 0
 	lines := strings.Split(strings.ReplaceAll(string(guide), "\r\n", "\n"), "\n")
@@ -62,13 +65,13 @@ func TestHelpMatchesGuide(t *testing.T) {
 			if _, dup := rowsOf[cs[0]]; dup {
 				t.Errorf("docs/guide.md の指標の表に %s の行が 2 つある", cs[0])
 			}
-			rowsOf[cs[0]] = cs[2:]
+			rowsOf[cs[0]] = cs[1:]
 		}
 	}
 	if tables == 0 {
 		t.Fatalf("docs/guide.md に指標の表（%s）がない", guideMetricsHead)
 	}
-	re := regexp.MustCompile(`\{n: "([^"]+)", d: "[^"]+", c: "([^"]+)", x: "([^"]+)", a: "([^"]+)"\}`)
+	re := regexp.MustCompile(`\{n: "([^"]+)", d: "([^"]+)", c: "([^"]+)", x: "([^"]+)", a: "([^"]+)"\}`)
 	rows := re.FindAllStringSubmatch(block(t, "HELP"), -1)
 	if len(rows) == 0 {
 		t.Fatal("HELP が見つからない")
@@ -82,8 +85,15 @@ func TestHelpMatchesGuide(t *testing.T) {
 			continue
 		}
 		for j, col := range []string{"Tells you", "Doesn't tell you", "What to try"} {
-			if got[j] != r[j+2] {
-				t.Errorf("docs/guide.md の %s の「%s」が画面と違う: %q、HELP は %q", r[1], col, got[j], r[j+2])
+			if got[j+1] != r[j+3] {
+				t.Errorf("docs/guide.md の %s の「%s」が画面と違う: %q、HELP は %q", r[1], col, got[j+1], r[j+3])
+			}
+		}
+		// 定義（Definition）は、ガイドのほうが詳しく書いてよい（読み取りの元や、表の下の注への案内など）。ただし、画面の定義にある数（基準の値・
+		// 回数・金額・割合）は、どれもガイドの定義にもあること（基準を片方だけ変えて、もう片方が古いままにならないように）
+		for _, n := range numRe.FindAllString(r[2], -1) {
+			if !strings.Contains(got[0], n) {
+				t.Errorf("docs/guide.md の %s の定義に、画面の定義にある %q がない（HELP: %q）", r[1], n, r[2])
 			}
 		}
 	}

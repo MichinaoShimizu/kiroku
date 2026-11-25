@@ -30,13 +30,14 @@ function render(){
   const noHit = !!st.q && !DATA.some(matches); // 検索がどこにも当たらない（カレンダーは空になり、上の検索結果だけが「ない」と言う）
   // 件数は横にスクロールする並び（.lrow）の外に置く。スマホでは並びの上に出し、チップが多くても画面の外へ押し出されないように
   const CP = calPick((M ? (MONTHS[mkey(st.month)] || {}).days : (WEEKS[key(st.week)] || {}).days) || []), SH = SHADE();
-  $("#legend").innerHTML = `<label class="cbsel"><span class="cbt">${esc(t("Color by"))}</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label>${CP.avail.length > 1 ? `<label class="cbsel"><span class="cbt">${esc(t("Figures"))}</span><select id="calk">${CP.avail.map(k => `<option value="${k}"${k === CP.k ? " selected" : ""}>${esc(SH[k].s)}</option>`).join("")}</select></label>` : ""}<div class="lrow"><span class="lab">${esc(t("Active time"))}<small> · ${esc(t("press to hide"))}</small></span>` +
+  $("#legend").innerHTML = `<label class="cbsel"><span class="cbt">${esc(t("Color by"))}</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label>${CP.avail.length > 1 ? `<label class="cbsel"><span class="cbt">${esc(t("Figures"))}</span><select id="calk">${CP.avail.map(k => `<option value="${k}"${k === CP.k ? " selected" : ""}>${esc(SH[k].s)}</option>`).join("")}</select></label>` : ""}<div class="lrw"><div class="lrow"><span class="lab">${esc(t("Active time"))}<small> · ${esc(t("press to hide"))}</small></span>` +
     Object.keys(cnt).sort((a,b)=>(mins[b]||0)-(mins[a]||0) || cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}" title="${esc(t("{name}: {stats} (click to show or hide)", {name: k, stats: `${mins[k] ? dur(mins[k]) + " · " : ""}${plural(cnt[k], "session")}`}))}"><span class="dot"></span>${st.colorBy === "source" ? agMark(k) : ""}<span class="cn">${esc((k))}</span><span class="n">${mins[k] ? dur(mins[k]) : "—"}<span class="sr"> ${esc(t("active"))}</span></span></button>`).join("") +
-    `</div>${filtering() ? `<span class="count">${esc(t(M ? "{n} of the month's {total} sessions" : "{n} of the week's {total} sessions", {n: shown.length, total: inRange.length}))}</span>` : ""}`; // 件数は絞り込んでいるときだけ（ふだんは全件なので言うことがない）
+    `</div><span class="lmore" aria-hidden="true" hidden></span></div>${filtering() ? `<span class="count">${esc(t(M ? "{n} of the month's {total} sessions" : "{n} of the week's {total} sessions", {n: shown.length, total: inRange.length}))}</span>` : ""}`; // 件数は絞り込んでいるときだけ（ふだんは全件なので言うことがない）
   // 検索・凡例で絞り込んでいるあいだ、絞り込めない合計（作業時間・トークンなど）は薄くして、そう断る
   const fn = $("#fnote"); fn.hidden = !filtering() || noHit;
   fn.textContent = `${st.q ? t("This view shows only sessions matching the search and their linked records.") : t("Hidden items are left out of this view.")} ${M ? t("Gray figures, at the top and in each day and week, are totals for all sessions; sessions and commits there count only what is shown.") : t("Gray figures, at the top and under each date, are totals for all sessions; sessions and commits there count only what is shown.")}`;
   $("#legend").hidden = !inRange.length; // 記録のない期間は、色分け・件数を出さない（押しても何も変わらない）
+  const lr = $("#legend .lrow"); if (lr) lr.addEventListener("scroll", lrowHint, {passive: true}); lrowHint();
   const ck = $("#calk"); if (ck) ck.onchange = () => { st.shade = ck.value; store.set("mShade", st.shade); render(); const n = $("#calk"); if (n) n.focus(); }; // 日の数（と月の濃さ）に使う量
   const cb2 = $("#cb2"); if (cb2) cb2.onchange = () => { st.colorBy = cb2.value; st.hidden.clear(); store.set("colorBy", st.colorBy); render(); };
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
@@ -133,8 +134,8 @@ function kpis(){
   const pjV = pj ? two(pj.cost != null ? `<small>≈</small>${usdH(pj.cost)}` : "", pj.credits != null ? `<small>≈</small>${crH(pj.credits)}` : "") : "";
   K.innerHTML = (useV ? kpi(useK, useV, u.tokens && c == null ? NOPRICE : "", "", u.tokens ? (c == null ? "tokens" : "cost") : "credits") : "") + // 増減（%）は帯に出さず、押したときの内訳に（kpiDelta）。枠の色もそろえる
     (pc && !pj ? paceK() : "") + // 月の途中は月末の推定を出すので、前の月並みの目安は出さない（内訳とサマリーにある）
-    ((mp => mp && mp.credits != null ? kpi(t("Month-end credits"), `<small>≈</small>${crH(mp.credits)}`, t("This month so far: {v}", {v: cr(mp.soCredits)}) + " · " + t("If the pace of the first {n} days continues", {n: mp.days}), "", "monthCr") : "")(monthProj())) + // 今週を見ているときも、クレジットの今月末の推定（クレジットは月ごとの枠）
-    (pjV ? kpi(t(pj.cost != null && pj.credits != null ? "Month-end (estimate)" : pj.cost != null ? "Month-end cost" : "Month-end credits"), pjV, pace, "", pj.cost != null ? "projection" : "projectionCr") : "") +
+    ((mp => mp && mp.credits != null ? kpi(t("Month-end credits (estimate)"), `<small>≈</small>${crH(mp.credits)}`, t("This month so far: {v}", {v: cr(mp.soCredits)}) + " · " + t("If the pace of the first {n} days continues", {n: mp.days}), "", "monthCr") : "")(monthProj())) + // 今週を見ているときも、クレジットの今月末の推定（クレジットは月ごとの枠）
+    (pjV ? kpi(t(pj.cost != null && pj.credits != null ? "Month-end (estimate)" : pj.cost != null ? "Month-end cost (estimate)" : "Month-end credits (estimate)"), pjV, pace, "", pj.cost != null ? "projection" : "projectionCr") : "") +
     kpi(t("Active time"), dur(w.active, true), n0 == null ? "" : M ? t("{days} of the {n} so far (this month is still in progress)", {days, n: plural(nd, "day")}) : t("{days} of the {n} so far (this week is still in progress)", {days, n: plural(nd, "day")}), "", "active");
   K.classList.toggle("dense", K.children.length > 7); // 数が多い（月表示など）ときは、一回り小さくして 1 行に
   K.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b));
@@ -171,7 +172,8 @@ function calRows(act, u, nS, nC, kinds, un){
 // 週の日の見出しの行：コミットの数（印つき）、使用量（推定費用など）、作業時間。どの数にも英語の単位（「5 commits · $4.29 · 5h 9m」）。狭い列では折り返す
 // unitH は「44 credits」の単位の語を小さく書いた HTML（週の見出しでは数と単位の間で改行しない。月の狭いマスでは単位を次の行に）。「$2.22」「5h 9m」はそのまま
 const unitH = v => esc(v).replace(/^(.*\d) ([A-Za-z]+)$/, "$1 <small lang=\"en\">$2</small>"); // 日本語の画面でも英語の単位（lang で読み上げも英語に）
-const calLine = rows => `<div class="cline">${rows.map(([k, v, c, ty]) => `<span class="${ty === "use" ? "cu" : ty === "time" ? "ct" : "cc"}${c && c.includes("u") ? " u" : ""}" aria-label="${esc(`${k}: ${v}`)}">${ty === "commit" ? ico("commit") : ""}${unitH(v)}</span>`).join("")}</div>`;
+// 読み上げの名前は「名前：値」。日本語の画面では、名前が量を言うので、英語の単位を落とす（「コミット：5 commits」としない）
+const calLine = rows => `<div class="cline">${rows.map(([k, v, c, ty]) => `<span class="${ty === "use" ? "cu" : ty === "time" ? "ct" : "cc"}${c && c.includes("u") ? " u" : ""}" aria-label="${esc(kv(k, isJA() ? String(v).replace(/^(.*\d) [A-Za-z]+$/, "$1") : v))}">${ty === "commit" ? ico("commit") : ""}${unitH(v)}</span>`).join("")}</div>`;
 // スマホでは作業時間と使用量だけ。トークンとクレジットは別の行に出す（両方あれば 2 行）。
 // ひとつの枠にまとめると、Claude Code と Kiro を両方使う人には、片方しか見えないため。
 // heatStep は、月のマスの濃さを凡例と同じ 4 段（¼・½・¾・1）に丸める。連続した濃さだと、いちばん濃いマスで字を読める濃さ（--heatk）までの狭い幅に
@@ -184,6 +186,8 @@ function calShort(act, u, un, kinds){ // 月のマス：コスト系（太く）
   return `${uk ? `<span class="acs${q}">${unitH(v || "—")}</span>` : ""}<span class="act${q}"><span class="tlong">${esc(act ? dur(act) : "—")}</span><span class="tshort" aria-hidden="true">${esc(sh)}</span></span>`;
 }
 const filtering = () => !!st.q || st.hidden.size > 0;
+// 最後のセッションの終わり（UNIX 秒）。Math.max(...list.map(…)) は、20 万件ほどで引数が多すぎて RangeError になるので reduce で
+const lastEnd = list => list.reduce((m, s) => s.end > m ? s.end : m, -Infinity);
 /* カレンダーに出すコミット：凡例で隠したプロジェクトのものは出さない。検索中は、一致したセッションの間のコミットと、それ自体が一致したコミットだけ */
 const gitHit = c => [c.hash, c.subject, c.body || "", ...(c.files || []).map(f => f.path)].join("\n").toLowerCase().includes(st.q);
 function gitShown(shown){
@@ -202,7 +206,7 @@ function monthGrid(shown, ms, me, todayKey){
   const un = filtering() ? 1 : 0, G = un ? gitShown(shown) : null;
   let note = "", noteGo = null;
   if (!un && !META.scope && !(S && S.days.some(d => d && d.active))){ // 記録のない月も空のマスを描き、上に「ない」の 1 行と、記録のある最後の月へ行くボタン
-    const last = DATA.length ? monthOf(new Date(Math.max(...DATA.map(s => s.end)) * 1000)) : null, jump = last && last.getTime() !== st.month.getTime();
+    const last = DATA.length ? monthOf(new Date(lastEnd(DATA) * 1000)) : null, jump = last && last.getTime() !== st.month.getTime();
     note = emptyNote(t("No records in {month}.", {month: dMY(st.month)}), jump ? t("Go to the latest month with records ({month})", {month: dMY(last)}) : "");
     noteGo = () => { st.month = last; st.sel = null; st.animate = true; render(); }; }
   const wks = []; for (let r = 0; r < 6 && addDays(first, 7*r).getTime()/1000 < me; r++) wks.push(addDays(first, 7*r));
@@ -221,7 +225,7 @@ function monthGrid(shown, ms, me, todayKey){
     const W = WEEKS[key(wk)], mi = [0,1,2,3,4,5,6].map(c => addDays(wk, c)).filter(d => d.getMonth() === st.month.getMonth()).map(d => S ? S.days[d.getDate()-1] : null).filter(Boolean);
     const part = {active: mi.reduce((a, x) => a + (x.active || 0), 0), cost: mi.reduce((a, x) => a + (x.cost || 0), 0), tokens: mi.reduce((a, x) => a + (x.tokens || 0), 0), credits: mi.reduce((a, x) => a + (x.credits || 0), 0), commits: mi.reduce((a, x) => a + (x.commits || 0), 0)};
     const whole = W && W.active && mi.length < 7 ? [`${t("Whole week, with days in other months")}: ${dur(W.active)}${W.usage && W.usage.cost > 0 ? ` · ${usd(costOf(W.usage))}` : ""}${W.usage && W.usage.credits ? ` · ${t("Credits")} ${cr(W.usage.credits)}` : ""}`] : [];
-    h += `<button class="cell wkc" data-w="${key(wk)}"${tipAttr(t("Week {n}", {n: isoWeek(wk)}), part.active ? [`${t("Active")} ${dur(part.active)}`, ...useLines(part), `${t("Git commits")} ${part.commits}`, ...whole] : whole.length ? [t("No records in this month's days"), ...whole] : t("No records"))}><span class="dn">${isJA() ? `${isoWeek(wk)}週` : `W${isoWeek(wk)}`}</span>${part.active ? calShort(part.active, part, un, kinds) : ""}</button>`;
+    h += `<button class="cell wkc" data-w="${key(wk)}"${tipAttr(t("Week {n}", {n: isoWeek(wk)}), part.active ? [`${t("Active time")} ${dur(part.active)}`, ...useLines(part), `${t("Git commits")} ${part.commits}`, ...whole] : whole.length ? [t("No records in this month's days"), ...whole] : t("No records"))}><span class="dn">${isJA() ? `${isoWeek(wk)}週` : `W${isoWeek(wk)}`}</span>${part.active ? calShort(part.active, part, un, kinds) : ""}</button>`;
     for (let c = 0; c < 7; c++){
       const d = addDays(wk, c), ds = d.getTime()/1000, de = addDays(d,1).getTime()/1000, inM = d.getMonth() === st.month.getMonth();
       if (!inM){ h += `<div class="cell out"><span class="dn">${d.getDate()}</span></div>`; continue; }
@@ -231,8 +235,8 @@ function monthGrid(shown, ms, me, todayKey){
       // 色分け（Color by）ごとの、その日の作業時間の細い帯。凡例で隠したもの・検索に合わないものは入らない
       const by = byDay.get(key(d)) || new Map();
       const tot = [...by.values()].reduce((a, v) => a + v, 0), mbar = tot ? `<span class="mbar" aria-hidden="true">${[...by].sort((a, b) => b[1] - a[1]).map(([k, v]) => `<i style="flex:${v};background:${colorOf(k)}"></i>`).join("")}</span>` : "";
-      h += `<button class="cell${wkc(d.getDay())}${key(d)===todayKey?" today":""}${d.getTime() > nowMs() ? " fut" : ""}${un && act && !nS ? " dim" : ""}" data-w="${key(mondayOf(d))}" data-d="${key(d)}" style="--heat:${heatStep(x ? SH[sk].f(x) / max : 0)}"${tipAttr(md(ds), act ? [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(x), `${t("Git commits")} ${nC}`] : t("No records"))}>
-        <span class="dn">${d.getDate()}</span>${x && x.commits ? `<span class="acm" aria-label="${esc(`${t("Git commits")}: ${x.commits}`)}">${ico("commit")}<span>${unitH(nUnit(x.commits, "commit"))}</span></span>` : ""}${act ? calShort(act, x, un, kinds) : ""}${mbar}
+      h += `<button class="cell${wkc(d.getDay())}${key(d)===todayKey?" today":""}${d.getTime() > nowMs() ? " fut" : ""}${un && act && !nS ? " dim" : ""}" data-w="${key(mondayOf(d))}" data-d="${key(d)}" style="--heat:${heatStep(x ? SH[sk].f(x) / max : 0)}"${tipAttr(md(ds), act ? [`${t("Active time")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(x), `${t("Git commits")} ${nC}`] : t("No records"))}>
+        <span class="dn">${d.getDate()}</span>${x && x.commits ? `<span class="acm" aria-label="${esc(kv(t("Git commits"), x.commits))}">${ico("commit")}<span>${unitH(nUnit(x.commits, "commit"))}</span></span>` : ""}${act ? calShort(act, x, un, kinds) : ""}${mbar}
         </button>`;
     }
   }
@@ -272,7 +276,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
   let note = "", noteGo = null;
   if (!inWeek.length || !shown.length){
     // 記録のない週も、曜日と時刻の枠は描き、上に 1 度だけ「ない」と言い、記録のある最後の週へ行けるようにする（月は大文字のまま。toLowerCase で "jul 6" にしない）
-    const last = !inWeek.length && !META.scope && DATA.length ? mondayOf(new Date(Math.max(...DATA.map(s => s.end))*1000)) : null, jump = last && last.getTime() !== st.week.getTime();
+    const last = !inWeek.length && !META.scope && DATA.length ? mondayOf(new Date(lastEnd(DATA) * 1000)) : null, jump = last && last.getTime() !== st.week.getTime();
     note = emptyNote(inWeek.length ? t("No sessions match the current filters.") : META.scope ? t("This file has no records for this week.") : st.week.getTime() === mondayOf(today0()).getTime() ? t("No records this week.") : t("No records in the week of {date}.", {date: dMD(st.week)}),
       jump ? t("Go to the latest week with records ({date})", {date: dMD(last)}) : "");
     noteGo = () => { st.week = last; st.sel = null; st.animate = true; render(); scrollToWork(); };
@@ -284,7 +288,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
   // 畳んだ時間帯には時刻を出さない（そこは「0–7」のボタン）。今の時刻の札（高さ約 20px）に重なる時刻は、消さずに札の上か下へずらして薄く出す（12:00 が見えなくならないように）
   for (let h=1; h<24; h++){ if (fold && h < CAL_D0) continue; const d = Y(h) - Y(nowH), near = nowIn && Math.abs(d) < 20;
     hours += `<span${near ? ' class="near"' : ""} style="top:${near ? Y(nowH) + (d >= 0 ? 20 : -20) : Y(h)}px">${String(h).padStart(2,"0")}:00</span>`; }
-  hours += `<button type="button" class="calfold" id="calfold" style="height:${fold ? Math.max(18, Y(CAL_D0) - 14) : 18}px" aria-expanded="${!fold}" title="${esc(fold ? t("Show 0:00–7:00 at full height") : t("Fold 0:00–7:00"))}" aria-label="${esc(fold ? t("Show 0:00–7:00 at full height") : t("Fold 0:00–7:00"))}">${esc(t("0–7h"))}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${fold ? "M7 10l5 5 5-5" : "M7 14l5-5 5 5"}"/></svg></button>`;
+  hours += `<button type="button" class="calfold" id="calfold" style="height:${fold ? Math.max(18, Y(CAL_D0) - 14) : 18}px" aria-expanded="${!fold}" title="${esc(fold ? t("Show 0:00–7:00 at full height") : t("Fold 0:00–7:00"))}" aria-label="${esc(kv(t("0–7h"), fold ? t("Show 0:00–7:00 at full height") : t("Fold 0:00–7:00")))}">${esc(t("0–7h"))}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${fold ? "M7 10l5 5 5-5" : "M7 14l5-5 5 5"}"/></svg></button>`;
   if (nowIn) hours += `<span class="now" style="top:${Y(nowH)}px">${hm(nowS)}</span>`;
   const runs = [], un = filtering() ? 1 : 0, G = gitShown(shown), kinds = useKinds(w ? w.days : []); kinds.k = calPick(w ? w.days : []).k;
   for (let d=0; d<7; d++){
@@ -292,7 +296,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
     const act = w && w.days[d] ? w.days[d].active : 0;
     const dW = w && w.days[d], nS = shown.filter(s => inP(s, ds, de)).length;
     const dayGit = G.filter(c => c.t >= ds && c.t < de).sort((a,b) => a.t - b.t);
-    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${isToday ? `<span class="tdy">${esc(t("Today"))}</span>` : ""}${(act || dayGit.length) ? `<button class="pill dayrun ai-copy" data-d="${d}" type="button" aria-label="${esc(t("Copy the daily report prompt for {date}", {date: md(ds)}))}" title="${esc(t("Copy the daily report prompt for {date}", {date: md(ds)}))}">${ico("copy")}<span>${esc(t("Copy prompt"))}</span></button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calLine(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`; // まだ来ていない日に「目安」は置かない（同じ額が上の帯の「前の週並みの 1 日の目安」にある）
+    heads += `<div class="head${isToday?" today":""}${wkc(day.getDay())}"><div class="dd"><b>${dMD(day)}</b><i>${dow(day.getDay())}</i>${isToday ? `<span class="tdy">${esc(t("Today"))}</span>` : ""}${(act || dayGit.length) ? `<button class="pill dayrun ai-copy" data-d="${d}" type="button" aria-label="${esc(kv(t("Copy prompt"), t("Daily report for {date}", {date: md(ds)})))}" title="${esc(t("Copy the daily report prompt for {date}", {date: md(ds)}))}">${ico("copy")}<span>${esc(t("Copy prompt"))}</span></button>` : ""}</div>${act || dayGit.length ? `<div${tipAttr(md(ds), [`${t("Active time")} ${dur(act)}`, `${t("Sessions")} ${nS}`, ...useLines(dW), `${t("Git commits")} ${dayGit.length}`])}>${calLine(calRows(act, dW, nS, dayGit.length, kinds, un))}</div>` : `<small>—</small>`}</div>`; // まだ来ていない日に「目安」は置かない（同じ額が上の帯の「前の週並みの 1 日の目安」にある）
     const blocks = [];
     shown.forEach(s => s.segs.forEach(([a,b,n]) => { const x = Math.max(a,ds), y = Math.min(b,de); if (y > x) blocks.push({s, a:x, b:y, n}); }));
     blocks.sort((p,q) => p.a-q.a || q.b-p.b);
@@ -347,8 +351,8 @@ function timeline(shown, inWeek, ws, we, todayKey){
             if (p){ html += `<button class="gm push${st.sel === "push:" + pushKey(p) ? " sel" : ""}" data-push="${esc(pushKey(p))}" style="top:${y}px" title="${esc((p.commits ? t("{time} Pushed to {ref} ({commits}) · {project}", {time: hm(at), ref: p.ref, commits: plural(p.commits, "commit"), project: p.project}) : t("{time} Pushed to {ref} · {project}", {time: hm(at), ref: p.ref, project: p.project})) + "\n" + t("From this computer (git reflog)"))}" aria-label="${esc(t("Push {time} to {ref}", {time: md(at) + " " + hm(at), ref: p.ref}))}">${ico("push")}</button>`; return; }
       if (r){ html += `<button class="gm prm${st.sel === "pr:" + prKey(s, r) ? " sel" : ""}" data-pr="${esc(prKey(s, r))}" style="top:${y}px" title="${esc(t("{time} Created a pull request · {project}", {time: hm(at), project: s.project}) + (r.url ? "\n" + r.url : "") + "\n" + t("Recorded when an agent created it"))}" aria-label="${esc(t("Pull request {time}", {time: md(at) + " " + hm(at)}))}">${ico("pr")}</button>`; return; }
       html += `<button class="gc${c.ai ? " ai" : ""}${st.sel === "git:"+c.hash ? " sel" : ""}" data-c="${esc(c.hash)}" style="top:${y}px" title="${esc(`${hm(c.t)} ${c.project}${c.branch ? " · "+c.branch : ""} · ${c.hash}\n${c.subject}\n${plural(c.nFiles, "file")} +${c.added} −${c.removed}${c.ai ? " · " + t("run by AI") : ""}`)}" aria-label="${esc(t("Commit {time} {subject}", {time: md(c.t) + " " + hm(c.t), subject: c.subject}))}">${GIT_ICON}<span>${esc(c.hash.slice(0,7))}</span></button>`; });
-    limitHits(ds, de).filter(h => matches(h.s)).forEach(h => { // 上限の印は、そのセッションの帯の左端に置く（隣の帯の上に出して、ほかの作業の印に見えないように）
-      const bk = blocks.find(b => b.s === h.s && b.a <= h.t && h.t <= b.b) || blocks.find(b => b.s === h.s), left = bk ? `left:calc((100% - var(--g)) * ${bk.l.toFixed(4)} + 3px);` : "";
+    limitHits(ds, de).filter(h => matches(h.s)).forEach(h => { // 上限の印は、そのセッションの帯の右端に置く（隣の帯の上に出して、ほかの作業の印に見えないように。左端だと名前の頭を隠す）
+      const bk = blocks.find(b => b.s === h.s && b.a <= h.t && h.t <= b.b) || blocks.find(b => b.s === h.s), left = bk ? `left:calc((100% - var(--g)) * ${(bk.l + bk.w).toFixed(4)} - 3px);transform:translateX(-100%);` : "";
       html += `<button class="lim" data-id="${esc(h.s.id)}" data-t="${h.t}" style="${left}top:${Y(clockH(day, h.t))}px" title="${esc(t("{time} Hit the usage limit ({title})", {time: hm(h.t), title: h.s.title}))}" aria-label="${esc(t("{time} Hit the usage limit ({title})", {time: md(h.t) + " " + hm(h.t), title: h.s.title}))}">${ico("limit")}<span class="sr">${esc(t("Limit"))}</span></button>`; }); // 印だけ（狭い帯の名前を隠さないように。名前は読み上げと title）
     if (d === nowCol) html += `<div class="nowline" style="top:${Y(nowH)}px"></div>`;
     cols += `<div class="day${wkc(day.getDay())}${isToday?" today":""}" style="height:${H}px;--g:${marks.length ? 18 : 0}px;--e0:${E0}px;--ch:${fold ? CAL_D0 : 0}">${html}</div>`;
@@ -397,6 +401,30 @@ function fitRuns(T){
     el.classList.add(tw(s, "00:00") <= w + 12 ? "nt" : "nn"); }); // 時刻は数字の幅がそろう（tabular-nums）ので 0 で測る。.st は左右の余白に 6px ずつはみ出せる
 }
 if (window.ResizeObserver) new ResizeObserver(() => { const T = $("#tl"); if (T.querySelector(".run")) fitRuns(T); edgeFade(T); }).observe($("#tl"));
+// lrowHint は、凡例のチップの並びが横にスクロールして右に続きがあるあいだだけ、並びの右に「+3 ›」（名前が見えていないチップの数）を出す。
+// 札は並びの上に重ねず、並びの右に場所を取る（.lrw の右の余白。見えているチップの時間を隠さない）。押すと、次の隠れたチップを左端にそろえて送る。
+// 読み上げとキーボードでは出さない（チップはどれも Tab で届き、フォーカスしたチップは lrowFit で並びの中に全部見えるまで送る）
+const LFADE = 16; // 並びの右端のぼかし（style.css の .more .lrow の mask と scroll-padding と同じ）
+const lrowVis = r => r.getBoundingClientRect().right - LFADE / 2; // ここより右に名前の終わりがあるチップは「見えていない」（ぼかしの半分までは読める）
+const lrowHidden = r => [...r.querySelectorAll(".chip")].filter(c => (c.querySelector(".cn") || c).getBoundingClientRect().right > lrowVis(r));
+function lrowHint(){ const r = $("#legend .lrow"), m = $("#legend .lmore"); if (!r || !m) return;
+  const w = r.parentElement, more = r.scrollLeft + r.clientWidth < r.scrollWidth - 2;
+  m.hidden = !more; w.classList.toggle("more", more);
+  if (!more){ w.style.paddingRight = ""; return; }
+  const pad = () => { w.style.paddingRight = `${m.offsetWidth + 6}px`; };
+  if (!m.textContent) m.textContent = "+0 ›"; // 幅を測るために仮の文字を入れる
+  pad(); m.textContent = `+${Math.max(1, lrowHidden(r).length)} ›`; pad(); }
+// lrowFit は、Tab で来たチップを並びの中に全部見えるところまで送る（一部が見えているチップは、ブラウザが送らないので、ぼかしと札の下に残っていた）。
+// 最後のチップなら並びの終わりまで
+function lrowFit(c){ const r = c.parentElement, rb = r.getBoundingClientRect(), cb = c.getBoundingClientRect();
+  if (c === [...r.querySelectorAll(".chip")].pop()){ r.scrollLeft = r.scrollWidth; return; }
+  if (cb.right > rb.right - LFADE) r.scrollLeft += cb.right - (rb.right - LFADE);
+  else if (cb.left < rb.left) r.scrollLeft -= rb.left - cb.left; }
+document.addEventListener("focusin", e => { const c = e.target.closest && e.target.closest("#legend .lrow .chip"); if (!c) return; lrowFit(c); requestAnimationFrame(() => { if (document.activeElement === c){ lrowFit(c); lrowHint(); } }); });
+document.addEventListener("click", e => { const m = e.target.closest && e.target.closest("#legend .lmore"); if (!m) return; const r = $("#legend .lrow"); if (!r) return;
+  const rb = r.getBoundingClientRect(), c = lrowHidden(r).find(x => x.getBoundingClientRect().left > rb.left + 1); // 次の隠れたチップを左端に（チップの境目で送る）
+  r.scrollTo({left: c ? r.scrollLeft + c.getBoundingClientRect().left - rb.left : r.scrollLeft + r.clientWidth * .8, behavior: "smooth"}); });
+if (window.ResizeObserver) new ResizeObserver(() => lrowHint()).observe($("#legend"));
 // edgeFade は、週のカレンダーが右へまだスクロールできるあいだだけ、右端をぼかす（.morer）。スクロールのたびと、描くたびに見直す
 function edgeFade(T){ const sc = T.querySelector(".calscroll"); T.classList.toggle("morer", !!sc && sc.scrollLeft + sc.clientWidth < sc.scrollWidth - 2); }
 
@@ -411,7 +439,7 @@ function tipMove(e){ const t = $("#tip"), w = t.offsetWidth, h = t.offsetHeight;
 function tipOff(){ $("#tip").classList.remove("on"); }
 function tipAt(el){ const r = el.getBoundingClientRect(); return {clientX: r.left + Math.min(r.width/2, 24), clientY: r.top + Math.min(r.height, 28)}; } // フォーカスしたブロックの左上あたりを、マウスの位置の代わりに
 // グラフの棒・帯・点は data-tip に書いた文を、マウスを載せる（タッチでは触れる）とすぐ出す。1 行目は見出し、続く行は「名前 値」
-const useLines = d => d ? [d.tokens ? `${t("Tokens")} ${tok(d.tokens)}` : "", d.cost >= 0.005 ? `${t("Estimated cost")} ${usd(d.cost)}` : "", d.credits ? `${t("Credits")} ${cr(d.credits)}` : ""].filter(Boolean) : [];
+const useLines = d => d ? [d.tokens ? `${t("Tokens")} ${tok(d.tokens)}` : "", d.cost >= 0.005 ? `${t("Estimated cost")} ${usd(d.cost)}` : "", d.credits ? `${t("Kiro credits")} ${crN(d.credits)}` : ""].filter(Boolean) : [];
 const tipAttr = (...lines) => ` data-tip="${esc(lines.flat().filter(Boolean).join("\n"))}"`;
 function tipText(e, text){ const t = $("#tip"), [h, ...r] = (text.includes("\n") ? text : text.replace(/・| · /g, "\n")).split("\n"); // 1 行で書いたもの（月表示の日など）は「・」で行に分ける
   t.innerHTML = `<b>${esc(h)}</b>${r.map(x => `<div class="r">${esc(x)}</div>`).join("")}`; t.classList.add("on"); tipMove(e); }

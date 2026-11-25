@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MichinaoShimizu/kiroku/internal/archive"
 	"github.com/MichinaoShimizu/kiroku/internal/source"
 )
 
@@ -73,14 +72,22 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 	fmt.Fprintf(w, "kiroku %s\n\n%s\n", version, s.bold("History found"))
 	// 履歴がなかったものは1行にまとめる。0 件が並ぶと、読んでほしい行がその下に押し出されてしまうため。
 	// どこを探したのか知りたいときのために、どれも 0 件のときと --all では場所まで出す
+	// HOME がなくて場所がわからなかったエージェントは、探して 0 件だったのではなく、探せなかった。まとめずに「unknown」と出す
 	var none []string
+	unknown := 0
 	for _, r := range rep {
-		if r.N == 0 && r.Error == nil && total > 0 && !all {
+		lost := r.N == 0 && homeUnknown(r.Where)
+		if lost {
+			unknown++
+		}
+		if r.N == 0 && r.Error == nil && total > 0 && !all && !lost {
 			none = append(none, r.Name)
 			continue
 		}
 		mark, what := s.ok("✓"), plural(r.N, "session")
-		if r.N == 0 {
+		if lost {
+			mark, what = s.warn("?"), "unknown"
+		} else if r.N == 0 {
 			mark, what = s.dim("·"), "none"
 		} else if r.Oldest > 0 {
 			what += ", since " + time.Unix(int64(r.Oldest), 0).Format("2006-01-02")
@@ -97,13 +104,16 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 		fmt.Fprintf(w, "  %s %-18s %s\n", s.dim("·"), "no history yet", s.dim(strings.Join(none, ", ")))
 		fmt.Fprintf(w, "      %s\n", s.dim("\"kiroku serve --check --all\" shows where kiroku looks for each one"))
 	}
-	if total == 0 {
+	switch {
+	case unknown > 0:
+		fmt.Fprintf(w, "  %s HOME is not set, so kiroku couldn't look for history in the usual folders. Set HOME, or point kiroku to it\n      %s\n", s.warn("!"), s.dim("(--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db; see \"kiroku serve --check --help\")"))
+	case total == 0:
 		fmt.Fprintf(w, "  %s No history found. If your agents keep it somewhere else, point kiroku to it\n      %s\n", s.warn("!"), s.dim("(--claude-root, --kiro-home, --crew-home, --codex-home, --kiro-cli-db; see \"kiroku serve --check --help\")"))
 	}
 
 	formatCheck(w, rep)
 
-	on := archive.Enabled(archiveDir)
+	on := archiveOn(archiveDir)
 	fmt.Fprintf(w, "\n%s\n", s.bold("Keeping history"))
 	risky := false
 	for _, r := range rep {
@@ -144,7 +154,7 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 			fmt.Fprintf(w, "      %s\n", s.dim("how to set it: "+k.Docs))
 		}
 	}
-	files, size := archive.Usage(archiveDir)
+	files, size := archiveUsage(archiveDir)
 	switch {
 	case on:
 		fmt.Fprintf(w, "  %s kiroku archive: on (%s, %s in %s)\n", s.ok("✓"), nFiles(files), humanBytes(size), tilde(archiveDir))
@@ -160,10 +170,8 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 	} else {
 		fmt.Fprintf(w, "  %s git: not found, so commits and pushes are not shown\n", s.dim("·"))
 	}
-	if p, err := currentAutostart(nil); err == nil { // kiroku 4 の autostart で登録したログイン時の起動が残っていれば、外し方を言う
-		if _, ok := autostartAddr(p); ok {
-			fmt.Fprintf(w, "  %s autostart: a login item from kiroku 4 still starts kiroku serve; run %s to remove it\n", s.warn("!"), s.bold("\"kiroku autostart\""))
-		}
+	if hasAutostart() { // kiroku 4 の autostart で登録したログイン時の起動が残っていれば、外し方を言う
+		fmt.Fprintf(w, "  %s autostart: a login item from kiroku 4 still starts kiroku serve; run %s to remove it\n", s.warn("!"), s.bold("\"kiroku autostart\""))
 	}
 	cur := "v" + strings.TrimPrefix(version, "v")
 	newer := false
@@ -191,6 +199,13 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 	}
 
 	fmt.Fprintf(w, "\n%s\n", s.bold("Next"))
+	if unknown > 0 && total == 0 {
+		fmt.Fprintln(w, "  set HOME, or pass --claude-root, --kiro-home, --codex-home or --crew-home, then run \"kiroku serve --check\" again")
+		return
+	}
+	if unknown > 0 {
+		fmt.Fprintln(w, "  set HOME, or pass --claude-root, --kiro-home, --codex-home or --crew-home, to read the agents marked ?")
+	}
 	if total == 0 {
 		fmt.Fprintln(w, "  use an agent for a while, or point kiroku to your history, then run \"kiroku serve --check\" again")
 		return
@@ -229,11 +244,28 @@ var pathExe = func() string {
 }
 
 // where は履歴の置き場所を書く。見つからなかったエージェントは、場所のかわりにそう書く。
+// ホームがわからない（HOME が空など）ときの空の場所は、入っていないのではなく、場所がわからない。
 func where(p string) string {
+	if homeUnknown(p) {
+		return "folder unknown: HOME is not set"
+	}
 	if p == "" || p == "none" {
 		return "not installed"
 	}
-	return tilde(p)
+	ps := strings.Split(p, ", ") // Kiro は KIRO_HOME と ~/.kiro の両方を読むので、場所が 2 つ並ぶことがある
+	for i := range ps {
+		ps[i] = tilde(ps[i])
+	}
+	return strings.Join(ps, ", ")
+}
+
+// homeUnknown は、場所が空なのがホームがわからない（HOME が空など）せいかどうか。
+func homeUnknown(p string) bool {
+	if p != "" {
+		return false
+	}
+	h, err := os.UserHomeDir()
+	return err != nil || h == ""
 }
 
 // plural は「1 session」「2 sessions」。

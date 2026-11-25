@@ -30,7 +30,7 @@ grep -rniE '<Name>|<family>|<option>|<ENV>|<adapter file>' --exclude-dir=.git . 
 
 | 場所 | 何があるか | どうする |
 |---|---|---|
-| `internal/core/agents.go` の `Agents` | 名前、`--sources` の名前、画面の色と頭文字、環境変数、`kiroku serve --archive` のフォルダ。`--sources` の既定値と説明、`autostartEnv`、`keptDirs`、画面の色と頭文字（`__AGENTS__`）はここから作る | 行を消す。ただし 2・3 で残す環境変数とフォルダは、`autostartEnv`・`keptDirs` に名前を書き足して残す（表から消すとそこからも消えるため）。`TestAgentsDerived` の期待値も直す |
+| `internal/core/agents.go` の `Agents` | 名前、`--sources` の名前、画面の色と頭文字、`kiroku serve --archive` のフォルダ。`--sources` の既定値と説明、`keptDirs`、画面の色と頭文字（`__AGENTS__`）はここから作る | 行を消す。ただし 2・3 で残すフォルダは、`keptDirs` に名前を書き足して残す（表から消すとそこからも消えるため）。`TestAgentsDerived` の期待値も直す |
 | `internal/source/source.go` の `All`・`Options`・`Default…` | 登録、保存場所の設定 | 登録を消す。`Options` のフィールドはオプションを残すなら残してよい |
 | `internal/source/<agent>.go`・`watch.go` | 読み取り、監視の場所 | やめるものだけのコードを消す（0 の「共有しているコード」） |
 | `internal/core/records.go` の `Records` | 履歴が何を記録するか | 消す（`TestRecordsCoverEverySource`） |

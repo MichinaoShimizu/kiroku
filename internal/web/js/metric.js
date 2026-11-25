@@ -9,8 +9,8 @@ const BRK = {
   projection: {n: "Month-end cost (estimate)", h: "projection", v: x => x.cost, f: v => usd(v), proj: "cost"},
   credits: {n: "Kiro credits", h: "credits", v: x => x.credits, f: cr, ses: s => s.credits},
   projectionCr: {n: "Month-end credits (estimate)", h: "projectionCr", v: x => x.credits, f: cr, proj: "credits"},
-  pace: {n: "A day to match the last period", h: "pace", v: x => x.cost, f: v => usd(v)},
-  paceCr: {n: "Credits a day to match the last period", h: "paceCr", v: x => x.credits, f: cr},
+  pace: {n: "A day to match last week or month", h: "pace", v: x => x.cost, f: v => usd(v)},
+  paceCr: {n: "Credits a day to match last week or month", h: "paceCr", v: x => x.credits, f: cr},
   active: {n: "Active time", h: "active", v: x => x.minutes ?? x.active, f: v => dur(v), ses: s => sesMin(s)},
   sessions: {n: "Sessions / prompts", h: "prompts", v: x => x.prompts, f: v => `${Math.round(v)}`, ses: s => s.nPrompts},
   limits: {n: "Usage limit hits", h: "limits"},
@@ -20,8 +20,8 @@ const BRK = {
   aiCommits: {n: "AI commits", h: "commits"},
   lines: {n: "Lines in Git commits", h: "lines"},
   prs: {n: "Pull requests", h: "prs"},
-  costPerCommit: {n: "Claude Code cost per AI commit", h: "costPerCommit"},
-  outSessions: {n: "Sessions that reached a commit or PR", h: "outSessions"},
+  costPerCommit: {n: "Claude Code estimated cost per AI commit", h: "costPerCommit"},
+  outSessions: {n: "Claude Code sessions that reached a commit or PR", h: "outSessions"},
   focus: {n: "Focus blocks (60+ min)", h: "focus"},
   fix: {n: "Prompts with corrections or interruptions", h: "fix"},
   bigPrompts: {n: "Oversized prompts", h: "bigPrompts"},
@@ -52,10 +52,10 @@ function mDays(w, m, proj){
   // 月末の推定の幅（3σ だけ）を、これからの日の 1 日あたりの量にして、点線で重ねる
   const from = ((cur + 1) / w.days.length * 100).toFixed(2);
   const band = lines.map(l => [l.hi, l.lo].filter(v => v > 0).map(v => `<i class="mbl k${l.k}" style="left:${from}%;--y:${(v/max*100).toFixed(2)}%" title="${esc(`${l.k}σ: ${rangeT(m.f(l.lo), m.f(l.hi))} ${t("a day")}`)}"></i>`).join("")).join("");
-  // トレンド線：終わった日に引いた直線（最小二乗法）を、月の最後の日まで延ばす。これからの日の部分は破線
+  // トレンド線：終わった日に引いた直線（最小二乗法）を、月の最後の日まで延ばす。これからの日の部分は破線（1 日の目安の破線と取り違えないよう、凡例に「Trend, projected」を別に）
   const n = w.days.length, X = i => ((i + 0.5) / n * 100).toFixed(2), Y = i => (100 - trAt(i) / max * 100).toFixed(2);
   const trSvg = tr ? `<svg class="mtrend" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="${X(0)}" y1="${Y(0)}" x2="${X(cur)}" y2="${Y(cur)}"/><line class="fut" x1="${X(cur)}" y1="${Y(cur)}" x2="${X(n - 1)}" y2="${Y(n - 1)}"/></svg>` : "";
-  const key = lines.length || tr ? `<p class="note mbkey">${proj ? `<span class="pace">${esc(t(proj.label || "Current pace"))}</span>` : ""}${tr ? `<span class="tr">${esc(t("Trend"))}</span>` : ""}${lines.map(l => `<span class="k${l.k}">${l.k}σ</span>`).join("")} ${esc(lines.length ? t("σ lines: the range per day for the days still to come (the table above is for the whole month)") : "")}</p>` : "";
+  const key = lines.length || tr ? `<p class="note mbkey">${proj ? `<span class="pace">${esc(t(proj.label || "Current pace"))}</span>` : ""}${tr ? `<span class="tr">${esc(t("Trend"))}</span>` : ""}${tr && cur < n - 1 ? `<span class="trf">${esc(t("Trend, projected"))}</span>` : ""}${lines.map(l => `<span class="k${l.k}">${l.k}σ</span>`).join("")} ${esc(lines.length ? t("σ lines: the range per day for the days still to come (the table above is for the whole month)") : "")}</p>` : "";
   return `<h3>${esc(t("By day"))}</h3><div class="mdays${M ? " month" : " wk"}"${proj ? ` style="--avg:${avg/max*100}%"` : ""}>${cols}${band}${trSvg}</div>${key}`;
 }
 // 横の棒の一覧（エージェント・プロジェクト・モデル）。total が false なら割合の欄を空ける（割合や中央値のように、足しても意味のない値）。
@@ -94,15 +94,15 @@ function paceBody(w, k, m, brief){
   const title = on ? (C ? t(M ? "Credits a day to match last month" : "Credits a day to match last week") : t(M ? "A day to match last month" : "A day to match last week"))
     : (C ? t(M ? "Over last month's credits" : "Over last week's credits") : t(M ? "Over last month's total" : "Over last week's total"));
   const big = on ? esc(bigF(m)(x.per)) : `+${esc(bigF(m)(-x.rest))}`, last = M ? "Last month" : "Last week";
-  const calc = on ? calcH([[last, esc(m.f(x.ref))], "−", ["So far", esc(m.f(x.so))], "=", ["Left", esc(m.f(x.rest))], "÷", ["Days left", `${pc.left}`], "=", ["A day", esc(bigF(m)(x.per))]])
-    : calcH([["So far", esc(m.f(x.so))], "−", [last, esc(m.f(x.ref))], "=", ["Over", esc(bigF(m)(-x.rest))]]);
+  const calc = on ? calcH([[last, esc(m.f(x.ref))], "−", ["So far", esc(m.f(x.so))], "=", ["Left", esc(m.f(x.rest))], "÷", ["Days left", `${pc.left}`], "=", ["A day", esc(m.f(x.per))]])
+    : calcH([["So far", esc(m.f(x.so))], "−", [last, esc(m.f(x.ref))], "=", ["Over", esc(m.f(-x.rest))]]); // 式の答えにも単位を（「A day 5」でなく「5 credits」）
   const note = on ? t("If you keep to about {v} a day, this period ends near the last one. What you use for the rest of today comes out of the days ahead. The faded bars are the days still to come at that amount.", {v: m.f(x.per)}) : t("This period has already passed the last one's total by {v}.", {v: m.f(-x.rest)});
   // 残したもの：途中の期間は、前の期間の同じ日までとも比べる（途中の値を前の期間まるごととだけ並べない）
   const pw = period().P, n = soFar(), gc = g => g && g.git ? g.git.commits : null, a = gc(pw), b = gc(w);
   const same = a == null || n == null ? null : pw.days.slice(0, Math.min(n, pw.days.length)).reduce((s, d) => s + (d.commits || 0), 0);
-  const out = a == null || b == null ? "" : `<p class="note">${esc(t(M ? "Left behind: {a} commits last month ({s} by the same day), {b} so far this month." : "Left behind: {a} commits last week ({s} by the same day), {b} so far this week.", {a, s: same ?? "—", b}))}</p>`;
+  const out = a == null || b == null ? "" : `<p class="note">${esc(t(M ? "Output (commits): {a} commits last month ({s} by the same day), {b} so far this month." : "Output (commits): {a} commits last week ({s} by the same day), {b} so far this week.", {a, s: same ?? "—", b}))}</p>`;
   if (brief) return {title, body: calc + `<p class="note">${esc(note)}</p>`};
-  return {title, big, body: calc + `<p class="note">${esc(note)}</p>` + out + mDays(w, m, x.rest > 0 ? {avg: x.per, tip: "≈ {v} to match the last period", label: "Pace to match the last period"} : null)};
+  return {title, big, body: calc + `<p class="note">${esc(note)}</p>` + out + mDays(w, m, x.rest > 0 ? {avg: x.per, tip: M ? "≈ {v} to match last month" : "≈ {v} to match last week", label: title} : null)};
 }
 const MB = {
   pace(w){ const r = paceBody(w, "cost", BRK.pace), c = r && paceBody(w, "credits", BRK.paceCr, true); // 帯は 1 つの枠なので、クレジットもここに
@@ -129,12 +129,12 @@ const MB = {
   costPerCommit(w, {inRange}){ const o = w.outputs || {}; if (w.costPerCommit == null || !o.commits) return null;
     const xs = inRange.filter(s => s.outputs && s.outputs.commits > 0 && s.cost > 0).map(s => [s, s.cost / s.outputs.commits]).sort((a,b) => b[1] - a[1]);
     return {big: usdH(w.costPerCommit), body: calcH([["Claude Code's estimated cost", `${esc(usd(w.outCost ?? w.costPerCommit * o.commits))}`], "÷", ["AI commits", `${o.commits}`], "=", ["Per commit", esc(usd(w.costPerCommit))]]) +
-      mSessions("Sessions with the highest cost per commit", xs.slice(0, 8), usd) + (xs.length ? WHOLE() : "")}; },
+      mSessions("Sessions with the highest estimated cost per commit", xs.slice(0, 8), usd) + (xs.length ? WHOLE() : "")}; },
   outSessions(w, {inRange}){ const base = w.outBase ?? w.sessions; if (!base) return null;
     const xs = inRange.filter(s => s.outputs && (s.outputs.commits || s.outputs.prs)).sort((a,b) => b.start - a.start);
     const what = s => [s.outputs.commits ? plural(s.outputs.commits, "commit") : "", s.outputs.prs ? plural(s.outputs.prs, "PR") : ""].filter(Boolean).join(" · ");
     return {big: `${Math.round(w.outSessions*100/base)}<small>%</small>`, body: calcH([["Reached a commit or PR", `${w.outSessions}`], "÷", ["Claude Code sessions", `${base}`]]) +
-      mBars("By project", pjRows(countBy(xs, s => s.project)), cnt) + mList("Sessions that reached a commit or PR", xs.map(s => sesCardH(s, sesMeta(s), what(s))), 10)}; },
+      mBars("By project", pjRows(countBy(xs, s => s.project)), cnt) + mList("Claude Code sessions that reached a commit or PR", xs.map(s => sesCardH(s, sesMeta(s), what(s))), 10)}; },
   focus(w){ if (!w.focus.length) return null; const {ws, we} = period(), ses = DATA.filter(s => inP(s, ws, we));
     const main = b => { const a = b.t, e = b.t + b.min*60; let best = null, bv = 0; // その時間にいちばん長く動いていた、同じプロジェクトのセッション
       ses.forEach(s => { if (s.project !== b.project) return; const v = s.segs.reduce((t, [x, y]) => t + Math.max(0, Math.min(y, e) - Math.max(x, a)), 0); if (v > bv){ bv = v; best = s; } }); return best; };
@@ -183,7 +183,7 @@ const MB = {
     return {big: usdH(w.costPerAsk), body: calcH([["Estimated cost", esc(usd(u.cost))], "÷", ["Prompts (sessions that record tokens)", `${w.costPrompts}`], "=", ["Per prompt", esc(usd(w.costPerAsk))]]) +
       mBars("By agent", agRows(rate(((w.shares || {}).source || []).map(x => [x.key, x.cost]), s => s.source)), um, false) +
       mBars("By project", pjRows(rate((w.projectStats || []).map(p => [p.project, p.cost]), s => s.project)), um, false) +
-      mSessions("Sessions with the highest cost per prompt", top, usd) + (top.length ? WHOLE() : "")}; },
+      mSessions("Sessions with the highest estimated cost per prompt", top, usd) + (top.length ? WHOLE() : "")}; },
 };
 /* トレンド線のまま進んだときの月末（終わった日の傾きを、残りの日に延ばして足す。マイナスにはしない） */
 function trendNote(w, pj, so, m){

@@ -53,6 +53,55 @@ async function openContext(env, locale, csp) {
   return { ctx, p, errors };
 }
 
+// legendHint は、凡例のチップの並び（横にスクロールする）の「+N ›」を確かめる（英語と日本語の流れから、Project と Agent の色分けで呼ぶ）。
+// 数は名前の見えていないチップの数。札は並びに重ねず右に場所を取り、見えているチップの時間を隠さない。押すと次の隠れたチップを左端にそろえて送る。
+// Tab で来たチップ（一部だけ見えていたものも）は並びの中に全部見え、最後のチップなら並びの終わりまで送る
+async function legendHint(p, env, check, by) {
+  const pause = () => p.waitForTimeout(300), tag = `${by === "source" ? "Agent" : "Project"}: `;
+  await p.evaluate(v => { const s = document.querySelector("#cb2"); s.value = v; s.dispatchEvent(new Event("change")); }, by); await pause();
+  const hint = () => p.evaluate(() => { const r = document.querySelector("#legend .lrow"), m = document.querySelector("#legend .lmore"), rb = r.getBoundingClientRect(), mb = m.getBoundingClientRect(), shown = m.checkVisibility();
+    const chips = [...r.querySelectorAll(".chip")], vis = rb.right - 8, hidden = chips.filter(c => c.querySelector(".cn").getBoundingClientRect().right > vis);
+    // 札が、並びの中で見えている部分（rb の内側）のチップの時間に重なっていないか
+    const over = !shown ? [] : chips.filter(c => { const n = c.querySelector(".n").getBoundingClientRect(), l = Math.max(n.left, rb.left), rr = Math.min(n.right, rb.right); return rr > l && mb.left < rr && mb.right > l; }).map(c => c.dataset.k);
+    return {over: r.scrollWidth > r.clientWidth + 2, more: r.scrollLeft + r.clientWidth < r.scrollWidth - 2, shown, text: m.textContent, cut: hidden.length, first: hidden.map(c => c.dataset.k)[0], left: r.scrollLeft, covers: over,
+      inside: !shown || mb.right <= innerWidth, page: document.documentElement.scrollWidth <= innerWidth + 1}; });
+  await p.evaluate(() => { document.querySelector("#legend .lrow").scrollLeft = 0; }); await pause();
+  const h0 = await hint();
+  check(`${tag}凡例のチップがはみ出すときだけ、並びの右に名前の見えていないチップの数（+N ›）を出し、見えているチップの時間に重ならない`, h0.shown === h0.more && (!h0.shown || (h0.text === `+${Math.max(1, h0.cut)} ›` && h0.inside && h0.page && !h0.covers.length)), JSON.stringify(h0));
+  if (!env.isMobile) return;
+  check(`${tag}スマホ（ダミーデータ）では、凡例のチップが横にはみ出し、数を出す`, h0.over && h0.shown, JSON.stringify(h0));
+  if (h0.shown){
+    // 押すと、次の隠れたチップ（名前の見えていなかった最初のもの）を並びの左端にそろえて送る。チップの途中で止めない
+    await p.locator("#legend .lmore").click(); await p.waitForTimeout(700);
+    const al = await p.evaluate(k => { const r = document.querySelector("#legend .lrow"), c = [...r.querySelectorAll(".chip")].find(x => x.dataset.k === k), rb = r.getBoundingClientRect(), cb = c.getBoundingClientRect();
+      return {left: r.scrollLeft, end: r.scrollLeft + r.clientWidth >= r.scrollWidth - 2, dx: Math.round(cb.left - rb.left)}; }, h0.first);
+    check(`${tag}数を押すと、次の隠れたチップが並びの左端にそろう（並びの終わりに着いたときは、そのチップが見える）`, al.left > 0 && (Math.abs(al.dx) <= 1 || (al.end && al.dx >= 0)), JSON.stringify(al));
+    const h1a = await hint();
+    check(`${tag}送ったあとも、数は名前の見えていないチップの数で、札は時間に重ならない`, !h1a.shown || (h1a.text === `+${Math.max(1, h1a.cut)} ›` && !h1a.covers.length), JSON.stringify(h1a));
+    await p.evaluate(() => { const r = document.querySelector("#legend .lrow"); r.scrollLeft = r.scrollWidth; }); await pause();
+    const h1 = await hint();
+    check(`${tag}右端までスクロールすると、数が消える`, !h1.shown && !h1.more, JSON.stringify(h1));
+    await p.evaluate(() => { document.querySelector("#legend .lrow").scrollLeft = 0; }); await pause();
+    // キーボード：Tab で進むたびに、そのチップ（一部だけ見えていたものも）が並びの中に全部見え、ぼかしと数の札に隠れない。最後のチップでは並びの終わりまで
+    const n = await p.locator("#legend .chip").count(), bad = [];
+    await p.locator("#legend .chip").first().focus(); await pause();
+    for (let i = 0; i < n; i++) {
+      if (i) { await p.keyboard.press("Tab"); await pause(); }
+      const k = await p.evaluate(() => { const c = document.activeElement, r = document.querySelector("#legend .lrow"), m = document.querySelector("#legend .lmore");
+        const cb = c.getBoundingClientRect(), rb = r.getBoundingClientRect(), mb = m.checkVisibility() ? m.getBoundingClientRect() : null, last = c === [...r.querySelectorAll(".chip")].pop();
+        return {k: c.dataset.k, last, inRow: cb.left >= rb.left - 1 && cb.right <= rb.right + 1 - (last ? 0 : 16), covered: !!mb && mb.left < cb.right && mb.right > cb.left, end: r.scrollLeft + r.clientWidth >= r.scrollWidth - 2}; });
+      if (!k.k || !k.inRow || k.covered || (k.last && !k.end)) bad.push(k);
+    }
+    check(`${tag}Tab で進むと、どのチップも並びの中に全部見え、数の札に隠れない。最後のチップでは並びの終わりまで送る`, bad.length === 0, JSON.stringify(bad));
+    await p.evaluate(() => { document.activeElement.blur(); document.querySelector("#legend .lrow").scrollLeft = 0; }); await pause();
+  }
+  // チップが 1 つだけで並びに収まるときは、数を出さない（320 では見出しとチップ 1 つでもはみ出すので、見出しも外す。描き直して元に戻す）
+  await p.evaluate(() => { document.querySelectorAll("#legend .chip").forEach((c, i) => { if (i) c.remove(); }); document.querySelector("#legend .lab").remove(); lrowHint(); });
+  const h2 = await hint();
+  check(`${tag}チップが並びに収まるときは、数を出さない`, !h2.over && !h2.shown, JSON.stringify(h2));
+  await p.evaluate(() => { const s = document.querySelector("#cb2"); s.value = "project"; s.dispatchEvent(new Event("change")); }); await pause();
+}
+
 async function run(env) {
   const out = [`# ${env.name}`];
   let failed = 0;
@@ -67,7 +116,10 @@ async function run(env) {
   // 1 つの流れが途中で止まっても、失敗として数えて次の流れへ進む（開き直して、記録のそろった先週から始める）
   const open = async () => { await p.goto(url); await loaded(p); await p.keyboard.press("ArrowLeft"); await pause(); };
   // 表示の切り替え（カレンダー / サマリー）。サマリーを触る確認は、サマリーに切り替えてから行い、終わったらカレンダーへ戻す
-  const view = async v => { await p.locator(`#view button[data-v="${v}"]`).click(); await p.waitForTimeout(150); };
+  // 表示を切りかえ、切りかわったこと（body の data-view と押したボタン）を待つ。そのあと 1 フレーム描かせる
+  const view = async v => { await p.locator(`#view button[data-v="${v}"]`).click();
+    await p.waitForFunction(v => document.body.dataset.view === v && document.querySelector(`#view button[data-v="${v}"]`).getAttribute("aria-pressed") === "true", v);
+    await p.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))); };
   async function step(name, fn) {
     const before = failed;
     try { await fn(); } catch (e) { check(name, false, e.message.split("\n")[0]); }
@@ -85,6 +137,8 @@ async function run(env) {
     check("絞り込んでいないときは、凡例に件数（20 / 20 sessions）を出さない", await p.locator("#legend .count").count() === 0);
     check("ロゴはこのファイルを開き直すリンク（/ ではディスクの一番上へ行く）", await p.evaluate(() => document.querySelector("#home").getAttribute("href") === location.href.split(/[?#]/)[0]));
     check("ロゴが検索欄に隠れない", await p.evaluate(() => document.querySelector(".brand .word").getBoundingClientRect().right <= document.querySelector(".search").getBoundingClientRect().left));
+    check("ロゴの下に kiroku が何かを 1 行で出し、検索欄に重ならない（とても狭い画面では出さない）", await p.evaluate(w => { const g = document.querySelector(".tagline"), r = g.getBoundingClientRect();
+      return w < 375 ? !g.checkVisibility() : g.checkVisibility() && r.height < 20 && r.right <= document.querySelector(".search").getBoundingClientRect().left; }, env.viewport.width));
     // カレンダーが主役：① から下のパネルは閉じていて、上の帯は使ったものだけ
     check("上の帯は使ったものだけ（残したもの：コミット・変えた行・PR は出さない）", await p.locator('#kpis .kpi.out, #kpis [data-metric="commits"], #kpis [data-metric="lines"], #kpis [data-metric="aiCommits"], #kpis [data-metric="prs"]').count() === 0);
     if (env.viewport.width > 820 && env.viewport.width < 1440) check("上の数字の帯は 1 行（折り返さない）", await p.evaluate(() => new Set([...document.querySelectorAll("#kpis .kpi")].map(k => Math.round(k.getBoundingClientRect().top))).size === 1));
@@ -103,6 +157,9 @@ async function run(env) {
       check("押すと広がり、画面に収まる", b1.w > 150 && b1.l >= 0 && b1.r <= env.viewport.width, JSON.stringify(b1));
       await p.locator("#q").blur(); await pause();
     }
+    if (env === envs[0]) check("記録の始まった週（途中から）は、「?」と見直す候補の推移の左端に (partial) と出し、読み上げでもわけを言う（ツールチップだけにしない）", await p.evaluate(() => {
+      const f = document.createRange().createContextualFragment(spark("cost", true)), e = f.querySelector(".ends span"), sr = f.querySelector(".sr");
+      return !!e && / \(partial\)$/.test(e.textContent) && /\(partial week: your history starts in it, so it is left out\)/.test(sr.textContent); }));
     check("週の見出しは「Week x of y」（その年の週の数は 52 か 53）", /Week \d{1,2} of 5[23]\b/i.test(await p.locator("#ry").innerText()), await p.locator("#ry").innerText());
     if (env === envs[0]) check("週の数：2026 年は 53 週、2025 年は 52 週（12 月 28 日の週）", await p.evaluate(() => isoWeek(new Date(2026, 11, 28)) === 53 && isoWeek(new Date(2025, 11, 28)) === 52));
     check("既定はカレンダー：サマリーは隠れ、カレンダーが見える", await p.locator("#review .rvhead").isHidden() && await p.locator("#review .insight").isHidden() && await p.locator("#tl").isVisible());
@@ -144,7 +201,7 @@ async function run(env) {
       sm.click(); await wait(); const saved = store.get("insBrk", false) === true; summary();
       const B2 = document.querySelector("#review details.insbrk"), top = [...B2.querySelectorAll(":scope > .insg > .insrow h4")].map(h => h.textContent);
       return closed && saved && B2.open && top.some(x => /When you worked/.test(x)) && top.some(x => /Where it went/.test(x)) && top.some(x => /Most edited files/.test(x)) && !top.some(x => /^(Trend|Usage|Spread per session)/.test(x)); }));
-    check("投入から産出の流れの右（狭い画面では下）に、費用と産出の推移のカード（2 本の線）があり、内訳の中にはない", await p.evaluate(() => {
+    check("投入から産出の流れの右（狭い画面では下）に、推定費用と産出の推移のカード（2 本の線）があり、内訳の中にはない", await p.evaluate(() => {
       const f = document.querySelector("#review .isflow"), cs = f ? [...f.children] : [], sk = cs.find(c => c.querySelector(".isk")), cu = cs.find(c => c.querySelector(".icum"));
       if (!sk || !cu || document.querySelector("#review .insbrk .icum") || cu.querySelectorAll("path.icl").length !== 2) return false;
       const a = sk.getBoundingClientRect(), b = cu.getBoundingClientRect();
@@ -200,6 +257,7 @@ async function run(env) {
     check("前の週では「次の週」を押せる", await p.locator("#next").isEnabled());
     check("先週なら、期間の見出しにそう書いてある", /last week$/i.test(await p.locator("#ry").innerText()), await p.locator("#ry").innerText());
     check("凡例の数は作業時間", /\d+(h|m)/.test(await p.locator("#legend .chip .n").first().innerText()), await p.locator("#legend .chip .n").first().innerText());
+    for (const by of ["project", "source"]) await legendHint(p, env, check, by);
     await p.evaluate(() => scrollTo(0, 0)); await pause(); // ページを下にスクロールしたあとは、貼り付いた見出しの下をブロックが通るのが正しい。開いた位置（ページの先頭）で確かめる
     const cut = await p.evaluate(() => { const hd = document.querySelector("#tl .heads").getBoundingClientRect().bottom;
       return [...document.querySelectorAll("#tl .run")].filter(r => { const b = r.getBoundingClientRect(); return b.top < hd - 1 && b.bottom > hd + 1; }).length; });
@@ -231,6 +289,9 @@ async function run(env) {
     check("押すと詳細が開く", await drawerOpen());
     const box = await p.locator("#drawer").boundingBox();
     check("詳細が画面に収まる", box && box.x >= -1 && box.x + box.width <= env.viewport.width + 1, JSON.stringify(box));
+    // 広い画面では、流れ（左の列）が操作・数値・情報（右の列）より先：Tab が「閉じる → 右 → 左 → 右」と行き来しない
+    check("Tab の順が、見た目の列の順（左の流れ → 右の列）", await p.evaluate(() => { const c = document.querySelector("#panel .scols"); if (!c) return true;
+      const f = c.querySelector(":scope > .sflow"), wide = matchMedia("(min-width:1100px)").matches; return !f || (wide ? c.firstElementChild === f : !f.nextElementSibling || f.nextElementSibling.matches(".sinfo")); }));
     check("閉じるボタンが種類の行に並び、ボタンだけの空いた帯がない", await p.evaluate(() => { const c = document.querySelector("#close").getBoundingClientRect(), e = document.querySelector("#panel .eyebrow").getBoundingClientRect();
       return Math.abs((c.top + c.bottom) / 2 - (e.top + e.bottom) / 2) < 12 && c.left > e.left; }));
     const rep = p.locator("#panel .tl li.rp").first();
@@ -267,8 +328,9 @@ async function run(env) {
       const c = await p.evaluate(async () => { window.__copied = null; // 会話全体を Markdown で写す（見出しは発言者と時刻、本文はプロンプトの順）
         const b = document.querySelector("#drawer .flowhd .fcopy"); if (!b) return {none: true};
         const s = DATA.find(x => x.id === st.sel); b.click(); await new Promise(z => setTimeout(z, 600));
-        return {label: b.getAttribute("aria-label"), got: window.__copied || "", first: String(s.prompts[0].text || "").slice(0, 30), n: s.prompts.length}; });
-      check("会話全体を Markdown でコピーできる", !c.none && /Copy the conversation as Markdown/.test(c.label) && c.got.startsWith("# ") && (c.got.match(/^## You/gm) || []).length === c.n && c.got.includes(c.first), JSON.stringify({...c, got: c.got.slice(0, 80)}));
+        return {label: b.getAttribute("aria-label"), title: b.title, text: b.textContent.trim(), got: window.__copied || "", first: String(s.prompts[0].text || "").slice(0, 30), n: s.prompts.length}; });
+      // 読み上げの名前は見えている文字から始まる（aria-label で別の名前にしない。説明は title に）
+      check("会話全体を Markdown でコピーできる", !c.none && !c.label && c.text === "Copy as Markdown" && /Copy the conversation as Markdown/.test(c.title) && c.got.startsWith("# ") && (c.got.match(/^## You/gm) || []).length === c.n && c.got.includes(c.first), JSON.stringify({...c, got: c.got.slice(0, 80)}));
     }
     { // 前後のセッションへ（キーと、見出しの帯の ‹ ›）・キーで流れをスクロール・流れの全画面
       const id0 = await p.evaluate(() => st.sel);
@@ -334,6 +396,11 @@ async function run(env) {
         const F = lastFlags, side = f => insSide(f), ok = F.every((f, i) => i === 0 || side(F[i - 1]) < side(f) || side(F[i - 1]) === side(f) && ((F[i - 1].stake && F[i - 1].stake.c) ?? -1) >= ((f.stake && f.stake.c) ?? -1));
         return ok; }));
       check("見直す候補はどれも、サマリーの指標の横の印から開ける", await p.evaluate(() => [...new Set(lastFlags.map(f => GOTO[f.k] || f.k))].every(id => document.querySelector(`#review .fmark[data-goto="${id}"]`))));
+      // 表示中の期間に出ていない候補も、出たときに印の置き場所があるか（モデルの選び方は「?」のない図に置く。置き場所がないと印が消える）。
+      // 写しの上で候補をすべて置いてみて、どれにも見えている印が付くかを見る
+      check("どの種類の見直す候補にも、見えている印が付く", await p.evaluate(() => { const R = document.querySelector("#review").cloneNode(true); R.querySelectorAll(".fmark").forEach(x => x.remove());
+        document.body.append(R); try { const ks = ["limits", "fix", "friction", "longctx", "modelfit", "heavy", "repeats"]; placeFlags(R, ks.map(k => ({k, ids: []})));
+          return ks.every(k => [...R.querySelectorAll(`.fmark[data-goto="${GOTO[k] || k}"]`)].some(m => !m.closest("[hidden]"))); } finally { R.remove(); } }));
       check("エージェント別の表に、エージェントごとの行がある（費用とクレジットを混ぜない）", await p.evaluate(() => document.querySelectorAll("#review .iagt tbody tr").length >= 2));
       check("サマリーにエージェントの切り替えはない（いつもすべてのエージェント）", await p.evaluate(() => !document.querySelector("#review [data-ag]")));
       { // 投入の量（推定費用・Kiro credits・トークン）は、どのエージェントの分もまとめ、棒はエージェントの色で積み上げる。色の凡例に名前を添える
@@ -530,8 +597,9 @@ async function run(env) {
       const a = act.getBoundingClientRect(), f = flow.getBoundingClientRect(), wide = innerWidth >= 1100;
       return {n: v.length, inAct: !v.length || !!v[0].closest(".sact"), wide, place: wide ? a.left > f.right - 1 : a.top < f.top,
         flowOnly: !flow.querySelector(".mini, .files, .trow, .dresume, #srun"),
-        // HTML の順（Tab の順）が見た目の順と同じ：操作 → 数値 → 流れ → 情報。1 列ではモデル・ツールは流れより下
-        order: [".sact", ".smet", ".sflow", ".sinfo"].map(c => document.querySelector("#panel .scols > " + c)).filter((e, i) => e || i).every((e, i, a) => e && (!i || (a[i-1].compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING))),
+        // HTML の順（Tab の順）が見た目の順と同じ：1 列では操作 → 数値 → 流れ → 情報（モデル・ツールは流れより下）。
+        // 2 列では左の流れ → 右の列（操作 → 数値 → 情報）。「閉じる → 右 → 左 → 右」と行き来しない
+        order: (wide ? [".sflow", ".sact", ".smet", ".sinfo"] : [".sact", ".smet", ".sflow", ".sinfo"]).map(c => document.querySelector("#panel .scols > " + c)).filter((e, i) => e || i !== (wide ? 1 : 0)).every((e, i, a) => e && (!i || (a[i-1].compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING))),
         toolsBelow: wide || [...document.querySelectorAll("#panel .trow")].every(e => e.getBoundingClientRect().top > f.bottom - 1)}; });
     check("詳細の HTML の順は、操作・数値・流れ・情報（Tab の順が見た目と合う）", rs.order === true, JSON.stringify(rs));
     check("1 列では、使ったツールは流れより下", rs.toolsBelow === true, JSON.stringify(rs));
@@ -945,6 +1013,14 @@ async function run(env) {
     check("押すと、今月の日ごとの内訳（月末の推定）が開き、週の表示はそのまま", dlg.open && dlg.txt.includes(mp.v) && dlg.txt.includes(mp.so) && await p.evaluate(() => st.mode === "week"), dlg.txt.slice(0, 120));
     await p.keyboard.press("Escape"); await pause();
     await view("sum");
+    // 途中の週の時間外の割合は、過去の週の同じ曜日・時刻までと比べる（土日を含む週まるごととは比べない）
+    check("途中の週の時間外の割合は、過去の週の同じところまでと比べる", await p.evaluate(() => { if (soFar() == null) return true;
+      const {ws} = period(), cut = nowMs() / 1000 - ws, b = insOffRange(50), hs = historyStart(), want = [];
+      for (let i = 1; i <= INS_N; i++){ const q = periodBack(i); if (q.ws < hs || !q.S) continue; const x = insOff(insMinutes(q.ws, Math.min(q.we, q.ws + cut))); if (x != null) want.push(x); }
+      const whole = []; for (let i = 1; i <= INS_N; i++){ const q = periodBack(i); if (q.ws < hs || !q.S) continue; const x = insOff(insMinutes(q.ws, q.we)); if (x != null) whole.push(x); }
+      return JSON.stringify(b.xs) === JSON.stringify(want) && JSON.stringify(want) !== JSON.stringify(whole); }));
+    // 途中の週の推移の読み上げは、推定を値として読まず、これまでの値と推定だと言う
+    check("途中の週の推移の読み上げは「so far」と推定を言う", await p.evaluate(() => { const x = document.querySelector('#review .itile[data-ch="cost"] .tspk .sr'); return !x || /so far, estimated .+ by the end/.test(x.textContent); }));
     const cb = p.locator('#review .iksw[data-sw="cost"] [data-v="credits"]');
     if (await cb.count()){ // 今週にクレジットの記録がなければ、投入のパネルにクレジットの選択肢は出ない（数字のない選択肢は出さない）
       await cb.click(); await pause(); // コストのパネルでクレジットを選ぶ
@@ -1012,6 +1088,35 @@ async function run(env) {
       check(`ボタンで記録のある${mode === "week" ? "週" : "月"}へ行き、案内は消える`, await p.evaluate(m => !document.querySelector("#tl .empty") && (m === "month" || document.querySelectorAll("#tl .run").length > 0), mode));
     }
     await p.evaluate(w => { setMode("week"); const [y, m, d] = w.split("-").map(Number); st.week = new Date(y, m - 1, d); render(); }, w0); await pause();
+  });
+
+  await step("名前の最後の語と「ƒx」「?」", async () => {
+    await view("sum");
+    // 名前が折り返すとき、「?」や「ƒx」だけが次の行に落ちない（最後の語といっしょに。1440 の「…reached a commit or PR」で「?」だけが落ちた）
+    const bad = await p.evaluate(() => { const out = []; document.querySelectorAll("#review .mrow .mk, #review .stat .k").forEach(k => { const lab = k.querySelector(".kt > span[id]");
+      const bs = [...k.querySelectorAll("button")].filter(b => b.checkVisibility()); if (!lab || !bs.length || !lab.checkVisibility()) return;
+      const tn = [...lab.childNodes].filter(n => n.nodeType === 3).pop(); if (!tn || !tn.length) return; const r = document.createRange(); r.setStart(tn, tn.length - 1); r.setEnd(tn, tn.length);
+      const lr = r.getBoundingClientRect(), mid = x => (x.top + x.bottom) / 2; if (lr.height && bs.some(b => Math.abs(mid(b.getBoundingClientRect()) - mid(lr)) > 8)) out.push(k.textContent); }); return out; });
+    check("名前の最後の語と「ƒx」「?」が同じ行にある", bad.length === 0, bad.slice(0, 3).join(" / "));
+    check("費用と産出の推移の、線の端の 2 つの合計が重ならない", await p.evaluate(() => { const [a, b] = [...document.querySelectorAll("#review .icum .icnl")].map(e => e.getBoundingClientRect());
+      return !a || !b || !a.height || a.bottom <= b.top + 0.5; }));
+    check("値のボタンの名前は、分けた名前の 2 つを合わせたもの", await p.evaluate(() => { const v = document.querySelector('#review .mrow .mv[aria-labelledby]'); if (!v) return true;
+      const ids = v.getAttribute("aria-labelledby").split(" "); return ids.length === 3 && ids.every(i => document.getElementById(i)) && /\S\s\S|\S$/.test(document.getElementById(ids[0]).textContent + document.getElementById(ids[1]).textContent); }));
+    await view("cal");
+  });
+  if (env === envs[0]) await step("前の週並みに収める 1 日の目安", async () => {
+    await p.evaluate(() => go(null)); await pause();
+    const b = p.locator('#kpis [data-metric="pace"]');
+    if (!(await b.count())) { console.log("  skip 今週に 1 日の目安がない"); return; }
+    await b.click(); await p.waitForFunction(() => document.querySelector("#md").open);
+    const r = await p.evaluate(() => { const md = document.querySelector("#md"), fut = !!md.querySelector(".mtrend line.fut"), key = [...md.querySelectorAll(".mbkey span")].map(x => x.className);
+      const cr = [...md.querySelectorAll("h3")].find(h => h.textContent === "Kiro credits"), calc = cr && cr.nextElementSibling, last = calc && calc.matches(".mcalc") ? calc.lastElementChild.querySelector("b").textContent : null;
+      return {fut, key, last, out: /Output \(commits\): /.test(md.innerText) && !/Left behind/.test(md.innerText)}; });
+    // 破線は 2 本（1 日の目安と、日曜まで延ばしたトレンド）。凡例も 2 つに分ける。クレジットの式の答えには単位を
+    check("延ばしたトレンド線があれば、凡例に「Trend, projected」を 1 日の目安とは別に出す", !r.fut || (r.key.includes("pace") && r.key.includes("trf")), JSON.stringify(r.key));
+    check("Kiro credits の 1 日の目安の式の答えに単位がある", r.last == null || /credits?$/.test(r.last), String(r.last));
+    check("残したコミットの行は「Output (commits):」（日本語の 産出（コミット） と同じ）", r.out);
+    await p.keyboard.press("Escape"); await pause();
   });
 
   check("スクリプトのエラーがない", errors.length === 0, errors.join(" / "));
@@ -1091,6 +1196,10 @@ async function runJa(env) {
     await p.waitForFunction(() => document.querySelector("#drawer").getAttribute("aria-hidden") !== "false");
   });
 
+  await step("凡例の数", async () => { // 先週のまま（日本語は見出しの「稼働時間 · 押すと非表示」が長く、チップがはみ出しやすい）
+    for (const by of ["project", "source"]) await legendHint(p, env, check, by);
+  });
+
   await step("内訳", async () => {
     await p.evaluate(() => document.querySelector('#review [data-metric="cost"]').click());
     await isOpen("#md");
@@ -1108,6 +1217,15 @@ async function runJa(env) {
       out: !!document.querySelector("#review .iout") && [...document.querySelector("#review .iout").querySelectorAll(":scope > h4")].map(h => [...h.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join("").trim()).join("")}));
       const n = await panelNames();
       check("日本語のパネルの名前は 投入・産出・投入単価・産出単価、内訳のカードは「産出」（「出力」は出力トークンと取り違える）", JSON.stringify(n.panels) === JSON.stringify(["投入", "産出", "投入単価", "産出単価"]) && n.out === "産出", JSON.stringify(n)); }
+    await p.locator('#view button[data-v="cal"]').click(); await p.waitForTimeout(300);
+  });
+
+  await step("前の期間からの増減の軸の名前", async () => {
+    // 日本語の名前は英語のほぼ 2 倍の幅。文字の数で切ると隣の名前と重なった（「先週の同じ日数まで」と「data-pipe…」）。途中の今週で、同じ日数までと比べる形を見る
+    await p.evaluate(() => go(null)); await p.locator('#view button[data-v="sum"]').click(); await p.waitForTimeout(300);
+    const r = await p.evaluate(() => { const xs = [...document.querySelectorAll("#review .iwtf text.ixl")].map(e => { const b = e.getBoundingClientRect(); return {t: [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join(""), l: b.left, r: b.right}; });
+      return {xs, bad: xs.slice(1).filter((x, i) => x.l < xs[i].r - 0.5).map(x => x.t)}; });
+    check("前の期間からの増減の軸の名前が、隣の名前と重ならない", r.xs.length >= 3 && r.bad.length === 0, JSON.stringify(r.bad.length ? r.bad : r.xs.map(x => x.t)));
     await p.locator('#view button[data-v="cal"]').click(); await p.waitForTimeout(300);
   });
 

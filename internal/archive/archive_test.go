@@ -3,6 +3,7 @@ package archive
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -111,5 +112,44 @@ func TestSyncSymlinkRoot(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dst, "proj", "s1.jsonl.zst")); err != nil {
 		t.Error("コピーがない:", err)
+	}
+}
+
+// .jsonl そのものがシンボリックリンクのとき、大きさと更新時刻はリンクの先のもので見る。
+// リンク自身（Lstat）の大きさ（先のパスの長さ）で切ったり、先が変わっても残し直さなかったりしない
+func TestSyncSymlinkFile(t *testing.T) {
+	src, dst, elsewhere := t.TempDir(), t.TempDir(), t.TempDir()
+	target := filepath.Join(elsewhere, "real.jsonl")
+	var b strings.Builder
+	for i := 1; i <= 20; i++ {
+		b.WriteString(`{"n":` + strconv.Itoa(i) + `,"pad":"` + strings.Repeat("x", 40) + `"}` + "\n")
+	}
+	os.WriteFile(target, []byte(b.String()), 0o600)
+	os.MkdirAll(filepath.Join(src, "proj"), 0o700)
+	if err := os.Symlink(target, filepath.Join(src, "proj", "s1.jsonl")); err != nil {
+		t.Skip("シンボリックリンクを作れない:", err)
+	}
+	count := func() int {
+		n := 0
+		core.ReadJSONL(filepath.Join(dst, "proj", "s1.jsonl.zst"), func(core.Obj) { n++ })
+		return n
+	}
+	if n, err := Sync(src, dst); n != 1 || err != nil {
+		t.Fatalf("Sync = %d %v, want 1", n, err)
+	}
+	if got := count(); got != 20 {
+		t.Errorf("コピーの行数 = %d, want 20（リンクの先の全部）", got)
+	}
+	// リンクの先に追記されたら、残し直す
+	f, _ := os.OpenFile(target, os.O_APPEND|os.O_WRONLY, 0)
+	f.WriteString(`{"n":21}` + "\n")
+	f.Close()
+	later := time.Now().Add(time.Minute)
+	os.Chtimes(target, later, later)
+	if n, err := Sync(src, dst); n != 1 || err != nil {
+		t.Errorf("追記のあと Sync = %d %v, want 1", n, err)
+	}
+	if got := count(); got != 21 {
+		t.Errorf("追記のあとのコピーの行数 = %d, want 21", got)
 	}
 }

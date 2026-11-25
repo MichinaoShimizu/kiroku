@@ -48,6 +48,7 @@ if [ "$1 $2" = "attestation verify" ]; then
       printf 'Loaded digest sha256:abc for file://x\nError: verifying with issuer "sigstore.dev"\nexpected SourceRepositoryRef to be %s\n' "$ref" >&2; exit 1 ;;
     mismatch) printf 'Loaded digest sha256:abc for file://x\nLoaded 1 attestation from GitHub API\nError: verifying with issuer "sigstore.dev"\n\342\234\227 Verification failed\n' >&2; exit 1 ;;
     old) echo 'unknown command "attestation" for "gh"' >&2; exit 1 ;;
+    nologin) printf 'To get started with GitHub CLI, please run:  gh auth login\nAlternatively, populate the GH_TOKEN environment variable with a GitHub API authentication token.\n' >&2; exit 4 ;;
     evilref) printf 'Loaded digest sha256:abc for file://x\nError: verifying with issuer "sigstore.dev"\nexpected SourceRepositoryRef to be %s, got refs/heads/fix-timeout\n' "$ref" >&2; exit 1 ;;
     evilsan) printf 'Loaded digest sha256:abc for file://x\nError: verifying with issuer "sigstore.dev": no matching CertificateIdentity found, last error: expected SAN to match x/release.yml, got x/workflows/ci-timeout.yml@refs/heads/main (dial tcp)\n' >&2; exit 1 ;;
     net) printf 'Loaded digest sha256:abc for file://x\nError: failed to fetch attestations: Get "https://api.github.com/x": dial tcp: lookup api.github.com: no such host\n' >&2; exit 1 ;;
@@ -322,6 +323,8 @@ func TestGHUpdateChecksProvenance(t *testing.T) {
 		{attest: "old", require: "1", err: "KIROKU_REQUIRE_ATTESTATION=1"},
 		{attest: "net", replaced: true, note: "could not reach github.com"},
 		{attest: "net", require: "1", err: "could not reach github.com"},
+		// gh にログインしていない（終了コード 4）ときは、そう言って止める（合わないとは言わない。置きかえもしない）
+		{attest: "nologin", err: "gh is not logged in (gh auth login)"},
 		{attest: "mismatch", skip: "1", replaced: true, note: "KIROKU_SKIP_ATTESTATION=1"},
 		{attest: "ok", skip: "1", require: "1", err: "cannot be used together"},
 	} {

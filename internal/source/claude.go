@@ -46,6 +46,9 @@ func (c *Claude) ChecksFormat() bool { return true }
 // 出典: https://code.claude.com/docs/en/settings-reference#cleanupperioddays 、https://code.claude.com/docs/en/managed-settings 、
 // https://code.claude.com/docs/en/claude-directory （Paused sweep）、https://code.claude.com/docs/en/monitoring-usage （Retention sweep event）
 func (c *Claude) Retention() *Retention {
+	if c.Root == "" {
+		return nil // 場所がわからない（HOME が空など）。今のフォルダの settings.json を読まない
+	}
 	file := filepath.Join(filepath.Dir(c.Root), "settings.json")
 	r := &Retention{Days: 30, Setting: "cleanupPeriodDays", Snippet: `"cleanupPeriodDays": 3650`, Docs: "https://code.claude.com/docs/en/settings-reference#cleanupperioddays", File: file}
 	days, from, broken := managedCleanupDays(claudeManagedDir)
@@ -81,13 +84,23 @@ func settingsFile(path string) (settings map[string]any, broken bool) {
 	return settings, settings == nil
 }
 
-// claudeManagedDir は、Claude Code の組織の設定のファイル（managed-settings.json と managed-settings.d/）を置く場所。
+// claudeManagedDir は、この OS で Claude Code の組織の設定のファイル（managed-settings.json と managed-settings.d/）を置く場所。
+// テストで差しかえる。
+var claudeManagedDir = managedDir(runtime.GOOS)
+
+// managedDir は OS ごとの claudeManagedDir（ほかの OS は ""。組織の設定を読まない）。
 // 出典: https://code.claude.com/docs/en/managed-settings （File-based）
-var claudeManagedDir = map[string]string{
-	"darwin":  "/Library/Application Support/ClaudeCode",
-	"linux":   "/etc/claude-code",
-	"windows": `C:\Program Files\ClaudeCode`,
-}[runtime.GOOS]
+func managedDir(goos string) string {
+	switch goos {
+	case "darwin":
+		return "/Library/Application Support/ClaudeCode"
+	case "linux":
+		return "/etc/claude-code"
+	case "windows":
+		return `C:\Program Files\ClaudeCode`
+	}
+	return ""
+}
 
 // managedCleanupDays は、組織の設定のファイルにある cleanupPeriodDays と、それを書いたファイル。なければ 0。
 // Claude Code と同じく managed-settings.json を先に、managed-settings.d/ の *.json（隠しファイルを除く）を名前の順に重ね、
@@ -263,7 +276,7 @@ func (c *Claude) Load(emit func(*core.Builder)) error {
 
 // Keep は、kiroku archive で残す場所（Claude Code は古い会話を消すため）。
 func (c *Claude) Keep() []Kept {
-	if c.Archive == "" {
+	if c.Archive == "" || c.Root == "" {
 		return nil
 	}
 	return []Kept{{Src: c.Root, Dst: c.Archive}}
@@ -272,7 +285,11 @@ func (c *Claude) Keep() []Kept {
 // Units は会話ごとのファイルと、そのサブエージェントのファイル。元の会話が消えていて kiroku archive のコピーがあれば、コピーを読む。
 func (c *Claude) Units() []Unit {
 	var out []Unit
-	for _, path := range glob(filepath.Join(c.Root, "*", "*.jsonl")) {
+	var live []string
+	if c.Root != "" { // 場所がわからない（HOME が空など）なら、今のフォルダからの相対パスを読まない
+		live = glob(filepath.Join(c.Root, "*", "*.jsonl"))
+	}
+	for _, path := range live {
 		if setAside(path) {
 			continue
 		}
@@ -292,7 +309,7 @@ func (c *Claude) Units() []Unit {
 			if setAside(path) {
 				continue
 			}
-			if isFile(filepath.Join(c.Root, filepath.Base(filepath.Dir(path)), stemOf(path)+".jsonl")) {
+			if c.Root != "" && isFile(filepath.Join(c.Root, filepath.Base(filepath.Dir(path)), stemOf(path)+".jsonl")) {
 				continue // 元の会話があれば、そちらを読む
 			}
 			out = append(out, claudeUnit(path, ".jsonl.zst"))

@@ -134,7 +134,7 @@ const summaryCheck = async label => {
         if (name !== "formula") await close();
       }
     }
-    for (const v of await p.evaluate(() => [...document.querySelectorAll("#review .insight [style]")].map(e => e.getAttribute("style")).filter(v => !/^(--a:[\d.]+|--rs: [\d]+;|(fill|background):var\(--[\w-]+\)|--c:var\(--(a\d+|other)\)|(width:[\d.]+%|flex:[\d.]+);background:var\(--[\w-]+\))$/.test(v)))) badStyles.add(v);
+    for (const v of await p.evaluate(() => [...document.querySelectorAll("#review .insight [style]")].map(e => e.getAttribute("style")).filter(v => !/^(--a:[\d.]+|--rs: [\d]+;|--k: [\d.]+;|(fill|background):var\(--[\w-]+\)|--c:var\(--(a\d+|other)\)|(width:[\d.]+%|flex:[\d.]+);background:var\(--[\w-]+\))$/.test(v)))) badStyles.add(v);
   };
   // パネルとカードの切り替え（描き直さずに選んだものだけを見せる）。量を選ぶたびに、その量で選べる割る数をどれも選ぶ
   const panels = async state => {

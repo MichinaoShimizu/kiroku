@@ -1973,6 +1973,9 @@ func TestCrewLogManyIDsIsLinear(t *testing.T) {
 	}
 	small, big := write(10000), write(40000)
 	a, b := best(small, 10000), best(big, 40000)
+	// 小さいほうが速すぎると、比がタイマーの粒度や GC・スケジューラの揺れで決まるので、下限を置く
+	// （TestPromptTimesSameTimestampScales と同じ 5ms。2 乗なら大きいほうは何秒もかかるので、下限があっても見逃さない）
+	a = max(a, 5*time.Millisecond)
 	if b > 8*a {
 		t.Errorf("4× the lines took %.1f× as long (%v vs %v): reading is not linear", float64(b)/float64(a), b, a)
 	}

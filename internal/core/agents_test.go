@@ -34,16 +34,13 @@ func TestAgents(t *testing.T) {
 	}
 }
 
-// 表から作るものが、表を変える前と同じ（--sources の既定値と説明、kiroku autostart の環境変数、kiroku archive のフォルダ）。
+// 表から作るものが、表を変える前と同じ（--sources の既定値と説明、kiroku archive のフォルダ）。
 func TestAgentsDerived(t *testing.T) {
 	if got, want := Families(), []string{"claude", "kiro", "codex"}; !slices.Equal(got, want) {
 		t.Errorf("Families() = %v, want %v", got, want)
 	}
 	if got, want := FamiliesHelp(), "claude, kiro (includes Kiro Crew), codex"; got != want {
 		t.Errorf("FamiliesHelp() = %q, want %q", got, want)
-	}
-	if got, want := AgentEnv(), []string{"CLAUDE_CONFIG_DIR", "KIRO_HOME", "KIROCREW_HOME", "CODEX_HOME"}; !slices.Equal(got, want) {
-		t.Errorf("AgentEnv() = %v, want %v", got, want)
 	}
 	if got, want := ArchiveDirs(), []string{"claude", "crew"}; !slices.Equal(got, want) {
 		t.Errorf("ArchiveDirs() = %v, want %v", got, want)

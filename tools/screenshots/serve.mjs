@@ -13,7 +13,7 @@
 import { chromium } from "playwright";
 import { execFileSync, spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -110,7 +110,8 @@ try {
   await p.waitForURL(u => u.port === String(otherPort), { timeout: 10000 });
   await p.goto(`http://localhost:${otherPort}/typed`);
   await p.goto(`http://127.0.0.1:${otherPort}/typed-ip`);
-  await p.waitForTimeout(500); // favicon を取りに来るのを待つ
+  // favicon を取りに来るのを待つ（来たらすぐ先へ。ブラウザが取りに来なくても、長くて 2 秒で先へ）
+  for (const end = Date.now() + 2000; Date.now() < end && !["localhost", "127.0.0.1"].every(h => seen.some(r => r.url === "/favicon.ico" && (r.headers.host || "").startsWith(h + ":")));) await p.waitForTimeout(50);
   check("ほかのポートのサーバーに届いた（確かめになっている）", seen.length >= 3, String(seen.length));
   const leaks = seen.filter(r => JSON.stringify(r).includes(key));
   check("ほかのポートのサーバーへの問い合わせに鍵が載らない", leaks.length === 0, JSON.stringify(leaks));
@@ -142,7 +143,7 @@ try {
     document.querySelector(q).click(); await new Promise(z => setTimeout(z, 300));
     return {got: window.__copied || "", toast: document.querySelector("#toast").textContent, dialog: !!document.querySelector("dialog[open]")}; }, sel);
   { const r = await grab(p, ".head .dayrun");
-    check("日報のボタンは、その日の形式と前日との数字の表のプロンプトをコピーするだけ", /## Daily report: /.test(r.got) && /^\| \| This day \| Previous day \|$/m.test(r.got) && !r.dialog && /^Copied the prompt\. kiroku ran and sent nothing\. Paste it into your AI agent\.$/.test(r.toast) && !/--ai/.test(r.toast), JSON.stringify({...r, got: r.got.slice(0, 200)})); }
+    check("日報のボタンは、その日の形式と前日との数字の表のプロンプトをコピーするだけ", /## Daily report: /.test(r.got) && /^\| \| This day \| Previous day \|$/m.test(r.got) && !r.dialog && /^Copied the prompt\. kiroku didn't run or send anything\. Paste it into your AI agent\.$/.test(r.toast) && !/--ai/.test(r.toast), JSON.stringify({...r, got: r.got.slice(0, 200)})); }
   await p.evaluate(() => select(DATA.find(s => s.prompts.length).id)); await p.waitForSelector("#panel #srun.ai-copy", { timeout: 5000 });
   { const r = await grab(p, "#panel #srun");
     check("振り返りはプロンプトをコピーするだけ（ダイアログも実行もない）", /History data|history file/i.test(r.got) && !r.dialog && !/--ai/.test(r.toast), JSON.stringify({...r, got: r.got.slice(0, 80)})); }
@@ -170,6 +171,68 @@ try {
   const so = await po.evaluate(async k => (await fetch("ai/run", { method: "POST", headers: { "X-Kiroku-Key": k, "X-Kiroku": "1", "Content-Type": "application/json" }, body: JSON.stringify({ agent: "codex", prompt: "x", consent: true }) })).status, key);
   check("--ai を付けても、/ai/run は 404", so === 404, String(so));
   await po.close();
+
+  // kiroku serve が 500 や読めないデータを返したときは、「つながっていない」ではなく、そう言って端末を見るよう案内する。
+  // 読み直しに失敗して前の集計のまま答えているとき（/stamp の X-Kiroku-Reload: failed）は、バッジがそれを言う
+  for (const [what, fulfill, want] of [["500", { status: 500, body: "boom" }, /answered with an error \(500\)/], ["読めないデータ", { status: 200, contentType: "application/json", body: "{" }, /could not be read/]]) {
+    const pe = await ctx.newPage();
+    await pe.route("**/data.json", r => r.fulfill(fulfill));
+    await pe.goto(`${base}/`);
+    await pe.waitForSelector("#locked", { timeout: 10000 });
+    const lt = await pe.locator("#locked").innerText();
+    check(`data.json が${what}のとき、つながっていないとは言わず、そう案内する`, want.test(lt) && /kiroku serve could not send your history/.test(lt) && !/Not connected/.test(lt), lt);
+    await pe.close();
+  }
+  {
+    const pr = await ctx.newPage();
+    let mode = "ok";
+    await pr.route("**/stamp", async r => {
+      if (mode === "ok") return r.continue();
+      const res = await r.fetch();
+      await r.fulfill(mode === "500" ? { status: 500, body: "boom" } : { response: res, headers: { ...res.headers(), "x-kiroku-reload": "failed" } });
+    });
+    await pr.goto(`${base}/`);
+    await pr.waitForSelector(".run[data-sid]", { timeout: 15000 });
+    mode = "failed";
+    await pr.waitForFunction(() => /Could not read the latest history/.test(document.querySelector("#live").title), null, { timeout: 15000 });
+    check("読み直しに失敗しているとき、バッジがそう言う", await pr.evaluate(() => document.querySelector("#live").classList.contains("off")));
+    mode = "500";
+    await pr.waitForFunction(() => /answered with an error \(500\)/.test(document.querySelector("#live").title), null, { timeout: 15000 }).then(() => true, () => false)
+      .then(ok => check("/stamp が 500 のとき、バッジはつながっていないとは言わない", ok));
+    mode = "ok";
+    await pr.waitForFunction(() => /last checked/.test(document.querySelector("#live").title), null, { timeout: 15000 }).then(() => true, () => false)
+      .then(ok => check("直れば、バッジは最終確認の時刻に戻る", ok));
+    await pr.close();
+  }
+
+  // 「Data sources」の「Keep a copy in this folder」をキーボードで押すと、コピーを残し始め、パネルは開いたまま、
+  // フォーカスは描き直したその行（「kiroku keeps a copy」）に移る（ボタンが消えても、ページの頭へ飛ばない）
+  // gen.py の履歴は cleanupPeriodDays を 3650 にしてあるので、設定のファイルのない写しを読む serve を別に立てる（既定の 30 日で消える履歴）
+  // 知らせ（「Keeping a copy in …」）は 6 秒出るので、フォーカスを移した行と「kiroku's copy: on」の行に重ならない（下に重なるなら上に出す）。広い画面とスマホで
+  for (const vp of [{ name: "1440", viewport: { width: 1440, height: 900 } }, { name: "320", viewport: { width: 320, height: 680 }, isMobile: true, hasTouch: true }]) {
+    const keepHome = path.join(work, `keephome${vp.name}`, ".claude");
+    await cp(path.join(home, ".claude", "projects"), path.join(keepHome, "projects"), { recursive: true });
+    const kp = await startExtra(["serve", "127.0.0.1:0", "--no-open", "--sources", "claude", "--claude-root", path.join(keepHome, "projects"), "--archive-dir", path.join(work, `keeparchive${vp.name}`)], {});
+    const kctx = await b.newContext({ viewport: vp.viewport, isMobile: !!vp.isMobile, hasTouch: !!vp.hasTouch });
+    const pd = await kctx.newPage();
+    await openWithKey(pd, kp.url);
+    await pd.waitForSelector(".run[data-sid]", { timeout: 15000 });
+    await pd.locator("#review details.dsrc > summary").click();
+    const btn = pd.locator("#review details.dsrc .keeparch").first();
+    check(`${vp.name}: 既定のままで消える履歴の行に「Keep a copy in this folder」がある`, await btn.count() > 0);
+    const ag = await btn.evaluate(e => e.closest("li").dataset.dsrc);
+    await btn.evaluate(e => e.scrollIntoView({ block: "end" })); // 下へスクロールしてきて、画面の下の端にあるボタンを押す（知らせの出る場所）
+    await btn.focus({ preventScroll: true }); await pd.keyboard.press("Enter");
+    await pd.waitForFunction(() => /Keeping a copy in/.test(document.querySelector("#toast").textContent), null, { timeout: 15000 });
+    await pd.waitForTimeout(400); // 知らせが出きるまで
+    const r = await pd.evaluate(() => { const D = document.querySelector("#review details.dsrc"), a = document.activeElement, ar = D && D.querySelector("li.arch"), tb = document.querySelector("#toast").getBoundingClientRect();
+      const hit = e => { if (!e) return false; const x = e.getBoundingClientRect(); return x.bottom > tb.top && x.top < tb.bottom && x.right > tb.left && x.left < tb.right; };
+      return {open: !!D && D.open, ag: a && a.dataset ? a.dataset.dsrc : null, inD: !!D && D.contains(a), text: a ? a.textContent : "", buttons: document.querySelectorAll("#review .keeparch").length,
+        arch: ar ? ar.textContent : "", on: document.querySelector("#toast").classList.contains("on"), coversFocus: hit(a), coversArch: hit(ar), toast: [Math.round(tb.top), Math.round(tb.bottom)]}; });
+    check(`${vp.name}: コピーを残すと、Data sources は開いたまま、その行は残していると言い、フォーカスはその行にある`, r.open && r.inD && r.ag === ag && /kiroku keeps a copy/.test(r.text) && r.buttons === 0 && /kiroku's copy: on/.test(r.arch), JSON.stringify(r));
+    check(`${vp.name}: 「Keeping a copy in …」の知らせは、フォーカスした行にも「kiroku's copy: on」の行にも重ならない`, r.on && !r.coversFocus && !r.coversArch, JSON.stringify(r));
+    await kctx.close();
+  }
 
   // 鍵のないブラウザ（同じコンピューターのほかのユーザーなど）は、案内だけを見る
   const fresh = await b.newContext();

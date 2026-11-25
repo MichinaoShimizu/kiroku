@@ -125,9 +125,18 @@ func All(o Options) []Source {
 		&Claude{Root: o.ClaudeRoot, Archive: sub(o.Archive, core.ArchiveDirOf("Claude Code"))},
 		&KiroIDE{Home: o.KiroHome, Legacy: o.KiroLegacy},
 		&KiroCLI{Home: o.KiroHome, Legacy: o.KiroLegacy, CrewHome: q(o.CrewHome, DefaultCrewHome()), CrewArchive: sub(o.Archive, core.ArchiveDirOf("Kiro Crew"))},
-		&QStore{Label: "Kiro CLI (SQLite)", Fam: "kiro", DB: q(o.KiroCLIDB, filepath.Join(DataDir("kiro-cli"), "data.sqlite3")), Command: "kiro-cli chat --resume", ResumeID: "kiro-cli chat --resume-id"},
+		&QStore{Label: "Kiro CLI (SQLite)", Fam: "kiro", DB: q(o.KiroCLIDB, kiroCLIDB()), Command: "kiro-cli chat --resume", ResumeID: "kiro-cli chat --resume-id"},
 		&Codex{Home: q(o.CodexHome, DefaultCodexHome())},
 	}
+}
+
+// kiroCLIDB は古い Kiro CLI の data.sqlite3 の既定の場所（ホームがわからなければ ""。何も読まない）。
+func kiroCLIDB() string {
+	d := DataDir("kiro-cli")
+	if d == "" {
+		return ""
+	}
+	return filepath.Join(d, "data.sqlite3")
 }
 
 // sub は保存場所 dir の下のフォルダ（dir が空なら空）。
@@ -143,21 +152,31 @@ func home() string {
 	return h
 }
 
-// DefaultClaudeRoot は CLAUDE_CONFIG_DIR か ~/.claude の projects。
+// inHome は、ホームの下のパス。ホームがわからない（HOME が空など）なら ""（今のフォルダからの相対パスにしない。
+// 読む側は "" を「入っていない」とみなす）。
+func inHome(elem ...string) string {
+	h := home()
+	if h == "" {
+		return ""
+	}
+	return filepath.Join(append([]string{h}, elem...)...)
+}
+
+// DefaultClaudeRoot は CLAUDE_CONFIG_DIR か ~/.claude の projects（どちらもわからなければ ""）。
 func DefaultClaudeRoot() string {
 	if d := os.Getenv("CLAUDE_CONFIG_DIR"); d != "" {
 		return filepath.Join(d, "projects")
 	}
-	return filepath.Join(home(), ".claude", "projects")
+	return inHome(".claude", "projects")
 }
 
-// DefaultKiroHome は KIRO_HOME か ~/.kiro。Kiro は、相対パス・ファイルシステムの根・ホームとその上のフォルダの
+// DefaultKiroHome は KIRO_HOME か ~/.kiro（どちらもわからなければ ""）。Kiro は、相対パス・ファイルシステムの根・ホームとその上のフォルダの
 // KIRO_HOME を無視して ~/.kiro を使う（https://kiro.dev/docs/configuration ）。同じ場所を読むよう、kiroku も無視する。
 func DefaultKiroHome() string {
 	if d := kiroHomeOverride(os.Getenv("KIRO_HOME")); d != "" {
 		return d
 	}
-	return filepath.Join(home(), ".kiro")
+	return inHome(".kiro")
 }
 
 // DefaultKiroLegacyHome は、KIRO_HOME を使っているときの ~/.kiro（使っていない・~/.kiro と同じなら ""）。
@@ -165,10 +184,10 @@ func DefaultKiroHome() string {
 // Kiro IDE の会話と、KIRO_HOME を設定する前の会話は ~/.kiro に残る。読む側はそこも読み、同じ会話は KIRO_HOME のほうを使う。
 func DefaultKiroLegacyHome() string {
 	d := kiroHomeOverride(os.Getenv("KIRO_HOME"))
-	if d == "" || home() == "" {
+	if d == "" {
 		return ""
 	}
-	return otherKiroHome(d, filepath.Join(home(), ".kiro"))
+	return otherKiroHome(d, inHome(".kiro"))
 }
 
 // otherKiroHome は、legacy が home と別の場所ならその場所（同じなら ""）。
@@ -180,11 +199,16 @@ func otherKiroHome(home, legacy string) string {
 }
 
 // kiroHomes は、読む Kiro の場所（home、legacy が別の場所ならそれも。この順で、先のほうを使う）。
+// 空の場所（ホームがわからない）は入れない（"sessions" のような今のフォルダからの相対パスを読まない）。
 func kiroHomes(home, legacy string) []string {
-	if l := otherKiroHome(home, legacy); l != "" {
-		return []string{home, l}
+	var out []string
+	if home != "" {
+		out = append(out, home)
 	}
-	return []string{home}
+	if l := otherKiroHome(home, legacy); l != "" {
+		out = append(out, l)
+	}
+	return out
 }
 
 // kiroHomeOverride は、Kiro が使う KIRO_HOME の値（使わないものは ""）。
