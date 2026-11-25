@@ -541,8 +541,9 @@ async function run(env) {
       const a = act.getBoundingClientRect(), f = flow.getBoundingClientRect(), wide = innerWidth >= 1100;
       return {n: v.length, inAct: !v.length || !!v[0].closest(".sact"), wide, place: wide ? a.left > f.right - 1 : a.top < f.top,
         flowOnly: !flow.querySelector(".mini, .files, .trow, .dresume, #srun"),
-        // HTML の順（Tab の順）が見た目の順と同じ：操作 → 数値 → 流れ → 情報。1 列ではモデル・ツールは流れより下
-        order: [".sact", ".smet", ".sflow", ".sinfo"].map(c => document.querySelector("#panel .scols > " + c)).filter((e, i) => e || i).every((e, i, a) => e && (!i || (a[i-1].compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING))),
+        // HTML の順（Tab の順）が見た目の順と同じ：1 列では操作 → 数値 → 流れ → 情報（モデル・ツールは流れより下）。
+        // 2 列では左の流れ → 右の列（操作 → 数値 → 情報）。「閉じる → 右 → 左 → 右」と行き来しない
+        order: (wide ? [".sflow", ".sact", ".smet", ".sinfo"] : [".sact", ".smet", ".sflow", ".sinfo"]).map(c => document.querySelector("#panel .scols > " + c)).filter((e, i) => e || i !== (wide ? 1 : 0)).every((e, i, a) => e && (!i || (a[i-1].compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING))),
         toolsBelow: wide || [...document.querySelectorAll("#panel .trow")].every(e => e.getBoundingClientRect().top > f.bottom - 1)}; });
     check("詳細の HTML の順は、操作・数値・流れ・情報（Tab の順が見た目と合う）", rs.order === true, JSON.stringify(rs));
     check("1 列では、使ったツールは流れより下", rs.toolsBelow === true, JSON.stringify(rs));
