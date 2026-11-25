@@ -135,6 +135,8 @@ func TestInstallScriptArgs(t *testing.T) {
 		{[]string{"-h"}, 0, "KIROKU_REQUIRE_ATTESTATION"},
 		{[]string{"--version", "v1.0.0"}, 2, "takes no arguments"},
 		{[]string{"v1.0.0"}, 2, "takes no arguments"},
+		{[]string{"--help", "extra"}, 2, "takes no arguments"},
+		{[]string{"x\x1b]0;T\x07\u009b2J"}, 2, "(got: x]0;T2J)"},
 	} {
 		t.Run(strings.Join(c.args, " "), func(t *testing.T) {
 			r := runInstallScript(t, "ok", c.args)

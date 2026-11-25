@@ -192,7 +192,7 @@ func ghFetch(tag, name string, show io.Writer) ([]byte, error) {
 var ghAttestNote io.Writer = os.Stderr
 
 // ghVerifyAttestation は、gh で落としたアーカイブ（checksums.txt と合ったもの）が、releaseRepo の release.yml で
-// GitHub のランナーが作ったものか（artifact attestation）を、置きかえる前に gh attestation verify で確かめる。install.sh と同じ決まり：
+// GitHub のランナーが作ったものか（artifact attestation）を、置きかえる前に gh attestation verify で確かめる。install.sh と同じ決まり（ログインしていないときだけ違い、install.sh は警告だけ）：
 //   - 証明が見つからない・合わない：止める（置きかえない）
 //   - 確かめられない（古い gh・GitHub に届かない）：警告だけ。KIROKU_REQUIRE_ATTESTATION=1 なら止める
 //   - gh にログインしていない（終了コード 4）：そう言って止める（置きかえない）

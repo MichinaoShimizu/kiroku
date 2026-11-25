@@ -467,5 +467,5 @@ func legacyForm(arg string) error {
 
 // gitTimeoutLine は、git の読み取りが時間切れになったリポジトリを言う 1 行。フォルダ名は履歴の cwd から来るので、端末の制御文字を除く
 func gitTimeoutLine(repo string) string {
-	return "  git: timed out reading " + termMsg(repo) + " (kept the previous result)\n"
+	return "  git: timed out reading " + termMsg(repo) + " (will try again on the next reload)\n"
 }

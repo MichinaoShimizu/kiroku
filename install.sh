@@ -41,7 +41,7 @@ say() { printf '%s\n' "$*"; }
 die() { printf '%skiroku: %s%s\n' "${c_bad:-}" "$*" "${c_off:-}" >&2; exit 1; }
 # gh などの出力を端末に出す前に、制御文字（エスケープシーケンス・BEL・CR など）を消す。改行とタブは残す。
 # 出力には証明書の値（リリースを作れる人が選べる文字）が入るので、そのまま出すと端末を操れてしまう
-clean() { LC_ALL=C tr -d '\000-\010\013-\037\177'; }
+clean() { LC_ALL=C tr -d '\000-\010\013-\037\177-\377'; } # 制御文字（C1 と、端末が C1 と読む UTF-8 も）を除く。gh のメッセージは ASCII
 
 usage() {
   cat <<'USAGE'
@@ -65,11 +65,14 @@ USAGE
 
 main() {
 # 引数は -h / --help だけ。ほかは、知らない指定を無視して入れてしまわないように止める
-case "${1-}" in
-  -h | --help) usage; exit 0 ;;
-esac
+if [ $# -eq 1 ]; then
+  case "$1" in
+    -h | --help) usage; exit 0 ;;
+  esac
+fi
 if [ $# -gt 0 ]; then
-  printf '%skiroku: install.sh takes no arguments (got: %s); use KIROKU_VERSION or KIROKU_INSTALL_DIR instead (see "sh install.sh --help")%s\n' "${c_bad:-}" "$*" "${c_off:-}" | clean >&2
+  got=$(printf '%s' "$*" | clean) # 色の指定は除かず、渡された値だけを掃除する
+  printf '%skiroku: install.sh takes no arguments (got: %s); use KIROKU_VERSION or KIROKU_INSTALL_DIR instead (see "sh install.sh --help")%s\n' "${c_bad:-}" "$got" "${c_off:-}" >&2
   exit 2
 fi
 command -v curl >/dev/null 2>&1 || die "curl is required"
