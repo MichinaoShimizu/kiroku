@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/klauspost/compress/zstd"
@@ -54,6 +55,9 @@ func defaultDir(goos, home string, getenv func(string) string) string {
 		}
 	default:
 		base = getenv("XDG_DATA_HOME")
+		if !strings.HasPrefix(base, "/") { // XDG Base Directory: 相対パスの XDG_DATA_HOME は無視する（今のフォルダに書かない・読まない）
+			base = ""
+		}
 		if base == "" && home != "" {
 			base = filepath.Join(home, ".local", "share")
 		}
@@ -110,6 +114,10 @@ func Clear(dir string, subs []string) (int, error) {
 				dirs = append(dirs, p)
 				return nil
 			}
+			if isTemp(d) { // 止められて残った書きかけ（数えない）
+				_ = os.Remove(p)
+				return nil
+			}
 			if !isCopy(d) {
 				return nil // リンクやほかのファイル（kiroku が書かない名前）は残す
 			}
@@ -135,6 +143,32 @@ func Clear(dir string, subs []string) (int, error) {
 // isCopy は、kiroku が書くコピー（Sync が書く、ふつうのファイルの .jsonl.zst）か。Clear と Kept が同じ決まりで数える。
 func isCopy(d fs.DirEntry) bool {
 	return d.Type().IsRegular() && strings.HasSuffix(d.Name(), ".jsonl.zst")
+}
+
+// tmpPrefix は compress が書きかけのコピーに付ける名前。置きかえる前に止められる（kill -9 など）と残る
+const tmpPrefix = ".kiroku-tmp-"
+
+// staleTempAge より古い書きかけは、ほかの kiroku が書いている最中ではないので消してよい
+const staleTempAge = time.Hour
+
+func isTemp(d fs.DirEntry) bool {
+	return d.Type().IsRegular() && strings.HasPrefix(d.Name(), tmpPrefix)
+}
+
+// removeStaleTemps は、フォルダ dir に残った古い書きかけ（中身は履歴なので残さない）を消す
+func removeStaleTemps(dir string, now time.Time) {
+	es, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	for _, e := range es {
+		if !isTemp(e) {
+			continue
+		}
+		if fi, err := e.Info(); err == nil && now.Sub(fi.ModTime()) > staleTempAge {
+			_ = os.Remove(filepath.Join(dir, e.Name()))
+		}
+	}
 }
 
 // Kept は、Clear が消すもの（dir の下の subs の中の、kiroku が書いたコピー）の数と大きさ。消すかを聞くときに使う。
@@ -296,7 +330,8 @@ func compress(src, dst string) error {
 	if err := core.PrivateDir(filepath.Dir(dst)); err != nil {
 		return err
 	}
-	tmp, err := os.CreateTemp(filepath.Dir(dst), ".kiroku-tmp-*")
+	removeStaleTemps(filepath.Dir(dst), time.Now())
+	tmp, err := os.CreateTemp(filepath.Dir(dst), tmpPrefix+"*")
 	if err != nil {
 		return err
 	}

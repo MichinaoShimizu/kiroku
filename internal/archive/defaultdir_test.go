@@ -15,6 +15,8 @@ func TestDefaultDirPerOS(t *testing.T) {
 		{"linux", "/home/me", nil, filepath.Join("/home/me", ".local", "share", "kiroku", "archive")},
 		{"linux", "/home/me", map[string]string{"XDG_DATA_HOME": "/data"}, filepath.Join("/data", "kiroku", "archive")},
 		{"linux", "", map[string]string{"XDG_DATA_HOME": "/data"}, filepath.Join("/data", "kiroku", "archive")},
+		{"linux", "", map[string]string{"XDG_DATA_HOME": "rel"}, ""},
+		{"linux", "/home/me", map[string]string{"XDG_DATA_HOME": "rel/share"}, filepath.Join("/home/me", ".local", "share", "kiroku", "archive")},
 		{"linux", "", nil, ""},
 		{"darwin", "/Users/me", nil, filepath.Join("/Users/me", "Library", "Application Support", "kiroku", "archive")},
 		{"darwin", "", nil, ""},

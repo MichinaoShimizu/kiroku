@@ -1314,3 +1314,5 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .tagk{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:var(--fs-2xs);color:var(--ink-2);line-height:1.4}
 .tagk .lg::before{content:"";display:inline-block;width:8px;height:8px;margin-right:4px;vertical-align:middle;border-radius:2px;background:var(--c)}
 .tlg .lg.bnow.sg::before{background:linear-gradient(90deg,var(--ink-2) 0 50%,color-mix(in oklab,var(--ink-2) 45%,var(--surface)) 50%)} /* 積み上げの棒：色はエージェント（グラフの下の凡例）。ここは濃い＝表示中・淡い＝過去だけを、エージェントの色に似ない灰色で */
+/* 履歴から来る名前（プロジェクト・題）の右から左の制御文字（U+202E など）が、まわりの文字（数字や時刻）の並びまで変えないよう、名前ごとに閉じる */
+.chip .cn, .run > *, .rlab, .srow b, .srow span{unicode-bidi:isolate}

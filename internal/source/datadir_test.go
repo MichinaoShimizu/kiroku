@@ -14,6 +14,8 @@ func TestDataDirPerOS(t *testing.T) {
 	}{
 		{"linux", "/home/me", nil, filepath.Join("/home/me", ".local", "share", "kiro-cli")},
 		{"linux", "", map[string]string{"XDG_DATA_HOME": "/data"}, filepath.Join("/data", "kiro-cli")},
+		{"linux", "", map[string]string{"XDG_DATA_HOME": "rel"}, ""},
+		{"linux", "/home/me", map[string]string{"XDG_DATA_HOME": "rel/share"}, filepath.Join("/home/me", ".local", "share", "kiro-cli")},
 		{"linux", "", nil, ""},
 		{"darwin", "/Users/me", nil, filepath.Join("/Users/me", "Library", "Application Support", "kiro-cli")},
 		{"darwin", "", nil, ""},

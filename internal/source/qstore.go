@@ -58,6 +58,9 @@ func dataDir(goos, home string, getenv func(string) string, app string) string {
 		}
 	default:
 		d = getenv("XDG_DATA_HOME")
+		if !strings.HasPrefix(d, "/") { // XDG Base Directory: 相対パスの XDG_DATA_HOME は無視する（今のフォルダに書かない・読まない）
+			d = ""
+		}
 		if d == "" && home != "" {
 			d = filepath.Join(home, ".local", "share")
 		}

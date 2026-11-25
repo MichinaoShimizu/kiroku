@@ -584,9 +584,10 @@ func crewHomeOverride(v string) string {
 		} else if u, err := user.Lookup(name); err == nil {
 			dir = u.HomeDir
 		}
-		if dir != "" {
-			v = filepath.Join(dir, filepath.FromSlash(rest))
+		if dir == "" {
+			return "" // ~ を開けない（ホームがわからない・知らない利用者）。今のフォルダの「~」を読まない
 		}
+		v = filepath.Join(dir, filepath.FromSlash(rest))
 	}
 	if a, err := filepath.Abs(v); err == nil {
 		v = a
