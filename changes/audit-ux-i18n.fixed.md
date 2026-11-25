@@ -22,3 +22,4 @@
 - The week or month in which your history starts says why it has no value without hovering: the "?" and Worth a look trends end it with "Jul 20 (partial)", and screen readers hear "partial week: your history starts in it, so it is left out" in those trends and in the Summary charts
 - Japanese: the Worth a look and "?" trend captions write their range with 〜 ("0%〜18%") like other Japanese ranges
 - A day to match last week: the commits line starts "Output (commits):" like the Japanese 産出（コミット） instead of "Left behind:", the trend extended to the end of the period has its own legend entry ("Trend, projected") next to the dashed daily target, and the Kiro credits formula ends "A day 5 credits" with its unit
+- Japanese: the note that more history is needed to compare reads 記録のある過去の月が 4 か月分要ります（いまは 2 か月分） (and 週が 4 週分 for weeks) instead of 過去のか月が 4 要ります

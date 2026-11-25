@@ -402,7 +402,7 @@ function insHeadlines(F){
   const unit = two("unit", t("Unit cost per output"), ["commit", "push", "pr", "edit"]);
   // 「割る量を記録したセッションだけで割る」の注は、各タイルの式（ƒx）の中に。頭に置くと、横の出力単価の頭が 1 行ぶん空く（subgrid で行の高さをそろえるため）。push あたりの注（pushNote）も同じ
   const uin = two("uin", t("Unit cost per input"), ["Hour", "Day", "Ses", "Ask"]);
-  const nb = insBase("active"), few = nb && nb.q1 == null ? `<p class="note insfew">${esc(t("To compare with your usual range, kiroku needs {min} past {unit} with records (have {n}).", {min: INS_MIN, unit: insUnit(INS_MIN), n: nb.n}))}</p>` : ""; // 比べられないことは、数字ごとでなく 1 度だけ言う
+  const nb = insBase("active"), few = nb && nb.q1 == null ? `<p class="note insfew">${esc(t(st.mode === "month" ? "To compare with your usual range, kiroku needs {min} past months with records (have {n})." : "To compare with your usual range, kiroku needs {min} past weeks with records (have {n}).", {min: INS_MIN, n: nb.n}))}</p>` : ""; // 週と月で文を分ける（日本語は「過去の月が 4 か月分」「過去の週が 4 週分」と、名詞と数え方が違う）。比べられないことは、数字ごとでなく 1 度だけ言う
   return `${few}<div class="insh"><span class="insio in" aria-hidden="true">IN</span><span class="insdiv" aria-hidden="true"></span><span class="insio out" aria-hidden="true">OUT</span>${one("cost", INS_IN())}${one("out", INS_OUT())}${uin}${unit}</div><p class="ifxs insdef">${fx(insDef())}</p>`;
 }
 // shareBy(f) は、期間 p の量 f（cost・credits・tokens）をエージェントごとに [名前, 量] で返す関数（エージェントの表の順。色と積む順をいつも同じに）。
