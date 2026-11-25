@@ -1,0 +1,10 @@
+- "Expensive models for light work" gets its Worth a look mark again, on By model next to the Input value (or on Where it went)
+- On a past week, How you worked's lower-cost note says "Different in the week shown" instead of "Different this week"
+- The note after copying a prompt reads "kiroku didn't run or send anything"
+- Cost and output over time: axis and end labels stay about 12 px at any width (they grew to 25 px on a 1000 px window and shrank to 10 px on a phone); the output total has its unit ("695 lines"); the hint under a chart is no longer colored like a link
+- On a phone, From input to output's caption describes the list shown instead of the hidden diagram's band widths
+- The usage-limit mark in the week calendar sits at the right edge of its session so it no longer hides the start of the name
+- A screen reader reads an in-progress period in a trend chart as the amount so far and the end-of-period estimate, not the estimate alone
+- Session details: Tab goes from the prompt flow (left) to the right column on wide windows instead of jumping right, left and back
+- Kinds of work shows "—" instead of $0.00 for a kind with no AI commits
+- A usual range is no longer rounded across the value ("On pace for 11.7: above your usual 9–12"), and both ends have the same decimals ("50.8%–64.0%")

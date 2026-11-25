@@ -1,5 +1,12 @@
 // 詳細パネルのセッション、プロンプトの流れ、詳細の開け閉め（フォーカスの戻し先）
 /* ── drawer: session detail ── */
+// 広い画面では、プロンプトの流れが左の列、操作・数値・情報が右の列（CSS の grid で置く）。Tab の順が「閉じる → 右 → 左 → 右」と
+// 行き来しないよう、広い画面では流れを列の先頭に移す（狭い画面では、操作と数値のあと、情報の前。見た目の順のまま）
+const WIDE_DETAIL = matchMedia("(min-width:1100px)");
+function placeFlow(){ const c = $("#panel .scols"), f = c && c.querySelector(":scope > .sflow"); if (!f) return;
+  if (WIDE_DETAIL.matches){ if (c.firstElementChild !== f) c.prepend(f); return; }
+  const info = c.querySelector(":scope > .sinfo"); if (info && f.nextElementSibling !== info) c.insertBefore(f, info); }
+WIDE_DETAIL.addEventListener("change", placeFlow);
 const FIXRE = /違う|ちがう|そうじゃな|やり直|戻して|元に戻|取り消|じゃなくて|\b(?:wrong|incorrect|nope|revert|undo|roll ?back|start over|not what|that's not|try again|(?:doesn't|does not|didn't|did not|still not|isn't|is not) work(?:ing)?|still (?:broken|failing|fails)|you broke)\b/i; // 言い直し・中断らしいプロンプト（プロンプトの流れで点の色を変える）
 function detail(s){
   if (!s){ st.sel = null; return summary(); }
@@ -62,6 +69,7 @@ function detail(s){
     </section>
     </div>
   </div>`;
+  placeFlow();
   bindGitEvents(P);
   const hl = P.querySelector("a[data-hist]"); if (hl) hl.onclick = e => { e.preventDefault(); saveHistory(s, hl); };
   P.querySelectorAll(".sflags [data-goto]").forEach(b => b.onclick = () => openWorth(b.dataset.goto, b));

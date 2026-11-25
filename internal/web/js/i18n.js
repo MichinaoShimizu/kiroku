@@ -198,6 +198,9 @@ const JA_TEXT = {
   "Unit cost per output": "産出単価",
   "Unit cost per input": "投入単価",
   "Cache write": "キャッシュへの書き込み",
+  "Input tokens": "入力トークン",
+  "Output tokens": "出力トークン",
+  "output tokens": "出力トークン",
   "Cache read": "キャッシュからの読み込み",
   "{name}: {pc}% of tokens ({v})": "{name}：トークンの {pc}%（{v}）",
   "tokens of the type": "種類のトークン",
@@ -260,7 +263,7 @@ const JA_TEXT = {
   "Copy prompt": "プロンプトをコピー",
   "Copy the session review prompt": "セッションの振り返りのプロンプトをコピー",
   "Copy the daily report prompt for {date}": "{date} の日報のプロンプトをコピー",
-  "Copied the prompt. kiroku ran and sent nothing. Paste it into your AI agent.": "プロンプトをコピーしました。kiroku は何も実行・送信していません。AI エージェントに貼り付けてください。",
+  "Copied the prompt. kiroku didn't run or send anything. Paste it into your AI agent.": "プロンプトをコピーしました。kiroku は何も実行・送信していません。AI エージェントに貼り付けてください。",
   "From the prompt to the AI's last activity (an estimate from the history's timestamps)": "プロンプトから AI が最後に動いたときまで（履歴の時刻からの推定）",
   "From the AI's last activity to your next prompt (an estimate)": "AI が最後に動いたときから次のプロンプトまで（推定）",
   "The last thing the AI wrote to you in this turn, in its own words (not its thinking or tool output)": "AI がこのターンの最後に自分の言葉で書いたもの（思考やツールの出力は含まない）",
@@ -745,6 +748,7 @@ const JA_TEXT = {
   "last month": "先月",
   "last week": "先週",
   "lines": "行",
+  "line": "行",
   "manual": "手動",
   "of {n}": "/ {n}",
   "of {n} so far": "/ {n}（今日まで）",
@@ -791,8 +795,9 @@ const JA_TEXT = {
   "{v} ({pc}%) is from agents that don't record commits": "コミットを記録しないエージェントの分が {v}（{pc}%）",
   "estimated cost": "推定費用",
   "session time": "セッションの時間",
-  "Band width = the amount. A session has a commit or PR when it made one, or when a commit was made in its project from its start to 10 minutes after its end. A session of an agent that doesn't record its commits, with no commit found that way, is \"Not recorded\"": "帯の太さ = 量。コミットか PR のあったセッションとは、自分でコミットか PR を作ったセッションと、始まりから終わりの 10 分後までに同じプロジェクトでコミットがあったセッション。コミットを記録しないエージェントのセッションで、そうしたコミットも見つからないものは「記録なし」",
+  "Band width = the amount. A session has a commit or PR when it made one, or when a commit was made in its project from its start to 10 minutes after its end. A session of an agent that doesn't record its commits, with no commit found that way, is \"Not recorded\". Sessions count in the period they started in, so the total can differ from the Input panel": "帯の太さ = 量。コミットか PR のあったセッションとは、自分でコミットか PR を作ったセッションと、始まりから終わりの 10 分後までに同じプロジェクトでコミットがあったセッション。コミットを記録しないエージェントのセッションで、そうしたコミットも見つからないものは「記録なし」。セッションは始まった期間に数えるので、合計が投入のパネルと違うことがあります",
   "Band width is the amount": "帯の太さが量",
+  "Each list adds up to 100%": "どの一覧も、足すと 100%",
   "What changed from the last period": "前の期間からの増減",
   "Last month, same days": "先月の同じ日数まで",
   "Last week, same days": "先週の同じ日数まで",
@@ -846,6 +851,8 @@ const JA_TEXT = {
   "Far below usual": "いつもよりかなり低い",
   "Different this week:": "今週いつもと違ったこと：",
   "Different this month:": "今月いつもと違ったこと：",
+  "Different in the week shown:": "表示中の週にいつもと違ったこと：",
+  "Different in the month shown:": "表示中の月にいつもと違ったこと：",
   "Lowest of the last {n} {unit}": "過去 {n} {unit}で最も低い",
   "Highest of the last {n} {unit}": "過去 {n} {unit}で最も高い",
   "Up {n} {unit} in a row": "{n} {unit}続けて上がっている",
@@ -1037,14 +1044,16 @@ const JA_TEXT = {
   "No records in this month's days": "この月の日には記録がありません",
   "{c} sent, including commits made before the period": "{c}を送った（期間より前のコミットも含む）",
   "Cost and output over time": "費用と産出の推移",
-  "No stretch where {in} rose 15 points or more while {o} stayed flat": "{in}だけが 15 ポイント以上伸びて、{o}が止まった区間はありません",
+  "No stretch where {in} rose by 15% or more of the period's total while {o} rose 2% or less": "{in}が期間の合計の 15% 以上伸び、{o}が 2% 以下しか伸びなかった区間はありません",
   "Solid: {in} · dashed: {o}{s}": "実線：{in} · 破線：{o}{s}",
   " · shaded: {in} up, {o} flat": " · 塗り：{in}が伸び、{o}が止まった区間",
+  "Shaded: the stretch where {in} rose the most (15% or more of the period's total) while {o} rose 2% or less": "塗り：{o}が期間の合計の 2% 以下しか伸びないあいだに、{in}が最も伸びた区間（期間の合計の 15% 以上）",
   "From {a} to {b}: {in} +{pi}%, {o} +{po}% of the period's totals": "{a}から{b}まで：{in}は期間の合計の +{pi}%、{o}は +{po}%",
   "A session's AI-edited lines are spread over its active time too": "AI が編集した行も、セッションの稼働時間に配っています",
   "Both lines are the running total as a share of the period's total; a session's {in} is spread over its active time": "どちらの線も、期間の合計に対する累積の割合。セッションの{in}は、その稼働時間に配っています",
   "Open the calendar for those days to see whether it was research, waiting or going in circles": "その日をカレンダーで開き、調べものか、待ちか、堂々めぐりかを確かめる",
   "{pc}% so far": "ここまで {pc}%",
+  "{so} so far, estimated {v} by the end": "これまで {so}、期間の終わりの推定 {v}",
 };
 // t は英語の文 s を今の言語にする。{name} は vars の値で埋める（日本語では語順が変わるので、文ごと鍵にする）
 function t(s, vars){
@@ -1065,6 +1074,7 @@ function applyStaticText(){
 // 言語は、?lang=・--lang（KIROKU_LANG）・ブラウザの言語の順に決まる（state.js の LANG）。以前の版で選んだ言語は使わない。画面に切り替えのボタンは置かない
 // 並べるときの区切り（日本語は「、」）
 const LSEP = () => isJA() ? "、" : ", ";
+const paren = s => isJA() ? `（${s}）` : ` (${s})`; // 添え書きのかっこ（日本語は全角）
 const TSEP = () => isJA() ? "、" : "; "; // 日時の並び（英語の日付 "Tue, Sep 29" はコンマを含むので、セミコロンで区切る）
 
 /* localizeTitles は、kiroku が決めた英語の題（Go が Synthetic にしたセッションだけ。Kiro Crew の中身を残さない会話など）と、

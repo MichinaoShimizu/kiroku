@@ -231,6 +231,9 @@ async function run(env) {
     check("押すと詳細が開く", await drawerOpen());
     const box = await p.locator("#drawer").boundingBox();
     check("詳細が画面に収まる", box && box.x >= -1 && box.x + box.width <= env.viewport.width + 1, JSON.stringify(box));
+    // 広い画面では、流れ（左の列）が操作・数値・情報（右の列）より先：Tab が「閉じる → 右 → 左 → 右」と行き来しない
+    check("Tab の順が、見た目の列の順（左の流れ → 右の列）", await p.evaluate(() => { const c = document.querySelector("#panel .scols"); if (!c) return true;
+      const f = c.querySelector(":scope > .sflow"), wide = matchMedia("(min-width:1100px)").matches; return !f || (wide ? c.firstElementChild === f : !f.nextElementSibling || f.nextElementSibling.matches(".sinfo")); }));
     check("閉じるボタンが種類の行に並び、ボタンだけの空いた帯がない", await p.evaluate(() => { const c = document.querySelector("#close").getBoundingClientRect(), e = document.querySelector("#panel .eyebrow").getBoundingClientRect();
       return Math.abs((c.top + c.bottom) / 2 - (e.top + e.bottom) / 2) < 12 && c.left > e.left; }));
     const rep = p.locator("#panel .tl li.rp").first();
@@ -334,6 +337,11 @@ async function run(env) {
         const F = lastFlags, side = f => insSide(f), ok = F.every((f, i) => i === 0 || side(F[i - 1]) < side(f) || side(F[i - 1]) === side(f) && ((F[i - 1].stake && F[i - 1].stake.c) ?? -1) >= ((f.stake && f.stake.c) ?? -1));
         return ok; }));
       check("見直す候補はどれも、サマリーの指標の横の印から開ける", await p.evaluate(() => [...new Set(lastFlags.map(f => GOTO[f.k] || f.k))].every(id => document.querySelector(`#review .fmark[data-goto="${id}"]`))));
+      // 表示中の期間に出ていない候補も、出たときに印の置き場所があるか（モデルの選び方は「?」のない図に置く。置き場所がないと印が消える）。
+      // 写しの上で候補をすべて置いてみて、どれにも見えている印が付くかを見る
+      check("どの種類の見直す候補にも、見えている印が付く", await p.evaluate(() => { const R = document.querySelector("#review").cloneNode(true); R.querySelectorAll(".fmark").forEach(x => x.remove());
+        document.body.append(R); try { const ks = ["limits", "fix", "friction", "longctx", "modelfit", "heavy", "repeats"]; placeFlags(R, ks.map(k => ({k, ids: []})));
+          return ks.every(k => [...R.querySelectorAll(`.fmark[data-goto="${GOTO[k] || k}"]`)].some(m => !m.closest("[hidden]"))); } finally { R.remove(); } }));
       check("エージェント別の表に、エージェントごとの行がある（費用とクレジットを混ぜない）", await p.evaluate(() => document.querySelectorAll("#review .iagt tbody tr").length >= 2));
       check("サマリーにエージェントの切り替えはない（いつもすべてのエージェント）", await p.evaluate(() => !document.querySelector("#review [data-ag]")));
       { // 投入の量（推定費用・Kiro credits・トークン）は、どのエージェントの分もまとめ、棒はエージェントの色で積み上げる。色の凡例に名前を添える
@@ -945,6 +953,8 @@ async function run(env) {
     check("押すと、今月の日ごとの内訳（月末の推定）が開き、週の表示はそのまま", dlg.open && dlg.txt.includes(mp.v) && dlg.txt.includes(mp.so) && await p.evaluate(() => st.mode === "week"), dlg.txt.slice(0, 120));
     await p.keyboard.press("Escape"); await pause();
     await view("sum");
+    // 途中の週の推移の読み上げは、推定を値として読まず、これまでの値と推定だと言う
+    check("途中の週の推移の読み上げは「so far」と推定を言う", await p.evaluate(() => { const x = document.querySelector('#review .itile[data-ch="cost"] .tspk .sr'); return !x || /so far, estimated .+ by the end/.test(x.textContent); }));
     const cb = p.locator('#review .iksw[data-sw="cost"] [data-v="credits"]');
     if (await cb.count()){ // 今週にクレジットの記録がなければ、投入のパネルにクレジットの選択肢は出ない（数字のない選択肢は出さない）
       await cb.click(); await pause(); // コストのパネルでクレジットを選ぶ

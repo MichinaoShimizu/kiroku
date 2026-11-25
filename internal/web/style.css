@@ -926,7 +926,7 @@ header{background:var(--s-cont);border-bottom:0}
 /* グラフの読み取り：見出しのすぐ下に、データから計算した 1 文 */
 .isay{margin:-4px 0 10px;font-size:var(--fs-md);font-weight:600;color:var(--ink);line-height:1.45}
 .insfig .ixl.sub{font-size:10px;fill:var(--ink-3)}
-.ithen{margin:-6px 0 10px;font-size:var(--fs-sm);color:var(--acc-ink);font-weight:500}
+.ithen{margin:-6px 0 10px;font-size:var(--fs-sm);color:var(--ink-2);font-weight:500} /* 次にやってみること（押せる文字ではないので、リンクの色にしない） */
 
 /* どこに使ったか：大きい順の横棒（名前・棒・値・割合） */
 .iwrows{display:flex;flex-direction:column;gap:6px}
@@ -1175,6 +1175,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .iwtf .wfu{fill:color-mix(in oklab,var(--ink) 30%,var(--surface))}.iwtf .wfd{fill:color-mix(in oklab,var(--ink) 62%,var(--surface))} /* 増えた分は薄い灰、減った分は濃い灰（プロジェクトの色や良し悪しの色と重ならないように） */
 .iwtf .wfc{stroke:var(--ink-3);stroke-dasharray:3 3;stroke-width:1}
 .icum .icl{fill:none;stroke-width:2;stroke-linejoin:round}.icum .icl.in{stroke:var(--acc)}.icum .icl.out{stroke:var(--ink-2);stroke-dasharray:5 3} /* 費用は実線、産出は破線（色だけに頼らない） */
+.insfig.icum svg{overflow:visible}.insfig.icum svg text{font-size:calc(12px * var(--k,1))} /* cumFit が入れる --k で、画面の字を 12px に（図の伸び縮みを割り戻す） */
 .icum .icst{fill:color-mix(in oklab,var(--ink-3) 18%,transparent)}.icum .icnl{font-size:11px;font-family:var(--sans);font-weight:600;font-variant-numeric:tabular-nums}.icum .icnl.in{fill:var(--acc-ink)}.icum .icnl.out{fill:var(--ink-2)}
 .iwtf .wfv{font-size:11px;fill:var(--ink-2);text-anchor:middle;font-family:var(--sans);font-variant-numeric:tabular-nums}
 /* ドーナツ（どこに使ったか）：横棒の左に */
@@ -1257,7 +1258,8 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .isk .sklist li{display:grid;grid-template-columns:auto minmax(0,1fr) auto 3.2em;gap:8px;align-items:center;font-size:var(--fs-sm)}
 .isk .sklist li i{width:9px;height:9px;border-radius:50%}.isk .sklist li b{text-align:right;font-variant-numeric:tabular-nums}
 .isk .sklist .skn2{min-width:0;overflow-wrap:anywhere}
-@media (max-width:600px){.inscol .isk>svg{display:none}.isk .sklist{display:grid}.isk .ifxs .fxp{display:none}} /* スマホでは、縮んで読めない図の代わりに、同じ数の表だけを出す */
+.isk .skcl{display:none}
+@media (max-width:600px){.inscol .isk>svg{display:none}.isk .sklist{display:grid}.isk .skcd{display:none}.isk .skcl{display:inline}} /* スマホでは、縮んで読めない図の代わりに、同じ数の表だけを出す（添え書きも表のものに） */
 .ikgh .iksw{flex-wrap:wrap;overflow:visible;max-width:100%} /* 割る数は 4 つあるので、狭いパネルでは折り返す（横にはみ出して隠さない） */
 /* 数字の大きさの段：4 つのパネルの値がページでいちばん大きく太い数字（hero）。内訳のカードの値（出力の行・使い方などの数の枠）は 1 段小さくそろえる。
    「vs last week」や式などの添え書きは小さく淡いまま */
