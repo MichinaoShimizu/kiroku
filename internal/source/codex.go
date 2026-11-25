@@ -566,7 +566,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 						// Codex は最後のスナップショットを次の token_count にもそのまま書くので、同じものの書き直しは数えない
 						raw, _ := json.Marshal(rl)
 						if core.Str(rl["rate_limit_reached_type"]) != "" && string(raw) != lastLimits {
-							s.Limit(t, "")
+							s.LimitUntil(t, codexResetAt(rl))
 						}
 						lastLimits = string(raw)
 						codexRateLimits(s, t, rl)
@@ -950,6 +950,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		parent.Measures = append(parent.Measures, cf.b.Measures...) // サブエージェントの分も親のセッションの数字に入れる
 		parent.Limits = append(parent.Limits, cf.b.Limits...)       // サブエージェントが上限に当たっても、止まったのは親のセッションの作業
 		parent.LimitResets = append(parent.LimitResets, cf.b.LimitResets...)
+		parent.LimitResetAt = append(parent.LimitResetAt, cf.b.LimitResetAt...)
 		var start, end *float64
 		if len(cf.b.Times) > 0 {
 			ts := append([]float64(nil), cf.b.Times...)
@@ -975,11 +976,15 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		s.Project, s.Branch = cf.cwd, cf.branch
 		s.Title = cf.title
 		// サブエージェントの分を足したので、時刻の順に並べ直して 1 分以内のものをまとめ直す
-		hits := append([]float64(nil), s.Limits...)
-		sort.Float64s(hits)
-		s.Limits, s.LimitResets = nil, nil // Codex の上限には解除の時刻の文がない
+		type hit struct{ t, at float64 }
+		hits := make([]hit, len(s.Limits))
+		for i, t := range s.Limits {
+			hits[i] = hit{t, s.LimitResetAt[i]}
+		}
+		sort.SliceStable(hits, func(a, b int) bool { return hits[a].t < hits[b].t })
+		s.Limits, s.LimitResets, s.LimitResetAt = nil, nil, nil // Codex の上限には解除の時刻の文がない（時刻は resets_at）
 		for i := range hits {
-			s.Limit(&hits[i], "")
+			s.LimitUntil(&hits[i].t, hits[i].at)
 		}
 		for _, ev := range cf.events {
 			s.AddEvent(ev)
@@ -1265,6 +1270,24 @@ func codexRateLimits(s *core.Builder, t *float64, rl core.Obj) {
 			s.Measure(codexWindowKey(w["window_minutes"], slot == "secondary"), t, v)
 		}
 	}
+}
+
+// codexResetAt は、上限に当たったスナップショット（token_count.rate_limits）から解除の時刻（UNIX 秒）を取る。
+// 使用率が 100% 以上の枠（primary・secondary。100 を超えることもある）の resets_at で、どちらも当たっていれば遅いほう
+// （両方が戻るまで使えない）。当たった枠がない（クレジットの使い切りなど）か、resets_at がなければ 0。
+// limit_id が codex 以外（モデルごとの別の枠）のものも、当たったのはその枠なので同じに読む。
+func codexResetAt(rl core.Obj) float64 {
+	at := 0.0
+	for _, slot := range []string{"primary", "secondary"} {
+		w := core.Map(rl[slot])
+		if p, ok := core.Num(w["used_percent"]); !ok || p < 100 {
+			continue
+		}
+		if r, ok := core.Num(w["resets_at"]); ok && r > at {
+			at = r
+		}
+	}
+	return at
 }
 
 // codexWindows は枠の長さ（分）と指標の名前。Codex の画面（get_limits_duration）と同じく、前後 5% までを同じ長さとみなす。

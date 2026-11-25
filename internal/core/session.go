@@ -175,6 +175,7 @@ type Builder struct {
 	InterruptTS                    []float64 // 中断した時刻
 	Limits                         []float64 // 利用上限（使用量の上限・レート制限）に当たった時刻
 	LimitResets                    []string  // Limits と同じ並びで、エラー文にあった解除の時刻の文（"3:45pm" など。なければ空）
+	LimitResetAt                   []float64 // Limits と同じ並びで、履歴に UNIX 秒で残っていた解除の時刻（Codex の rate_limits の resets_at。なければ 0）
 	Compactions                    []float64 // 会話を要約して文脈を空けた（コンパクション）時刻
 	CompactKinds                   []string  // Compactions と同じ並びで、自動か手動か（"auto"・"manual"。わからなければ空）
 	CtxWindow                      float64   // 文脈がいちばん大きかった応答のモデルのコンテキストウィンドウ（わからなければ 0。PeakContextWindow）
@@ -397,7 +398,18 @@ func (s *Builder) withReplies(ps []Prompt) []Prompt {
 
 // Limit は利用上限のエラーを記録する。同じ上限で続けて出たもの（1 分以内）は 1 回と数える。
 // reset はエラー文にあった解除の時刻の文（LimitReset。なければ空）。
-func (s *Builder) Limit(ts *float64, reset string) {
+func (s *Builder) Limit(ts *float64, reset string) { s.limit(ts, reset, 0) }
+
+// LimitUntil は、解除の時刻が UNIX 秒でわかっている利用上限（Codex の rate_limits の resets_at）を記録する。
+// 時刻は履歴の値なので、当たった時刻より前のものや、1 年より先のものは使わない（0 にする）。
+func (s *Builder) LimitUntil(ts *float64, at float64) {
+	if ts == nil || at <= *ts || at > *ts+366*24*3600 {
+		at = 0
+	}
+	s.limit(ts, "", at)
+}
+
+func (s *Builder) limit(ts *float64, reset string, at float64) {
 	if ts == nil {
 		return
 	}
@@ -405,10 +417,14 @@ func (s *Builder) Limit(ts *float64, reset string) {
 		if s.LimitResets[n-1] == "" {
 			s.LimitResets[n-1] = reset
 		}
+		if s.LimitResetAt[n-1] == 0 {
+			s.LimitResetAt[n-1] = at
+		}
 		return
 	}
 	s.Limits = append(s.Limits, *ts)
 	s.LimitResets = append(s.LimitResets, reset)
+	s.LimitResetAt = append(s.LimitResetAt, at)
 }
 
 // Compact は会話のコンパクション（要約して文脈を空けたこと）を記録する。
@@ -737,6 +753,7 @@ type Session struct {
 	Interrupts   int          `json:"interrupts"`
 	InterruptsAt []float64    `json:"interruptsAt"`           // 中断した時刻
 	Limits       []float64    `json:"limits"`                 // 利用上限に当たった時刻
+	LimitResetAt []float64    `json:"limitResetAt,omitempty"` // limits と同じ並びで、解除の時刻（UNIX 秒。履歴に時刻で残っていたものだけ。なければ 0、どれもなければ出さない）
 	LimitResets  []string     `json:"limitResets,omitempty"`  // limits と同じ並びで、解除の時刻の文（"3:45pm" など。日付や時間帯のないこともある。なければ空）
 	Compactions  []float64    `json:"compactions,omitempty"`  // 会話を要約して文脈を空けた（コンパクション）時刻
 	CompactKinds []string     `json:"compactKinds,omitempty"` // compactions と同じ並びで "auto"・"manual"（わからなければ空。どれもわからなければ出さない）
@@ -923,7 +940,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 		ID: s.ID, Source: s.Source, Project: name, ProjectPath: project, Branch: strOrNil(s.Branch), Title: title, Synthetic: s.TitleByKiroku,
 		Start: times[0], End: times[len(times)-1], Events: len(times), Segs: Segments(times, float64(gapMin*60)),
 		Prompts: prompts, Notes: s.Notes, NPrompts: len(s.Prompts), Tools: tools, Files: files, FileEdits: fileEdits, NFiles: nFiles, EditAdded: editAdded, EditRemoved: editRemoved, Resume: strOrNil(s.Resume),
-		Waits: s.Waits(), Interrupts: s.Interrupts, InterruptsAt: interrupts, Limits: limits(s.Limits), LimitResets: limitResets(s.LimitResets), Compactions: compactions, CompactKinds: compactKinds, Ctx: ctx, CtxWindow: s.CtxWindow, Corrections: s.Corrections(), Models: models, Tiers: tiers,
+		Waits: s.Waits(), Interrupts: s.Interrupts, InterruptsAt: interrupts, Limits: limits(s.Limits), LimitResets: limitResets(s.LimitResets), LimitResetAt: limitResetAt(s.LimitResetAt), Compactions: compactions, CompactKinds: compactKinds, Ctx: ctx, CtxWindow: s.CtxWindow, Corrections: s.Corrections(), Models: models, Tiers: tiers,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
 		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: reported, File: s.File, PrivateFiles: s.PrivateFiles, PRs: prs, PRAt: prAt,
 		Meas: s.Measures, OutTracked: RecordsOf(s.Source, "outputs"),
@@ -992,6 +1009,16 @@ func (s *Builder) compactions() ([]float64, []string) {
 		}
 	}
 	return ts, limitResets(kinds)
+}
+
+// limitResetAt は、解除の時刻（UNIX 秒）がどれか 1 つでもわかっていれば返す（なければ JSON に出さない）。
+func limitResetAt(xs []float64) []float64 {
+	for _, x := range xs {
+		if x > 0 {
+			return xs
+		}
+	}
+	return nil
 }
 
 // limitResets は、解除の時刻がどれか 1 つでもわかっていれば返す（なければ JSON に出さない）。

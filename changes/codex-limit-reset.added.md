@@ -1,0 +1,1 @@
+- Codex: usage limit hits show when the limit resets, from the `resets_at` of the window Codex recorded at 100% or more, in your time zone (with the date when it is not the day of the hit). The prompt flow, the "Usage limit hits" card and "Worth a look" show it as they do for Claude Code

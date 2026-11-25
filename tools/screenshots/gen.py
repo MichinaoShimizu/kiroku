@@ -253,5 +253,34 @@ for d in range(35, -1, -1):
             with open(os.path.join(dirn, "messages.jsonl"), "w") as f:
                 for l in lines: f.write(json.dumps(l, ensure_ascii=False)+"\n")
 os.makedirs(CODEX, exist_ok=True)
+# Codex で利用上限に当たったセッション（先週の火曜の午後）。5 時間の枠を使い切り、解除の時刻（resets_at）が残る。乱数は使わない（ほかのダミーデータを変えない）
+def codex_limit_hit():
+    start = last_wed - dt.timedelta(days=1) + dt.timedelta(hours=15, minutes=20); cwd = os.path.join(REPOS, "data-pipeline")
+    sid = str(uuid.UUID(int=570)); t = start; tot = {"input_tokens":0,"cached_input_tokens":0,"output_tokens":0,"reasoning_output_tokens":0,"total_tokens":0}
+    reset = int((start + dt.timedelta(hours=2, minutes=40)).timestamp())
+    lines = [{"timestamp":iso(t),"type":"session_meta","payload":{"id":sid,"timestamp":iso(t),"cwd":cwd,"originator":"codex_cli_rs","cli_version":"0.80.0","source":"cli","git":{"branch":"main"}}},
+             {"timestamp":iso(t),"type":"turn_context","payload":{"cwd":cwd,"model":"gpt-6-sol"}}]
+    for i, (ask, used) in enumerate([("Profile the nightly job", 96.0), ("Continue", 100.0)]):
+        t += dt.timedelta(seconds=12)
+        lines.append({"timestamp":iso(t),"type":"event_msg","payload":{"type":"user_message","message":ask,"images":[]}})
+        t += dt.timedelta(seconds=90)
+        lines.append({"timestamp":iso(t),"type":"response_item","payload":{"type":"function_call","name":"shell","arguments":json.dumps({"command":["bash","-lc","npm run profile"]}),"call_id":f"c570{i}"}})
+        last = {"input_tokens":24000,"cached_input_tokens":18000,"output_tokens":1800,"reasoning_output_tokens":600,"total_tokens":25800}
+        for k in tot: tot[k] += last[k]
+        rl = {"limit_id":"codex","primary":{"used_percent":used,"window_minutes":300,"resets_at":reset},"secondary":{"used_percent":31.0,"window_minutes":10080,"resets_at":reset + 4 * 86400},"plan_type":"plus"}
+        if used >= 100: rl["rate_limit_reached_type"] = "rate_limit_reached"
+        lines.append({"timestamp":iso(t),"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":dict(tot),"last_token_usage":last,"model_context_window":272000},"rate_limits":rl}})
+        if used >= 100:
+            t += dt.timedelta(seconds=1)
+            lines.append({"timestamp":iso(t),"type":"event_msg","payload":{"type":"task_complete","turn_id":f"t570{i}","last_agent_message":None,"error":{"message":"You've hit your usage limit.","codex_error_info":"usage_limit_exceeded"}}})
+        else:
+            t += dt.timedelta(seconds=4)
+            lines.append({"timestamp":iso(t),"type":"event_msg","payload":{"type":"agent_message","message":odone[1]}})
+            t += dt.timedelta(seconds=60)
+    dirn = os.path.join(CODEX, "sessions", start.strftime("%Y/%m/%d")); os.makedirs(dirn, exist_ok=True)
+    with open(os.path.join(dirn, f"rollout-{start.strftime('%Y-%m-%dT%H-%M-%S')}-{sid}.jsonl"), "w") as f:
+        for l in lines: f.write(json.dumps(l, ensure_ascii=False)+"\n")
+    index.append({"id":sid,"thread_name":"Profile the nightly job","updated_at":iso(t)})
+codex_limit_hit()
 with open(os.path.join(CODEX, "session_index.jsonl"), "w") as f:
     for l in index: f.write(json.dumps(l)+"\n")

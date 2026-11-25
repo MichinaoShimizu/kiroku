@@ -306,6 +306,48 @@ func TestSpanIn(t *testing.T) {
 	}
 }
 
+// 利用上限の解除の時刻（limitReset、#570）。履歴の時刻（limitResetAt、UNIX 秒）があれば今いる時間帯の 24 時間の時刻で、
+// 当たった日と違う日なら日付も付ける。なければエラー文の時刻（"9pm" などを 24 時間に）。review.js と format.js から取り出し、TZ=Asia/Tokyo で動かす。
+func TestLimitReset(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	var code []string
+	for _, x := range []struct{ file, re string }{
+		{"js/state.js", `(?m)^const DOW_EN = .*$`},
+		{"js/state.js", `(?m)^const DOW = .*$`},
+		{"js/format.js", `(?m)^const MON = .*$`},
+		{"js/format.js", `(?m)^const dMD = .*$`},
+		{"js/format.js", `(?m)^function md\(t\)\{.*$`},
+		{"js/format.js", `(?m)^function hm\(t\)\{.*$`},
+		{"js/review.js", `(?ms)^function limitReset\(s, i\)\{.*?\); \}$`},
+	} {
+		src, err := jsFiles.ReadFile(x.file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		m := regexp.MustCompile(x.re).FindString(strings.ReplaceAll(string(src), "\r\n", "\n"))
+		if m == "" {
+			t.Fatalf("%s に %s が見つからない", x.file, x.re)
+		}
+		code = append(code, m)
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "limitreset_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "limitreset.js")
+	if err := os.WriteFile(f, append([]byte(i18nStub+strings.Join(code, "\n")+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(node, f)
+	cmd.Env = append(os.Environ(), "TZ=Asia/Tokyo")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Errorf("limitReset が違う:\n%s", out)
+	}
+}
+
 // 画面の日本語（i18n.js の JA_TEXT）。値に HTML を入れていないこと、{name} が英語の鍵とそろっていること、
 // t() が辞書を引くこと。js/ の t("…") で日本語のないものは、落とさずに一覧だけ出す（訳のない文は英語で出る）
 func TestI18nCatalog(t *testing.T) {

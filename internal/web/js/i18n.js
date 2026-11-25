@@ -287,7 +287,7 @@ const JA_TEXT = {
   "Couldn't show the summary for this period ({error}). Please let us know in an issue.": "この期間のサマリーを表示できませんでした（{error}）。issue でお知らせください。",
   "Couldn't open the history file. If kiroku serve is running, run kiroku serve and try again.": "履歴ファイルを開けませんでした。kiroku serve が動いているなら、kiroku serve を実行してからもう一度お試しください。",
   "Couldn't start the backup. Run kiroku serve --archive on instead.": "バックアップを始められませんでした。代わりに kiroku serve --archive on を実行してください。",
-  "Count and times of usage limit errors (usage caps, spend limits and rate limits) in Claude Code, Codex and Kiro Crew history. Hits within 1 minute count once": "Claude Code・Codex・Kiro Crew の履歴にある利用上限のエラー（使用量の上限・使用額の上限・レート制限）の回数と時刻。1 分以内のものは 1 回と数えます",
+  "Count and times of usage limit errors (usage caps, spend limits and rate limits) in Claude Code, Codex and Kiro Crew history. Hits within 1 minute count once. The reset time is in your time zone for Codex and as the error message wrote it for Claude Code; a hit whose history has none shows none": "Claude Code・Codex・Kiro Crew の履歴にある利用上限のエラー（使用量の上限・使用額の上限・レート制限）の回数と時刻。1 分以内のものは 1 回と数えます。解除の時刻は、Codex ではあなたの時間帯で、Claude Code ではエラー文に書いてあるとおりに出します。履歴に解除の時刻がないものには出ません",
   "Created a pull request": "プルリクエストを作成",
   "Created by AI": "AI が作成",
   "Created {time}": "{time} に作成",
