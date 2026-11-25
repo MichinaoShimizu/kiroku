@@ -36,6 +36,7 @@ Public APIs, formats, versions, deprecation
 
 - 2026-10-07 [DL-8](0008-compatibility-contract.md) What stays compatible within a major version is written down, and kiroku json is versioned
 - 2026-10-11 [DL-9](0009-kiro-cli-v3-labels.md) Kiro CLI V3 is read with Kiro IDE as "Kiro IDE / CLI", and V2 becomes "Kiro CLI (Classic)"
+- 2026-11-23 [DL-16](0016-major-gap-exception.md) v5.0.0 went out three days after v4.0.0, past the 30-day gap and with no Deprecated release first
 
 ## Release and operations (release)
 
