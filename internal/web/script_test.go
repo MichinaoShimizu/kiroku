@@ -730,3 +730,30 @@ func TestLoHi(t *testing.T) {
 		t.Errorf("insLoHi が違う:\n%s", out)
 	}
 }
+
+// 文の途中に入れる指標の名前（i18n.js の midName）。「No stretch where Estimated cost rose…」と大文字のまま入れない
+func TestMidName(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/i18n.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`(?m)^const midName = .*$`).FindString(strings.ReplaceAll(string(src), "\r\n", "\n"))
+	if m == "" {
+		t.Fatal("i18n.js に midName が見つからない")
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "midname_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "midname.js")
+	if err := os.WriteFile(f, append([]byte("let ja = false;\nconst isJA = () => ja;\n"+m+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("midName が違う:\n%s", out)
+	}
+}

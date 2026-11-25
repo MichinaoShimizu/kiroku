@@ -3,3 +3,4 @@
 - A copy that `kiroku serve --archive` was still writing when kiroku was stopped (a `.kiroku-tmp-*` file) is removed once it is an hour old, and by `kiroku serve --archive off`
 - A project name or session title with right-to-left control characters no longer reorders the numbers and times next to it in the legend, the calendar and search results
 - `kiroku serve --check` with HOME unset marks each agent whose folder it couldn't work out as "unknown" instead of "none", and the summary and Next say to set HOME or pass `--claude-root`, `--kiro-home`, `--codex-home` or `--crew-home` instead of "No history found"
+- In English, a metric's name inside a sentence is no longer capitalized ("No stretch where estimated cost rose…", "72% of estimated cost"), and the Japanese Git card says コミットか PR に至った everywhere instead of also まで届いた
