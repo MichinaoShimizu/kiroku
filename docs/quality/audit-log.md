@@ -99,10 +99,26 @@ Needs a decision (maintainer):
 
 Carried, still open: E2 Crew rows' `acp_session_id` unused; E5 Claude Code resumed `cost-state`; GPT-5.6 Sol promotion ends 2026-11-30 (rerun `/price-update`, due 2026-12-01); Kiro CLI 3.6 (`/compact <instructions>`, conversation recaps, hook output files) and Claude Code 2.1.332 not yet in docs/upstream/agents.md, and tools/upstream doesn't track Kiro Crew (due: next data run); E7 known approximations (Codex 12-hour cache writes, Ultrafast list price, Haiku 3.5 and Claude 3.x unpriced, `KIRO_DATA_DIR`, V3 copies; decides: maintainer); the reports grader's rule for a warning that names a variable, "Next actions" without a figure, Synthetic session titles and the hop page in English only, the Go-side native metric labels, `?key=` in browser histories, SECURITY.md line lengths (decides: maintainer).
 
+### Fixes (same day, on the same PR)
+After the check, the maintainer asked to fix everything ("全部直して") and decided the open questions: Worth a look stays as it is (N2); the recommended names (one name "A day to match last week/month" with "pace" only for the projection, 推定 throughout, "Keep a copy" / コピーを残す); M4 (compare with the same days of past periods), N4 ("Estimated cost per session hour"), N9 (partial first period left out with a visible reason), L8 (a tagline under the logo) and an M1 note on the Sankey; H1, I5 and I7 recorded in the docs only (compatibility.md, development.md, Decision Log 16; no CI change for the tag or the major gap). Four agents fixed the areas in parallel worktrees, merged here.
+
+Fixed: D-1 and the retaken screenshots (D-2); G1, G2, G4–G6, same-second commits, unset `HOME` for writes, live reload errors shown in the view, the Windows rollback error, `open.go`, deterministic gen.py, condition waits in e2e where safe; A-1–A-7, I3, I4; E1 (KAS: the Crew session yields to the V3 transcript; private KAS conversations hidden; rows record `provider: "acp"` with `harness: kas`, not `provider: kas` as the audit inferred), E2, E3, E4, G3; Kiro Crew added to tools/upstream; N1, N3, N5–N12 (except the phone chip-row hint), L2–L7, the "Close to usual" rule, the card label, both Kiro homes in `serve --check`; C F1, F4, F6–F10, F13 (and `TestHelpMatchesGuide` now checks the numbers in Definition), F15, F16; D-3–D-10, D-13, H2, H3; the maintainer's naming and Summary decisions.
+
+`/pre-pr` on the fixes: `user-tester` found the Japanese waterfall labels overlapping (shortened by character count), the range decimals still uneven where `insBase` formats, the partial-week reason only on hover, "Left behind" in English, two dashed lines with one legend key, a backup and 予測 left in the guide and comments, 「過去のか月が 4」, a lone "?" on a wrapped label, four Japanese names for session time, overlapping end totals at 390 px and "Month-end credits" without "estimate"; all fixed with tests. `hostile-tester` found no XSS, path or command issue; it found that the archive copies any regular file linked under a history file's name (now stated in SECURITY.md), the install.sh error losing its colour and `--help extra` accepted (fixed), C1 controls not removed by `clean` (fixed), and a timeout line claiming a kept result (fixed).
+
+Still open after the fixes:
+- E: whether KAS `messages.jsonl` has V3's `usage_summary` lines (inferred from Crew's reader); Kiro CLI 3.6 `/compact <instructions>` and recaps (no sample); `acp_session_id` of subagents sharing the parent's runtime; Kiro Crew 0.14.0 only tagged as rc in git (agents.md says 0.13.1 until the weekly run). Due: next data run
+- A: with `HOME` unset, the default history folders (`.claude/projects`, `.codex`, `.kiro`) still resolve against the current folder for reading (escaped, nothing written); readers don't treat an empty root alike, so it needs its own change. A size cap or format check for archived links (decides: maintainer). Due: next security run
+- B: the phone chip-row scroll hint; the Data sources panel closes after "Keep a copy in this folder" (the toast confirms). Due: next ux run
+- C F11 (canonical Japanese terms beyond session time) and F12 ("Cost" in headings). Decides: maintainer
+- G: most `pause()` waits in smoke.mjs stay (no single condition); `claudeManagedDir` has no per-OS table test; `core.AgentEnv` is now used only by its test. Due: next code run
+- I6 (tool versions outside Dependabot) and I7's ruleset part (restrict who creates `v*` tags: a Settings change for the maintainer)
+- Carried unchanged: E5, E7, the GPT-5.6 Sol price (due 2026-12-01), the reports grader items, the Go-side native metric labels, `?key=` in browser histories, SECURITY.md line lengths
+
 ### Loop
 | Run | Findings (certain) | Fixed | Median days to fix | Open items | Overdue | Previous items resolved |
 |---|---|---|---|---|---|---|
-| 2026-11-25 full (check) | 56 | 0 (check only) | — | 17 groups | 0 (Sol price due 12-01) | 2 of 14 (+1 partly) |
+| 2026-11-25 full (check, then fixed) | 56 (+14 in /pre-pr) | 54 (+14) | 0 (same day; PR open) | 9 groups | 0 (Sol price due 12-01) | 2 of 14 (+1 partly) |
 | 2026-11-24 full | 62 (+9 in /pre-pr) | 28 (+9) | 0 (same day; PR open) | 14 groups | 0 | 4 of 13 |
 | 2026-11-20 ux, i18n | 25 | 25 | 0 (same day; PR open) | 2 new (and 26 not rechecked) | 1 (F, from 2026-11-19) | — (aspect run) |
 | 2026-11-19 full | 60 | 34 | 0 (same day; PR open) | 26 | 1 (F) | 9 of 24 |
