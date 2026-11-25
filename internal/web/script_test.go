@@ -671,7 +671,7 @@ func TestLastEnd(t *testing.T) {
 }
 
 // いつもの範囲の両端（insight.js の insLoHi）。丸めた端が値をまたがないこと（「11.7：いつもの 9–12 より上」としない）、
-// 両端の小数の桁がそろうこと（「50.8%–64%」としない）。insLoHi だけを取り出し、MET と fmtM は置き換える
+// 両端の小数の桁がそろうこと（「50.8%–64%」としない）。insLoHi・insEnds・insExpr を取り出し、MET と fmtM は置き換える。insBase が付ける b.fmt があっても桁がそろうこと
 func TestLoHi(t *testing.T) {
 	node, err := exec.LookPath("node")
 	if err != nil {
@@ -681,16 +681,21 @@ func TestLoHi(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := regexp.MustCompile(`(?ms)^function insLoHi\(fm, b\)\{.*?^\}$`).FindString(strings.ReplaceAll(string(src), "\r\n", "\n"))
-	if m == "" {
-		t.Fatal("insight.js に insLoHi が見つからない")
+	text := strings.ReplaceAll(string(src), "\r\n", "\n")
+	var m string
+	for _, re := range []string{`(?ms)^function insLoHi\(fm, b\)\{.*?^\}$`, `(?ms)^function insEnds\(fm, b\)\{.*?^\}$`, `(?ms)^function insExpr\(b\)\{.*?^\}$`} {
+		x := regexp.MustCompile(re).FindString(text)
+		if x == "" {
+			t.Fatalf("insight.js に %s が見つからない", re)
+		}
+		m += x + "\n"
 	}
 	cases, err := os.ReadFile(filepath.Join("testdata", "lohi_test.js"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	f := filepath.Join(t.TempDir(), "lohi.js")
-	if err := os.WriteFile(f, append([]byte(m+"\n"), cases...), 0o600); err != nil {
+	if err := os.WriteFile(f, append([]byte(i18nStub+m), cases...), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {

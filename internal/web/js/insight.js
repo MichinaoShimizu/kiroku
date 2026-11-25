@@ -49,9 +49,10 @@ const insDef = n => n == null ? t("{lo}, {hi} = the values a quarter of the way 
 function insExpr(b){
   if (!b || b.q1 == null) return t("To compare: needs {min} past {unit} (have {n})", {min: INS_MIN, unit: insUnit(INS_MIN), n: b ? b.n : 0});
   const fm = b.fmt || (x => fmtM(b.k, x)), x = (b.part ? t("On pace for") + " " : b.k === "wait" ? "P90 " : "") + fm(b.v), iqr = b.q3 - b.q1; // 待ち時間は 90 パーセンタイルで比べる
-  if (b.pos === "typical") return `${LO()} ${fm(b.q1)} ≤ ${x} ≤ ${HI()} ${fm(b.q3)}`;
-  if (b.pos === "high") return b.far ? `${x} > ${HI()} + 1.5×${SP()} = ${fm(b.q3 + 1.5 * iqr)}` : `${x} > ${HI()} = ${fm(b.q3)}`;
-  return b.far ? `${x} < ${LO()} − 1.5×${SP()} = ${fm(b.q1 - 1.5 * iqr)}` : `${x} < ${LO()} = ${fm(b.q1)}`;
+  const e = insEnds(fm, b); // 両端は「いつもの 3.0–7.1」と同じ桁で
+  if (b.pos === "typical") return `${LO()} ${e.lo} ≤ ${x} ≤ ${HI()} ${e.hi}`;
+  if (b.pos === "high") return b.far ? `${x} > ${HI()} + 1.5×${SP()} = ${fm(b.q3 + 1.5 * iqr)}` : `${x} > ${HI()} = ${e.hi}`;
+  return b.far ? `${x} < ${LO()} − 1.5×${SP()} = ${fm(b.q1 - 1.5 * iqr)}` : `${x} < ${LO()} = ${e.lo}`;
 }
 // insOdd は、良し悪しの決まらない数字（使った量・作業の量など。insTone が付かないもの）が、いつもの範囲から大きく外れたか。
 // 「かなり上・下」（insPlain）や推移の赤い点と同じ決まり（上位25%点 + 1.5×幅より上か、下位25%点 − 1.5×幅より下）。上でも下でも同じ中立の色で目を留め、色だけに頼らないよう札（insOddH）も添える
@@ -64,11 +65,17 @@ const insTone = b => !b || b.q1 == null || b.better == null ? "" : (b.better ? "
 // insLoHi は、いつもの範囲の両端。単位は後ろに 1 度だけ（「14–35 credits」）、数えるものは整数で
 // 丸めた端が値をまたがないように（「11.7：いつもの 9–12 より上」とならないよう、またぐなら小数 1 桁で）。両端の桁はそろえる（「50.8%–64%」ではなく「50.8%–64.0%」）
 function insLoHi(fm, b){
+  const {lo, hi} = insEnds(fm, b), m = /^([\d.,]+)\s+(\D+)$/.exec(lo), m2 = /^([\d.,]+)\s+(\D+)$/.exec(hi);
+  return m && m2 && m[2] === m2[2] ? {lo: m[1], hi} : {lo, hi};
+}
+// insEnds は、いつもの範囲の両端を、どちらも単位つきで（式の「下位25%点 3.0 ≤ 7 ≤ 上位25%点 7.1」）。桁の決め方は insLoHi と同じ。
+// MET の指標で書式のないもの（1 日あたりの切り替えなど）は、b.fmt（insBase が付ける fmtM）があっても桁をこちらで決める（「3–7.1」としない）
+function insEnds(fm, b){
   const me = MET[b.k] || {}, cnt = me.int, rd = (v, d) => Math.round(v * 10 ** d) / 10 ** d;
   const cross = d => b.pos === "high" ? rd(b.q3, d) >= b.v : b.pos === "low" ? rd(b.q1, d) <= b.v : rd(b.q1, d) > b.v || rd(b.q3, d) < b.v;
-  const plain = !b.fmt && !me.fmt, d = [cnt || ![b.q1, b.q3].some(v => rd(v, 1) % 1) ? 0 : 1, 1, 2].find(x => !cross(x)) ?? 2; // 単位の書式のない指標だけ、桁をこちらで決める（数えるものは整数から）
-  const f = plain ? (v => `${rd(v, d).toFixed(d)}${me.u ?? ""}`) : cnt ? (v => fmtM(b.k, Math.round(v))) : fm, lo = f(b.q1), hi = f(b.q3), m = /^([\d.,]+)\s+(\D+)$/.exec(lo), m2 = /^([\d.,]+)\s+(\D+)$/.exec(hi);
-  return m && m2 && m[2] === m2[2] ? {lo: m[1], hi} : {lo, hi};
+  const plain = MET[b.k] ? !me.fmt : !b.fmt, d = [cnt || ![b.q1, b.q3].some(v => rd(v, 1) % 1) ? 0 : 1, 1, 2].find(x => !cross(x)) ?? 2; // 単位の書式のない指標だけ、桁をこちらで決める（数えるものは整数から）
+  const f = plain ? (v => `${rd(v, d).toFixed(d)}${me.u ?? ""}`) : cnt ? (v => fmtM(b.k, Math.round(v))) : fm;
+  return {lo: f(b.q1), hi: f(b.q3)};
 }
 // insPlain は、いつもの範囲との比べを言葉で（式を表示しないときのチップ）
 function insPlain(b){

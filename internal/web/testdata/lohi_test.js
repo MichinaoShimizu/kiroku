@@ -16,3 +16,12 @@ eq(insLoHi(fm("cache"), B("cache", 50.8, 64, 60, "typical")), {lo: "50.8%", hi: 
 eq(insLoHi(fm("cache"), B("cache", 50, 64, 60, "typical")), {lo: "50%", hi: "64%"});
 // 書式のある指標はその書式のまま
 eq(insLoHi(fm("cost"), B("cost", 1, 2.5, 3, "high")), {lo: "$1.00", hi: "$2.50"});
+// insBase は書式のない指標にも b.fmt（fmtM）を付ける。それでも両端の桁はそろえる（「3–7.1」ではなく「3.0–7.1」）
+MET.switches = {u: ""};
+const S = Object.assign(B("switches", 3, 7.1, 7, "typical"), {fmt: fm("switches")});
+eq(insLoHi(S.fmt, S), {lo: "3.0", hi: "7.1"});
+// 式（ƒx）の両端も同じ桁で
+const LO = () => "25th pct", HI = () => "75th pct", SP = () => "spread", INS_MIN = 4, insUnit = () => "weeks";
+eq(insExpr(S), "25th pct 3.0 ≤ 7 ≤ 75th pct 7.1");
+eq(insExpr(Object.assign(B("switches", 3, 7.1, 7.3, "high"), {fmt: fm("switches")})), "7.3 > 75th pct = 7.1");
+eq(insExpr(Object.assign(B("cache", 50.8, 64, 70, "high"), {fmt: fm("cache")})), "70% > 75th pct = 64.0%");
