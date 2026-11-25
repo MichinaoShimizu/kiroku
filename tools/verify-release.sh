@@ -6,7 +6,8 @@
 # 新しい一時ディレクトリにリリースのファイルを落とし、次を確かめる。どれか 1 つでも合わなければ 1 で終わる。
 #   1. ファイルの数と名前が、.goreleaser.yaml（と release.yml が足す出どころの証明のバンドル）から決まるものと同じ
 #   2. 各ファイルの sha256 が checksums.txt と合い、checksums.txt がアーカイブ・実行ファイル・SBOM をすべて、それだけを並べている
-#   3. gh があれば、各アーカイブと実行ファイルの出どころの証明（gh attestation verify。install.sh と同じ条件）。なければ飛ばしたと言う
+#   3. gh があれば、release.yml が証明する各ファイル（アーカイブ・実行ファイル・SBOM・checksums.txt）の出どころの証明
+#      （gh attestation verify。install.sh と同じ条件）。なければ飛ばしたと言う
 #
 # 落とすのは HTTPS だけ（install.sh と同じく --proto '=https' --tlsv1.2）。落としたものは開かず、動かさない
 # （アーカイブも展開しない）。ネットワークから来た名前は、決まった形のものだけを使う。
@@ -127,7 +128,9 @@ main() {
     echo "skip  build provenance: gh (GitHub CLI) is not installed, so gh attestation verify was not run"
   else
     bundle=$tmp/dl/kiroku_$ver.sigstore.json
-    grep -E '\.(tar\.gz|zip)$|^[A-Za-z0-9_]+-[a-z0-9]+-[a-z0-9]+(\.exe)?$' "$tmp/want" > "$tmp/archives" # アーカイブと実行ファイル
+    # release.yml が証明するもの：アーカイブ・実行ファイル・SBOM・checksums.txt（証明のバンドルそのもの以外のすべて）
+    grep -v '\.sigstore\.json$' "$tmp/want" > "$tmp/attested"
+
     while IFS= read -r name; do
       [ -f "$tmp/dl/$name" ] || continue
       rc=0
@@ -135,9 +138,10 @@ main() {
       case $rc in
         0) pass "build provenance of $name ($how)" ;;
         3) echo "skip  build provenance of $name: $how" ;;
-        *) bad "build provenance of $name: $how"; sed 's/^/        /' "$tmp/attest.log" | head -n 5 ;;
+        # gh の説明には証明書の値（リリースを作れる人が選べる文字）が入るので、制御文字を消してから出す
+        *) bad "build provenance of $name: $how"; tr -d '\000-\010\013-\037\177' < "$tmp/attest.log" | sed 's/^/        /' | head -n 5 ;;
       esac
-    done < "$tmp/archives"
+    done < "$tmp/attested"
   fi
 
   echo
@@ -241,6 +245,12 @@ attest() {
       fi
       grep -q 'SourceRepositoryRef' "$log" || break # 合わなかったのが「もとにした ref」だけなら、もう一方で試す
     done
+    # 証明が見つからない・合わない。gh の説明には証明書の値（ブランチ名・ワークフロー名など、リリースを作れる人が
+    # 選べる文字）が入るので、下の「届かない」の言葉（timeout など）より先に見る（install.sh・update_gh.go と同じ順）
+    if grep -Eqi 'expected [^ ]+ to be|no matching|no attestations|does not match|verification failed|failed to verify|HTTP 404' "$log"; then
+      echo "gh attestation verify failed"
+      return 1
+    fi
     # GitHub の API で確かめられない（ログインしていない・届かない）ときだけ、リリースのバンドルで試す
     if [ "$st" -eq 4 ] || grep -Eqi 'HTTP (401|403|429|5[0-9][0-9])|dial tcp|no such host|connection (refused|reset)|timeout|TLS handshake|network is unreachable' "$log"; then
       continue
