@@ -34,3 +34,18 @@ func TestKiroLatest(t *testing.T) {
 		t.Error("want an error when the page has no entries")
 	}
 }
+
+func TestGithubVersion(t *testing.T) {
+	if v, err := githubVersion([]byte(`{"tag_name":"v0.14.0","name":"Kiro Crew 0.14.0","prerelease":false}`)); err != nil || v != "0.14.0" {
+		t.Fatalf("got %q, %v", v, err)
+	}
+	if v, err := githubVersion([]byte(`{"tag_name":"0.13.1"}`)); err != nil || v != "0.13.1" {
+		t.Errorf("without v: got %q, %v", v, err)
+	}
+	// ネットワークからの文字は、版の形でなければ書かない（表やリンクに紛れ込ませない）
+	for _, bad := range []string{`{"tag_name":"v0.14.0-rc.3"}`, `{"tag_name":"v1.0 | [x](https://e.x)"}`, `{"tag_name":""}`, `{}`, `not json`} {
+		if _, err := githubVersion([]byte(bad)); err == nil {
+			t.Errorf("%s: want an error", bad)
+		}
+	}
+}

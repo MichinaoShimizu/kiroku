@@ -57,6 +57,7 @@ func main() {
 		{"Codex", "npm @openai/codex", npmLatest("@openai/codex")},
 		{"Kiro CLI", "kiro.dev/changelog (CLI entries)", kiro("cli")},
 		{"Kiro IDE", "kiro.dev/changelog (IDE entries)", kiro("ide")},
+		{"Kiro Crew", "GitHub kirodotdev/kirocrew (latest release)", githubLatest("kirodotdev/kirocrew")},
 	}
 	var b strings.Builder
 	b.WriteString("# Latest versions of the agents kiroku reads\n\n")
@@ -113,6 +114,32 @@ func npmVersion(b []byte) (string, error) {
 		return "", fmt.Errorf("unexpected version %q", m.Version)
 	}
 	return m.Version, nil
+}
+
+// githubLatest は GitHub のリポジトリ repo の最新のリリース（下書きと pre-release を除く）の版。
+func githubLatest(repo string) func(*http.Client) (string, error) {
+	return func(c *http.Client) (string, error) {
+		b, err := get(c, "https://api.github.com/repos/"+repo+"/releases/latest")
+		if err != nil {
+			return "", err
+		}
+		return githubVersion(b)
+	}
+}
+
+// githubVersion はリリースの tag_name（v0.14.0）から版（0.14.0）を取る。版の形でなければ失敗する。
+func githubVersion(b []byte) (string, error) {
+	var m struct {
+		Tag string `json:"tag_name"`
+	}
+	if err := json.Unmarshal(b, &m); err != nil {
+		return "", err
+	}
+	v := strings.TrimPrefix(m.Tag, "v")
+	if !semver.MatchString(v) {
+		return "", fmt.Errorf("unexpected release tag %q", m.Tag)
+	}
+	return v, nil
 }
 
 // kiroLatest は kiro.dev/changelog の記事へのリンク（/changelog/cli/2-31/ など）から、いちばん新しい版（2.31）。

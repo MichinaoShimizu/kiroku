@@ -606,6 +606,35 @@ func TestCodexLimitResetAt(t *testing.T) {
 	}
 }
 
+// ワークスペースの一人あたりの上限（spend control）に当たったときは、5 時間・週の枠が 100% でなくても、
+// individual_limit.resets_at が解除の時刻（protocol.rs の SpendControlLimitSnapshot）。クレジットの使い切りには時刻がない。
+// 枠が 100% 以上なら、これまでどおり枠の resets_at を使う。
+func TestCodexSpendCapResetAt(t *testing.T) {
+	home := t.TempDir()
+	tc := func(at, rl string) string {
+		return `{"timestamp":"` + at + `","type":"event_msg","payload":{"type":"token_count","info":null,"rate_limits":` + rl + `}}`
+	}
+	writeCodex(t, home, "thr-cap",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-cap","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:10.000Z","type":"event_msg","payload":{"type":"user_message","message":"直して"}}`,
+		tc("2026-10-06T01:00:00.000Z", `{"limit_id":"codex","primary":{"used_percent":20,"window_minutes":300,"resets_at":1791262800},"individual_limit":{"limit":"100","used":"100","remaining_percent":0,"resets_at":1791849600},"spend_control_reached":true,"rate_limit_reached_type":"workspace_member_usage_limit_reached"}`),
+		tc("2026-10-06T02:00:00.000Z", `{"limit_id":"codex","primary":{"used_percent":21,"window_minutes":300,"resets_at":1791262800},"individual_limit":{"limit":"100","used":"100","remaining_percent":0,"resets_at":1791936000},"rate_limit_reached_type":"workspace_owner_usage_limit_reached"}`),
+		// クレジットの使い切り: individual_limit があっても時刻なし
+		tc("2026-10-06T03:00:00.000Z", `{"limit_id":"codex","primary":{"used_percent":22,"window_minutes":300},"individual_limit":{"limit":"100","used":"10","remaining_percent":90,"resets_at":1791936000},"rate_limit_reached_type":"workspace_member_credits_depleted"}`),
+		// 枠が 100%: 枠の resets_at
+		tc("2026-10-06T04:00:00.000Z", `{"limit_id":"codex","primary":{"used_percent":100,"window_minutes":300,"resets_at":1791277200},"individual_limit":{"limit":"100","used":"100","remaining_percent":0,"resets_at":1791936000},"rate_limit_reached_type":"workspace_member_usage_limit_reached"}`),
+	)
+	bs := load(t, &Codex{Home: home})
+	if len(bs) != 1 {
+		t.Fatalf("sessions = %d, want 1", len(bs))
+	}
+	s := bs[0].Finish(15)
+	wantAt := []float64{1791849600, 1791936000, 0, 1791277200}
+	if fmt.Sprint(s.LimitResetAt) != fmt.Sprint(wantAt) {
+		t.Errorf("resets = %v, want %v (limits at %v)", s.LimitResetAt, wantAt, s.Limits)
+	}
+}
+
 // turn_aborted の reason が interrupted のときだけ、人が止めたとして数える。
 func TestCodexInterrupted(t *testing.T) {
 	home := t.TempDir()
