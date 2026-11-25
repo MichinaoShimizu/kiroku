@@ -407,13 +407,13 @@ function insightH(F){
   const col = b => b ? `<div class="inscol">${b}</div>` : "";
   // 内訳：上のサンキーとパネルにない数字と図だけ（出力の内訳・どこに使ったか・時間帯・前の期間からの増減・トークンの種類・エージェント別・よく変えたファイル・作業の進め方）。
   // 先頭は背の高い出力のカード。広い画面では 1 行に 3 枚、狭くなると 2 枚・1 枚（.insrow。各カードは自分の高さのまま詰める）
-  const cards = [[t("Cost and output over time"), col(insCum())], [INS_OUT(), card(INS_OUT(), insOutputs(), " iout wide")], [t("Where it went"), col(insWhere())], [t("When you worked"), card(t("When you worked"), insHeat())],
+  const cards = [[INS_OUT(), card(INS_OUT(), insOutputs(), " iout wide")], [t("Where it went"), col(insWhere())], [t("When you worked"), card(t("When you worked"), insHeat())],
     [t("What changed from the last period"), col(insWater())], [t("Tokens by type"), card(t("Tokens by type"), insTokens())],
     [t("By agent"), card(t("By agent"), insAgents(), " agw")], [t("Most edited files"), card(t("Most edited files"), (insEditsBody() || {}).files)],
     [t("How you worked"), card(t("How you worked"), insWork(), " iwork")]].filter(c => c[1]);
   // 内訳は、たたんだ箱で始める（ページを短く。開いたかは見る人ごとに覚える）。見出しの横に、中にあるカードの名前を 1 行で
   const body = cards.length ? `<details class="insbrk"${store.get("insBrk", false) ? " open" : ""}><summary class="inssec"><span>${esc(t("Breakdown"))}</span> <small>${esc(cards.map(c => c[0]).join(LSEP()))}</small></summary><div class="insg"><div class="insrow">${cards.map(c => c[1]).join("")}</div></div></details>` : "";
-  return `<section class="insight" aria-labelledby="ins-h"><h3 id="ins-h" class="sr">${esc(t("Overview"))}</h3>${insHeadlines(F)}${(b => b ? `<div class="inscol iskw">${b}</div>` : "")(insSankey())}
+  return `<section class="insight" aria-labelledby="ins-h"><h3 id="ins-h" class="sr">${esc(t("Overview"))}</h3>${insHeadlines(F)}${(sk => { const cu = insCum(), box = b => b ? `<div class="inscol iskw">${b}</div>` : ""; return sk || cu ? `<div class="isflow${sk && cu ? " two" : ""}">${box(sk)}${box(cu)}</div>` : ""; })(insSankey())}
     <div class="insg">${body}</div></section>`;
 }
 // skBack は、サンキーの名前（エージェント・プロジェクト・成果）の後ろに、カードの地の色の丸い札を敷く（色の帯の上に字が直接乗らないように）。
@@ -832,7 +832,7 @@ function insTokens(){
     <p class="ifxs">${fx(`% = ${t("tokens of the type")} ÷ ${tok(tot)}`)}${inAll ? fx(`${t("read from cache")} = ${tok(u.cr || 0)} ÷ ${tok(inAll)} = ${Math.round((u.cr || 0) * 100 / inAll)}%`) : ""}</p></figure>`; // いつもの範囲との比べは、入力に対する割合（「使い方」の「キャッシュから読んだ割合」）にだけ付ける
 }
 
-/* ── 費用と産出の累積（2 本線） ── */
+/* ── 費用と産出の累積（2 本線）。投入から産出の流れ（サンキー）の右に置く：流れは「どこへ」、これは期間の中の「いつ」 ── */
 // insSpread は、セッションの量 v を稼働の区間（segs）の長さに比例して [a, b) に配る（区間の外は数えない）。時刻ごとの費用は履歴にないので、目安
 const insSpread = (s, v, a, b) => { const tot = (s.segs || []).reduce((x, [p, q]) => x + Math.max(0, q - p), 0); if (!(v > 0) || !(tot > 0)) return 0;
   return v * (s.segs || []).reduce((x, [p, q]) => x + Math.max(0, Math.min(q, b) - Math.max(p, a)), 0) / tot; };
@@ -872,6 +872,6 @@ function insCum(){
   const sy = stall ? t("From {a} to {b}: {in} +{pi}%, {o} +{po}% of the period's totals", {a: when(stall.i), b: when(stall.j, true), pi: Math.round(stall.di), in: inName, o: O.n, po: Math.round(stall.dout)}) : t("No stretch where {in} rose 15 points or more while {o} stayed flat", {o: O.n, in: inName});
   const th = stall ? t("Open the calendar for those days to see whether it was research, waiting or going in circles") : "";
   const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(INS_OUT())}">${ks.map(x => `<button type="button" data-cok="${x}" aria-pressed="${x === k}">${esc(outs[x].n)}</button>`).join("")}</div>` : "";
-  return `<div class="inshead"><h4>${esc(t("Cost and output over time"))}</h4>${mtabs}</div>${say(sy, th)}<figure class="insfig icum"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("Cost and output over time"))}">${grid}${sband}<path class="icl in" d="${line(ci)}"/><path class="icl out" d="${line(co)}"/>${ends}${hits}</svg>
+  return `<div class="inshead"><h4 class="ikgh skgh">${esc(t("Cost and output over time"))}</h4>${mtabs}</div>${say(sy, th)}<figure class="insfig icum"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("Cost and output over time"))}">${grid}${sband}<path class="icl in" d="${line(ci)}"/><path class="icl out" d="${line(co)}"/>${ends}${hits}</svg>
     <p class="ifxs">${fx(t("Both lines are the running total as a share of the period's total; a session's {in} is spread over its active time", {in: inName}), "", t("Solid: {in} · dashed: {o}{s}", {in: inName, o: O.n, s: stall ? t(" · shaded: {in} up, {o} flat", {in: inName, o: O.n}) : ""}))}${k === "aiLines" ? fx(t("A session's AI-edited lines are spread over its active time too")) : ""}</p></figure>`;
 }
