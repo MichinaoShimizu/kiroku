@@ -31,21 +31,30 @@ func noHomeCwd(t *testing.T) string {
 	cp("home/.kiro/sessions", "sessions") // Kiro の Home "" → "sessions/…"
 	cp("codex/sessions", "sessions")      // Codex の Home "" → "sessions/…"
 	cp("crew/usage", "usage")             // Crew の場所 "" → "usage/tokens/…"
+	t.Chdir(cwd)
+	for _, k := range []string{"CLAUDE_CONFIG_DIR", "KIRO_HOME", "KIROCREW_HOME", "CODEX_HOME", "XDG_DATA_HOME", "LOCALAPPDATA"} {
+		t.Setenv(k, "")
+	}
+	// 古い Kiro CLI の data.sqlite3 は OS ごとの場所（今のフォルダを HOME にしたときの DataDir）に置く
+	setHome(t, cwd)
+	dbPath := kiroCLIDB()
 	db, err := os.ReadFile(filepath.Join(td, "sqlite", "kiro-cli.sqlite3"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(filepath.Join(cwd, ".local", "share", "kiro-cli"), 0o700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(cwd, ".local", "share", "kiro-cli", "data.sqlite3"), db, 0o600); err != nil {
+	if err := os.WriteFile(dbPath, db, 0o600); err != nil {
 		t.Fatal(err)
-	}
-	t.Chdir(cwd)
-	for _, k := range []string{"CLAUDE_CONFIG_DIR", "KIRO_HOME", "KIROCREW_HOME", "CODEX_HOME", "XDG_DATA_HOME", "LOCALAPPDATA", "USERPROFILE"} {
-		t.Setenv(k, "")
 	}
 	return cwd
+}
+
+// setHome は、ホームを h にする（Windows の os.UserHomeDir は USERPROFILE を見る）。
+func setHome(t *testing.T, h string) {
+	t.Setenv("HOME", h)
+	t.Setenv("USERPROFILE", h)
 }
 
 func defaultSources() []Source {
@@ -63,14 +72,13 @@ func countSessions(s Source) int {
 func TestNoHomeReadsNothingFromCwd(t *testing.T) {
 	cwd := noHomeCwd(t)
 	// 同じフォルダを HOME にすれば、どのエージェントも読める（置いた履歴が読める形であることの確かめ）
-	t.Setenv("HOME", cwd)
 	for _, s := range defaultSources() {
 		if n := countSessions(s); n == 0 {
 			t.Errorf("HOME=%s: %s read nothing; the fixture should be readable", cwd, s.Name())
 		}
 	}
 
-	t.Setenv("HOME", "")
+	setHome(t, "")
 	for name, got := range map[string]string{
 		"DefaultClaudeRoot": DefaultClaudeRoot(), "DefaultKiroHome": DefaultKiroHome(), "DefaultKiroLegacyHome": DefaultKiroLegacyHome(),
 		"DefaultCodexHome": DefaultCodexHome(), "DefaultCrewHome": DefaultCrewHome(), "kiroCLIDB": kiroCLIDB(),
