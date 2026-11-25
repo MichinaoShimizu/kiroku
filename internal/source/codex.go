@@ -1276,6 +1276,9 @@ func codexRateLimits(s *core.Builder, t *float64, rl core.Obj) {
 // 使用率が 100% 以上の枠（primary・secondary。100 を超えることもある）の resets_at で、どちらも当たっていれば遅いほう
 // （両方が戻るまで使えない）。当たった枠がない（クレジットの使い切りなど）か、resets_at がなければ 0。
 // limit_id が codex 以外（モデルごとの別の枠）のものも、当たったのはその枠なので同じに読む。
+// 当たった枠がなく、ワークスペースの使用量の上限（rate_limit_reached_type が workspace_owner_usage_limit_reached・
+// workspace_member_usage_limit_reached。管理者が決めた一人あたりの上限）に当たったときは、individual_limit の resets_at を使う
+// （protocol.rs の SpendControlLimitSnapshot）。クレジットの使い切り（*_credits_depleted）には解除の時刻がない。
 func codexResetAt(rl core.Obj) float64 {
 	at := 0.0
 	for _, slot := range []string{"primary", "secondary"} {
@@ -1285,6 +1288,14 @@ func codexResetAt(rl core.Obj) float64 {
 		}
 		if r, ok := core.Num(w["resets_at"]); ok && r > at {
 			at = r
+		}
+	}
+	if at == 0 {
+		switch core.Str(rl["rate_limit_reached_type"]) {
+		case "workspace_owner_usage_limit_reached", "workspace_member_usage_limit_reached":
+			if r, ok := core.Num(core.Get(rl, "individual_limit", "resets_at")); ok && r > 0 {
+				at = r
+			}
 		}
 	}
 	return at
