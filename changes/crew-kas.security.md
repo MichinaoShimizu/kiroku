@@ -1,1 +1,0 @@
-- Kiro Crew: the Kiro IDE / CLI (V3) copy of a private (incognito or temporary) conversation on the KAS engine is now shown with counts and times only, like its Codex and Claude Code copies. It was shown in full

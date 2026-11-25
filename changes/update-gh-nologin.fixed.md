@@ -1,1 +1,0 @@
-- `kiroku update` through `gh` (builds from another repository) says that `gh` is not logged in (`gh auth login`) when `gh attestation verify` stops for that reason, and still does not update; before, it reported that the build provenance did not match

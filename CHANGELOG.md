@@ -2,6 +2,92 @@
 
 Notable changes to kiroku, in the style of [Keep a Changelog](https://keepachangelog.com/). Add changes under `## Unreleased`; its contents decide the next version ([Semantic Versioning](https://semver.org/), see `sh tools/next-version.sh`), and each release on GitHub uses its section here as the release notes.
 
+## v5.3.0 - 2026-11-25
+
+### Added
+
+- Codex: usage limit hits show when the limit resets, from the `resets_at` of the window Codex recorded at 100% or more, in your time zone (with the date when it is not the day of the hit). The prompt flow, the "Usage limit hits" card and "Worth a look" show it as they do for Claude Code
+- Summary: an Estimated cost and output over time card next to From input to output (to its right on wide windows, under it on narrower ones): running totals of estimated cost (or Kiro credits) and of lines in Git commits, Git commits or lines edited by AI, each as a share of its period total. The stretch where cost rose the most (15 points or more of the period's total) while output rose 2 points or less is shaded and named, so you can open those days in the calendar
+
+### Changed
+
+- Headings and figure names say "Estimated cost" (推定費用), as the guide's rule has it, and only switches say "Cost": "Estimated cost and output over time", "Claude Code estimated cost per AI commit", "Sessions with the highest estimated cost per commit" (and per prompt) and "Share of estimated cost with no commit or PR", and so do the axis captions of the unit cost charts ("Estimated cost per session hour", "Estimated cost per AI commit" and so on; 推定費用 in Japanese)
+- Japanese uses one word for each idea: 手動 for "by hand", PR for pull request, ここまで for "so far" in a period in progress, 範囲 for a range, ばらつき for how much the days varied in the month-end projection and 四分位範囲 for the spread between the 25th and 75th percentiles, and 今日まで for the days of a period up to today (「12 / 14 日（今日まで）」, 経過日数) while ここまで stays for totals so far (途中 stays for a period in progress and for a first period your history starts partway through)
+- On a phone (and on wide windows), the legend's row of items shows how many items' names are out of view, such as "+3 ›", beside the row while there is more to the right (it never covers an item's figure); pressing it brings the next hidden item to the left edge, and an item reached with Tab scrolls fully into view, the last one to the end of the row
+- The Output card's row is named "Claude Code sessions that reached a commit or PR", and the change in a share from the previous period is in percentage points ("+8 pts vs last week") rather than a percent of a percent
+- Tokens by type names its rows "Input tokens" and "Output tokens"
+- The figure for a week or month in progress is called "A day to match last week" (or month) everywhere: the top band, its dialog and day chart, How you worked and "?"; "pace" now means only the projection to the end of the period
+- Japanese uses 推定 for every end-of-period projection (月末の推定, 週末の推定, 推定（破線）)
+- The Data sources button reads "Keep a copy in this folder", and its messages say "copy" instead of "backup", as the CLI and the guide do
+- "Estimated cost per active hour" (and its credits and tokens forms) is now "per session hour", since it divides by each session's own time
+- A short line under the logo says what kiroku is
+- From input to output's "ƒx" says that it counts sessions in the period they started in, so its total can differ from the Input panel
+- "Expensive models for light work" in Worth a look and the short-session signal in report and review prompts count Fable and Mythos models as well as Opus
+
+### Fixed
+
+- `kiroku archive` copies a history file that is a symbolic link in full and copies it again when the file it points to changes; before, the copy was cut to the length of the link and never refreshed
+- `kiroku serve`: pressing "Keep a copy in this folder" no longer closes Data sources; the row updates in place and the focus moves to it
+- A panel figure's name that wraps keeps its last word with "?" and "ƒx", and the headings of From input to output and Estimated cost and output over time keep "ƒx" beside the name on narrow phones
+- A copy that `kiroku serve --archive` was still writing when kiroku was stopped (a `.kiroku-tmp-*` file) is removed once it is an hour old, and by `kiroku serve --archive off`
+- A project name or session title with right-to-left control characters no longer reorders the numbers and times next to it in the legend, the calendar and search results
+- `kiroku serve --check` with HOME unset marks each agent whose folder it couldn't work out as "unknown" instead of "none", and the summary and Next say to set HOME or pass `--claude-root`, `--kiro-home`, `--codex-home` or `--crew-home` instead of "No history found"
+- In English, a metric's name inside a sentence is no longer capitalized ("No stretch where estimated cost rose…", "72% of estimated cost"), and the Japanese Git card says コミットか PR に至った everywhere instead of also まで届いた
+- `kiroku serve`: the "Keeping a copy in …" notice moves to the top of the screen when, at the bottom, it would cover the row that focus moved to or the "kiroku's copy: on" row
+- "Expensive models for light work" gets its Worth a look mark again, on By model next to the Input value (or on Where it went)
+- On a past week, How you worked's lower-cost note says "Different in the week shown" instead of "Different this week"
+- The note after copying a prompt reads "kiroku didn't run or send anything"
+- Estimated cost and output over time: axis and end labels stay about 12 px at any width (they grew to 25 px on a 1000 px window and shrank to 10 px on a phone); the output total has its unit ("695 lines"); the hint under a chart is no longer colored like a link
+- On a phone, From input to output's caption describes the list shown instead of the hidden diagram's band widths
+- The usage-limit mark in the week calendar sits at the right edge of its session so it no longer hides the start of the name
+- A screen reader reads an in-progress period in a trend chart as the amount so far and the end-of-period estimate, not the estimate alone
+- Session details: Tab goes from the prompt flow (left) to the right column on wide windows instead of jumping right, left and back
+- Kinds of work shows "—" instead of $0.00 for a kind with no AI commits
+- A usual range is no longer rounded across the value ("On pace for 11.7: above your usual 9–12"), and both ends have the same decimals ("50.8%–64.0%")
+- Durations keep "1h 24m" on one line, and What changed from the last period fits more of each project's name under its bar, with the full name in its tooltip and the chart's screen-reader text
+- Screen readers: the copy buttons and the calendar's 0–7h switch are named starting with their visible text, and a value's name no longer includes "Show the formula"
+- Japanese: month sparklines say "10月" instead of English month names, "push" is プッシュ, the calendar's day labels and the Estimated cost and output over time tooltip use Japanese separators and brackets, and the week calendar's tooltips say "Kiro credits 8.4" and "Active time" instead of "Credits 8.4 credits" and "Active"
+- The "?" text for Usage limit hits says Claude Code reset times are shown in 24-hour time, and Long conversations mentions that only sessions with 8 or more responses count
+- `kiroku serve --check` and Data sources list both `$KIRO_HOME` and `~/.kiro` for Kiro IDE / CLI (V3) and Kiro CLI (V2) when kiroku reads both
+- "Close to usual" says, in its tooltip and "ƒx", that the value is outside the usual range by less than 10% of its edge, and the "Expensive models for light work" threshold reads as a sentence
+- `kiroku help` points to `kiroku update --help`, which says that a build from your organization's repository updates through `gh` and checks the build provenance
+- In a week or month in progress, When you worked compares the off-hours share with the same part of past periods (up to the same weekday and time, or the same number of days) instead of whole periods with their weekends
+- The week or month in which your history starts is left out of the Worth a look and "?" trends as it is in the Summary charts, and the chart's tooltip says why
+- A usual range keeps the same decimals at both ends for every metric, including Project switches per day ("within your usual 3.0–7.1"), and so does its "ƒx" ("25th pct 3.0 ≤ 7 ≤ 75th pct 7.1")
+- What changed from the last period: Japanese names under the bars are shortened by their width, not their number of characters, so they no longer overlap (先週の同じ日数まで and the next project's name); the two total bars are named "Last week" / 先週 under the axis, with the full name ("Last week, same days") in their tooltip and the chart's screen-reader text
+- The week or month in which your history starts says why it has no value without hovering: the "?" and Worth a look trends end it with "Jul 20 (partial)", and screen readers hear "partial week: your history starts in it, so it is left out" in those trends and in the Summary charts
+- Japanese: the Worth a look and "?" trend captions write their range with 〜 ("0%〜18%") like other Japanese ranges
+- A day to match last week: the commits line starts "Output (commits):" like the Japanese 産出（コミット） instead of "Left behind:", the trend extended to the end of the period has its own legend entry ("Trend, projected") next to the dashed daily target, and the Kiro credits formula ends "A day 5 credits" with its unit
+- Japanese: the note that more history is needed to compare reads 記録のある過去の月が 4 か月分要ります（いまは 2 か月分） (and 週が 4 週分 for weeks) instead of 過去のか月が 4 要ります
+- A metric's name that wraps keeps its last word with its "ƒx" and "?" instead of leaving the "?" alone on the next line ("Claude Code sessions that reached a commit or PR" at 1440 px)
+- Japanese: session time has one name, セッション時間, in Unit cost per input's switch (セッション時間 1 時間), its formula, the From input to output switch and the notes (were セッションの 1 時間, セッションの作業時間 and セッションの時間)
+- Estimated cost and output over time: on a phone the two totals at the end of the lines no longer overlap ("$6.87" and "299 lines")
+- The week band says "Month-end credits (estimate)" (and "Month-end cost (estimate)" in the month view) like "Month-end (estimate)", instead of "Month-end credits"
+- `kiroku autostart` removes the login item kiroku 4 added even when an environment variable such as `PATH` contains a control character (a tab, for example); before, it silently left the item in place
+- The week and month calendars no longer fail with a RangeError when a week or month has no records and the history has about 200,000 sessions or more
+- Codex: a hit on a workspace's per-member spend cap now shows when it resets, from `individual_limit.resets_at`, when neither the 5-hour nor the weekly window is used up
+- Kiro Crew: a usage record that names the conversation it ran in (`acp_session_id`, written by newer Crew versions) is counted for that conversation, not for whichever conversation of the same key was running at the time, so overlapping conversations of one key (scheduled runs, channel threads) get their own credits
+- Kiro Crew: a subagent on the Claude Code backend whose Crew state was cleaned up is no longer counted again next to its own Claude Code session (matched by the `child_sid` in the parent's crew log)
+- Kiro Crew: conversations on the KAS engine (Kiro Agent's default from Crew 0.14.0) are counted once. Their credits were counted both from KAS's own transcript, read as Kiro IDE / CLI (V3), and from Crew's usage records as a separate "Kiro Crew" session
+- `kiroku serve`: when finding which git repository a project is in timed out, its commits no longer disappear from the view for 10 minutes; kiroku asks again on the next reload and reports the timeout in the terminal like other git timeouts
+- Commits made in the same second are listed in the same order every time (parent first)
+- `sh install.sh --help` (or `-h`) shows how to use it and installs nothing; any other argument stops it with an error. Before, arguments were ignored and it installed
+- `kiroku serve`: when it answers with an error (a 500, for example) or sends data the view can't read, the view says so and points to the terminal, instead of "Not connected to kiroku serve"
+- `kiroku serve`: when reading new history fails, the view's live indicator says it is showing what was read before (and to see the terminal), instead of still showing "last checked" as if all was well
+- `kiroku update` through `gh` (builds from another repository) says that `gh` is not logged in (`gh auth login`) when `gh attestation verify` stops for that reason, and still does not update; before, it reported that the build provenance did not match
+- `kiroku update` on Windows: if placing the new kiroku fails and putting the previous one back fails too, the error now says so and where the previous kiroku is (`kiroku.exe.old`); before, only the first error was shown
+
+### Security
+
+- `kiroku serve --archive` no longer copies a history file (or a file linked under a history file's name) larger than 1 GiB, the most kiroku decompresses from one copy; it skips it and reports it under "Data sources" as a file that couldn't be read
+- Kiro Crew: the Kiro IDE / CLI (V3) copy of a private (incognito or temporary) conversation on the KAS engine is now shown with counts and times only, like its Codex and Claude Code copies. It was shown in full
+- Kiro: a Kiro Crew conversation record (or its `kiroku archive` copy) that can't be opened or read to the end, such as a damaged `.zst` copy, now counts as private (incognito or temporary), so its prompts are hidden; before, it counted as not private
+- `install.sh` accepts only versions of the form `vX.Y.Z` (with an optional `-pre` part), from `KIROKU_VERSION` or the latest-release redirect, like `kiroku update`; before, anything starting with `v` and a digit went into the download file name and URL
+- `install.sh` removes control characters (including C1 and other non-ASCII bytes) from the `gh attestation verify` output it shows, which can carry values chosen by whoever made the release
+- With `HOME` unset or empty (and no `XDG_DATA_HOME` or `KIROKU_ARCHIVE_DIR`), `kiroku serve --archive on` and the view's "Keep copies" no longer write archive copies of history under `.local/share/kiroku/archive` in the current folder; they refuse and say to set `HOME` or `KIROKU_ARCHIVE_DIR`. kiroku also no longer looks for the older Kiro CLI's `data.sqlite3` relative to the current folder
+- With `HOME` unset or empty and no `CLAUDE_CONFIG_DIR`, `KIRO_HOME`, `KIROCREW_HOME` or `CODEX_HOME`, kiroku no longer reads Claude Code, Kiro, Kiro Crew or Codex history from `.claude/projects`, `.kiro`, `.kiro/crew` or `.codex` under the current folder (or from history-shaped files directly in it); those agents count as not found, and `kiroku serve --check` says their folder is unknown because `HOME` is not set
+- A `KIROCREW_HOME` starting with `~` is ignored when the home folder is unknown, instead of being read as a folder named `~` under the current folder; a relative `XDG_DATA_HOME` is ignored (as the XDG Base Directory spec says), so neither the older Kiro CLI database nor `kiroku serve --archive` copies resolve against the current folder
+
 ## v5.2.2 - 2026-11-24
 
 ### Changed

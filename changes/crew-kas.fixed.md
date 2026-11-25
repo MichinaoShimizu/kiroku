@@ -1,1 +1,0 @@
-- Kiro Crew: conversations on the KAS engine (Kiro Agent's default from Crew 0.14.0) are counted once. Their credits were counted both from KAS's own transcript, read as Kiro IDE / CLI (V3), and from Crew's usage records as a separate "Kiro Crew" session

@@ -1,1 +1,0 @@
-- Kiro: a Kiro Crew conversation record (or its `kiroku archive` copy) that can't be opened or read to the end, such as a damaged `.zst` copy, now counts as private (incognito or temporary), so its prompts are hidden; before, it counted as not private

@@ -1,1 +1,0 @@
-- Kiro Crew: a usage record that names the conversation it ran in (`acp_session_id`, written by newer Crew versions) is counted for that conversation, not for whichever conversation of the same key was running at the time, so overlapping conversations of one key (scheduled runs, channel threads) get their own credits

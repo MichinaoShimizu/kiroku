@@ -1,1 +1,0 @@
-- Codex: a hit on a workspace's per-member spend cap now shows when it resets, from `individual_limit.resets_at`, when neither the 5-hour nor the weekly window is used up
