@@ -637,3 +637,35 @@ func TestLightOf(t *testing.T) {
 		t.Errorf("lightOf が違う:\n%s", out)
 	}
 }
+
+// 最後のセッションの終わり（calendar.js の lastEnd。記録のない週・月から、記録のある最後の期間へ行くボタン）。
+// 25 万セッションでも動くこと（Math.max(...DATA.map(…)) は引数が多すぎて RangeError になっていた）
+func TestLastEnd(t *testing.T) {
+	src, err := jsFiles.ReadFile("js/calendar.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := strings.ReplaceAll(string(src), "\r\n", "\n")
+	if regexp.MustCompile(`Math\.(max|min)\(\.\.\.DATA\b`).MatchString(s) {
+		t.Error("calendar.js spreads DATA into Math.max/min, which throws RangeError with ~200k sessions; use lastEnd")
+	}
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	m := regexp.MustCompile(`(?m)^const lastEnd = .*$`).FindString(s)
+	if m == "" {
+		t.Fatal("calendar.js に lastEnd が見つからない")
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "lastend_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "lastend.js")
+	if err := os.WriteFile(f, append([]byte(m+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("lastEnd が違う:\n%s", out)
+	}
+}
