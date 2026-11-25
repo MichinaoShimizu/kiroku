@@ -12,7 +12,7 @@ go test ./...      # checks that the aggregates match the expected values, using
 sh tools/changelog.sh --check && sh tools/changelog_test.sh   # the changelog fragments in changes/, and the scripts that merge them (check.sh runs both)
 go vet ./...
 GOTOOLCHAIN=$(go env GOVERSION) go run honnef.co/go/tools/cmd/staticcheck@2026.2.2 ./...   # static analysis (OK if nothing is printed)
-GOTOOLCHAIN=$(go env GOVERSION) go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...   # known vulnerabilities in the standard library and modules that kiroku calls
+GOTOOLCHAIN=$(go env GOVERSION) go run golang.org/x/vuln/cmd/govulncheck@v1.10.0 ./...   # known vulnerabilities in the standard library and modules that kiroku calls
 go test ./internal/source -run '^$' -fuzz '^FuzzClaude$' -fuzztime 30s   # fuzz one target (list them with: go test -list '^Fuzz' ./...)
 sh tools/bench-compare.sh   # the benchmark below on origin/main and on your working tree, compared with benchstat (or: sh tools/bench-compare.sh <ref>)
 go test ./internal/cli -run '^$' -bench Large -benchtime 3x -benchmem   # a year of synthetic history: time to read, aggregate and render, and the size of the HTML and /data.json
@@ -148,7 +148,7 @@ go test -run TestSnapshot -update ./internal/cli
 
 On PRs and pushes to main, `.github/workflows/ci.yml` runs the following.
 
-- `test` (Ubuntu, macOS, Windows): gofmt (except Windows), vet, staticcheck and govulncheck (Ubuntu only, pinned to 2026.2.2 and v1.9.0), tests, build
+- `test` (Ubuntu, macOS, Windows): gofmt (except Windows), vet, staticcheck and govulncheck (Ubuntu only, pinned to 2026.2.2 and v1.10.0), tests, build
 - `release-dry-run`: `goreleaser release --snapshot` with the same pinned GoReleaser and syft as the release and no Go cache (does not publish; `go mod tidy -diff` also catches an untidy go.mod, and the SBOMs are generated too), extracting release notes from the top section of the CHANGELOG, and, if that section is a version not yet tagged, checking that its number matches `tools/next-version.sh`
 - `e2e`: opens the dummy-data HTML in Chromium and uses `tools/screenshots/smoke.mjs` to check that the key flows work (the view staying dark, moving between weeks, opening and closing session details and where focus returns after closing, the daily report prompt, search, month view and shortcuts), that nothing overflows sideways, and that there are no script errors and no Content-Security-Policy violations, at 1440px, 1000px, 390px and 320px, and opens the main views in Japanese at the same widths to check they render without script errors or overflow and that no translated label is left in English. Playwright is pinned in `tools/screenshots/package.json` and `package-lock.json` and installed with `npm ci --ignore-scripts`; this job runs npm packages, so it does not use the Go cache. It also builds the view from synthetic history full of HTML and script payloads (`tools/screenshots/hostile.py`) and drives it with `tools/screenshots/xss.mjs` to check that no script runs, no element is injected and nothing is loaded from the network
 - `install-script` (Ubuntu, macOS): runs shellcheck on `install.sh`, `tools/*.sh`, `tools/*/*.sh` and `.claude/hooks/*.sh` (Ubuntu only), actually installs the latest release, and checks `kiroku --version`; it installs once more with `KIROKU_REQUIRE_ATTESTATION=1` so the build provenance check must pass
