@@ -1,7 +1,7 @@
 name: Upstream
 
-# kiroku が履歴を読むエージェント（Claude Code・Codex・Kiro CLI・Kiro IDE）の最新の版を、公開の情報（npm と kiro.dev の
-# changelog）から週 1 回取ってきて、docs/upstream/agents.md の控えと比べる。新しい版が出ていたら、1 つの issue（ラベル upstream）に書く。
+# kiroku が履歴を読むエージェント（Claude Code・Codex・Kiro CLI・Kiro IDE・Kiro Crew）の最新の版を、公開の情報（npm、kiro.dev の
+# changelog、GitHub の kirodotdev/kirocrew の最新のリリース）から週 1 回取ってきて、docs/upstream/agents.md の控えと比べる。新しい版が出ていたら、1 つの issue（ラベル upstream）に書く。
 # 新しい版は、履歴の形が変わっていないかを /source-audit で調べるきっかけ（壊れた証拠ではない）。コードは push しない。
 # 取ってきた情報は tools/upstream（このリポジトリのコード）が版の形だけを読み、実行しない。履歴は使わない。
 # 情報を取るジョブ（check）は書き込みのトークンを持たず、issue を書くジョブ（issue）はコードを checkout しない。
