@@ -69,8 +69,11 @@ const panelH = (n, t, s, h) => `<div class="ph">${n == null ? "" : `<span class=
 let statN = 0;
 // kTail は、名前 k（エスケープ済みの HTML。タグはない）を 2 つに分け、最後の語（空白がなければ最後の 2 文字）と、そのあとの「ƒx」（bindInsight が .kt に入れる）・「?」を
 // 折り返さない 1 つの塊（.kt）にする（「?」だけが次の行に落ちないように）。名前は id k と k2 の 2 つで、値のボタンは両方を aria-labelledby で指す
-function kTail(id, k, h){ let i = k.lastIndexOf(" ") + 1; if (!i){ const cs = [...k]; i = cs.length > 4 && !/[&;]/.test(cs.slice(-2).join("")) ? k.length - cs.slice(-2).join("").length : 0; }
+function tailAt(k){ let i = k.lastIndexOf(" ") + 1; if (!i){ const cs = [...k]; i = cs.length > 4 && !/[&;]/.test(cs.slice(-2).join("")) ? k.length - cs.slice(-2).join("").length : 0; } return i; }
+function kTail(id, k, h){ const i = tailAt(k);
   return `<span id="${id}k">${k.slice(0, i)}</span><span class="kt"><span id="${id}k2">${k.slice(i)}</span>${hb(h)}</span>`; }
+// ilTail は、パネルの数字の名前（.il）で同じことをする（id は付けない。「ƒx」は bindInsight が .kt に入れる）
+const ilTail = (k, h) => { const i = tailAt(k); return `${k.slice(0, i)}<span class="kt">${k.slice(i)}${hb(h)}</span>`; };
 const statH = (k, v, s, h, m) => { const id = "st" + (++statN); return `<div class="stat${m ? " mstat" : ""}"><div class="k">${kTail(id, k, h)}</div>${m ? `<button type="button" class="v" id="${id}v" data-metric="${m}" aria-haspopup="dialog" aria-labelledby="${id}k ${id}k2 ${id}v" title="${esc(t("Click for the breakdown"))}">${v}</button>` : `<div class="v">${v}</div>`}${s ? `<div class="s">${s}</div>` : ""}</div>`; };
 /* 指標の 1 行（数の枠より小さく、カードの中の一覧に並べる）：k は名前、v は値（HTML）、mark は値の下にいつも見せる短い添え書き（HTML。いつもの範囲の印など）、
    more は「ƒx」で開く式と注（HTML）、h は「?」の説明の id、m は押すと開く内訳。値のボタンの読み上げは statH と同じく名前と値 */

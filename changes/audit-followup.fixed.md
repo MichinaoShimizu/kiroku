@@ -1,0 +1,1 @@
+- A panel figure's name that wraps keeps its last word with "?" and "ƒx", and the headings of From input to output and Estimated cost and output over time keep "ƒx" beside the name on narrow phones

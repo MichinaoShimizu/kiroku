@@ -1284,6 +1284,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .isflow{display:grid;gap:16px;margin:16px 0 12px}
 @media (min-width:1300px){.isflow.two{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}} /* 広い画面では、流れ（サンキー）の右に費用と産出の推移。狭ければ下に積む */
 .iskw .skgh{padding:0;margin:0}.iskw .skgh::before{background:linear-gradient(var(--in),var(--out))} /* 投入から出力へ：パネルの見出しと同じ大きさで、左の線は投入の青から出力の紫へ */
+.iskw .skgh{flex-wrap:nowrap} /* 狭い画面で名前が折り返しても、左の線と「ƒx」を名前の横に（名前だけの行や、「ƒx」だけの行を作らない） */
 @container (max-width:900px){.iskw .isk .skt,.iskw .isk .skh{font-size:14px}}
 /* 作業のしかた：12 の指標は、細いタイルの 3 列ではなく、出力のカードと同じ 1 行 1 指標の一覧に（名前は左、値は右、評価の文はその下）。
    124px の幅のタイルでは名前が 3〜4 行に折れ、段の高さがいちばん高いタイルにそろって、カードの中が空く */
