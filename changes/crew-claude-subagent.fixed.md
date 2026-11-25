@@ -1,0 +1,1 @@
+- Kiro Crew: a subagent on the Claude Code backend whose Crew state was cleaned up is no longer counted again next to its own Claude Code session (matched by the `child_sid` in the parent's crew log)

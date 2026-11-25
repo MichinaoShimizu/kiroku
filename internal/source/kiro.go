@@ -717,7 +717,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 		// 使用量の記録を、そのころに動いていた会話に分ける。どれにも入らない行は Crew のセッションにする
 		var rest []crewTurn
 		for _, x := range usage[slot] {
-			if i := crewOwnerAt(ow, x.t); i >= 0 {
+			if i := crewTurnOwner(ow, x); i >= 0 {
 				ow[i].turns = append(ow[i].turns, x)
 			} else {
 				rest = append(rest, x)
@@ -839,7 +839,7 @@ func (k *KiroCLI) Load(emit func(*core.Builder)) error {
 				if info.Cwd != "" {
 					s.Project = info.Cwd
 				}
-				s.Yield = info.codexClaim() // Codex の backend の会話は、Codex の記録のセッションがあればそちらだけを数える
+				s.Yield = info.yieldClaim() // Codex・KAS の backend の会話は、それぞれの記録のセッションがあればそちらだけを数える
 			}
 			addCrewRows(s, rows)
 			var first *float64

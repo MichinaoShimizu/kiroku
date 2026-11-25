@@ -36,7 +36,7 @@ import (
 //	<…>/subagents/<id>/state.json                          {"task", "agent", "parent_session", "session_id"?, "provider"?, …}
 //	<…>/usage/tokens/<YYYY-MM-DD>.jsonl                     {"_type": "tokens", "ts", "slot": 会話キー, "provider", "model", "input", "output",
 //	                                                         "cache_create", "cache_read", "cost", "credits", "duration_ms", "context_used",
-//	                                                         "context_window", "stop_reason", …}
+//	                                                         "context_window", "stop_reason", "harness"?, "acp_session_id"?, …}
 //
 // usage/tokens の行は Crew の dashboard/handlers/usage.py の _build_token_record が書く。backend ごとに埋まる項目が違う
 // （acp/types.py の TurnUsage）: kiro-cli はクレジットだけ、Claude Code（claude-agent-acp）などはトークンと USD の cost。
@@ -76,23 +76,60 @@ type CrewInfo struct {
 // 人の依頼として出さない）。Crew は届け終えたサブエージェントの state.json を 1 時間で消すので、そのあとは結びつけられない
 // （新しい Crew は親の crew-log の subagent/completed・subagent/failed に child_sid を、使用量の行に harness を書くので、
 // それがあれば結びつける。crewOnly）。中身を残さない会話の写しを隠す鍵は、これより広い crewSidClaims。
-func (i CrewInfo) codexClaim() string {
-	if i.Former || i.Provider != "codex" || i.Sid == "" {
+//
+// Kiro Agent の KAS の engine（provider "kas"。Crew 0.14.0 から Kiro Agent の既定）も同じで、会話は KAS 自身が
+// <Kiro の場所>/sessions/<bucket>/sess_<UUID>/{session.json,messages.jsonl} に書き（Crew の dashboard/handlers/usage_sessions.py の
+// _kas_transcripts）、会話 ID（session_map の sid）はそのフォルダの名前（sess_ と UUID。session_transfer_layers.py の _KAS_SID_PREFIX）。
+// kiroku は Kiro IDE / CLI (V3) としてクレジットごと読むので、そのセッションがあれば数えない（kasClaim）。
+// Crew 自身も KAS の会話は使用量の行ではなく会話の記録から数える（usage_store.py の _SHARD_COUNTED_PROVIDERS・_shard_counted_harnesses）。
+// Claude Code の backend（claude-agent-acp は ACP の会話 ID を Claude Code のセッション ID にする）は、サブエージェントだけ譲る（crewBackendClaim）。
+func (i CrewInfo) yieldClaim() string {
+	if i.Former || i.Sid == "" {
 		return ""
 	}
-	return codexClaim(i.Sid)
+	return crewBackendClaim(i.Provider, i.Sid, i.Subagent)
+}
+
+// crewBackendClaim は、backend（session_map・state.json の provider か、使用量の行の harness）で動いた会話 sid が、
+// kiroku が別に読む履歴に残すセッションの Claim の鍵（Yield に使う）。ほかの backend（kiro-cli・goose など）は空。
+// Claude Code は subagent のときだけ（会話キーの会話は、Crew の会話 ID と Claude Code の履歴の会話 ID が同じかを確かめていない。crewElsewhere）。
+func crewBackendClaim(backend, sid string, subagent bool) string {
+	switch backend {
+	case "codex":
+		return codexClaim(sid)
+	case "kas":
+		return kasClaim(sid)
+	case "claude_code", "claude":
+		if subagent {
+			return claudeClaim(sid)
+		}
+	}
+	return ""
+}
+
+// kasClaim は KAS の会話 sid（sess_<UUID>）の、Kiro IDE / CLI (V3) のセッションの Claim の鍵（KiroIDE の "kiro-ide:" + フォルダ名）。
+// sess_ で始まらない sid（KAS の会話 ID ではない）は空。
+func kasClaim(sid string) string {
+	if !strings.HasPrefix(sid, "sess_") {
+		return ""
+	}
+	return "kiro-ide:" + sid
 }
 
 // crewSidClaims は、中身を残さない会話の backend の会話 ID sid が、ほかのエージェントの履歴に残す写しの Claim の鍵。
-// codexClaim は数え方（Yield）にも使うので今の Codex の sid だけだが、隠すほうは厳しい側に倒す: discarded_sid の backend はわからず、
+// yieldClaim は数え方（Yield）にも使うので今の sid だけだが、隠すほうは厳しい側に倒す: discarded_sid の backend はわからず、
 // サブエージェントの backend も state.json がなければわからないので、provider によらず Codex（スレッド ID）・Claude Code
-// （claude-agent-acp ではセッション ID。claudeClaim）・Kiro CLI 3.0 へ移した写し（kiroClassicYield）の鍵を全部出す。
+// （claude-agent-acp ではセッション ID。claudeClaim）・Kiro CLI 3.0 へ移した写し（kiroClassicYield）・KAS の会話（sess_ で始まる sid。kasClaim）の鍵を全部出す。
 // 会話 ID は UUID なので、ほかの会話を隠すことはない。
 func crewSidClaims(sid string) []string {
 	if sid == "" {
 		return nil
 	}
-	return []string{codexClaim(sid), claudeClaim(sid), kiroClassicYield(sid)}
+	out := []string{codexClaim(sid), claudeClaim(sid), kiroClassicYield(sid)}
+	if c := kasClaim(sid); c != "" {
+		out = append(out, c)
+	}
+	return out
 }
 
 // crewPrivateSids は、中身を残さない Crew の会話（incognito・temporary）の、わかっている backend の会話 ID を全部返す
@@ -1458,9 +1495,10 @@ func tagCrewInfo(s *core.Builder, info CrewInfo) {
 // crewOwner は、使用量の記録の slot に結びつく kiro-cli の会話。
 //
 // Crew は会話キーの sid を差しかえる（SessionMap.set。容量がいっぱいになった会話の作り直し・backend の切りかえ・seed）が、
-// 使用量の記録は会話キー（slot）で書き、どの kiro-cli の会話のものかは書かない（usage.py の _build_token_record）。
+// 使用量の記録は会話キー（slot）で書き、どの kiro-cli の会話のものかは、新しい Crew だけが acp_session_id に書く（usage.py の _build_token_record）。
 // 前の会話は session_map から消えても、kiro-cli の履歴に自分のクレジットとともに残る（persistent でない会話は Crew が消す）。
-// なので slot の行を全部今の会話に足すと 2 度数える。行（と会話の記録の行）は時刻で、そのころに動いていた会話に結びつける（crewOwnerAt）。
+// なので slot の行を全部今の会話に足すと 2 度数える。行は acp_session_id があればその会話に、なければ（と会話の記録の行は）時刻で、
+// そのころに動いていた会話に結びつける（crewTurnOwner・crewOwnerAt）。
 type crewOwner struct {
 	s          *core.Builder
 	info       CrewInfo
@@ -1523,6 +1561,22 @@ func crewOwnerAt(ow []*crewOwner, t float64) int {
 	return -1
 }
 
+// crewTurnOwner は、使用量の行 x を結びつける会話の番号（ow は sortCrewOwners の順）。どれでもなければ -1。
+// 行に acp_session_id があれば（新しい Crew。usage.py の _build_token_record）、会話 ID が同じ会話だけに結びつける
+// （予定の実行・Slack のスレッドなどは 1 つの会話キーで何度も会話を作り直すので、時刻では分けきれない。同じ会話キーの会話がなければ -1）。
+// ない行（acp_session_id を書く前の Crew）は時刻で決める（crewOwnerAt）。
+func crewTurnOwner(ow []*crewOwner, x crewTurn) int {
+	if x.acp == "" {
+		return crewOwnerAt(ow, x.t)
+	}
+	for i := len(ow) - 1; i >= 0; i-- {
+		if ow[i].s.ID == x.acp {
+			return i
+		}
+	}
+	return -1
+}
+
 // crewKiroRow は kiro-cli の行らしいか（トークンもドル額もない。kiro-cli はクレジットだけを返す）。
 func crewKiroRow(x crewTurn) bool {
 	return x.u.Total() == 0 && x.cost == 0
@@ -1532,6 +1586,7 @@ func crewKiroRow(x crewTurn) bool {
 // 行の時刻が会話の最初から最後 + crewTurnSlack に入り、作業場所（session_map の cwd）が同じ会話が 1 つだけなら、その会話にする。
 // 2 つ以上あれば決めない（その行は Crew のセッションになる）。taken は、もう別の会話キーの前の会話にしたもの。
 // 作業場所がわからない会話キー（古い session_map）とサブエージェントでは探さない。
+// 行に acp_session_id があれば、時刻と作業場所では探さず、会話 ID が同じ会話だけにする（crewTurnOwner）。
 func claimCrewFormer(ow []*crewOwner, turns []crewTurn, plain []*core.Builder, info CrewInfo, taken map[*core.Builder]bool) []*crewOwner {
 	if info.Subagent || info.Cwd == "" {
 		return ow
@@ -1540,28 +1595,43 @@ func claimCrewFormer(ow []*crewOwner, turns []crewTurn, plain []*core.Builder, i
 	for i, p := range plain {
 		spans[i][0], spans[i][1] = timeSpan(p.Times)
 	}
+	var byID map[string]int // 会話 ID → plain の番号（acp_session_id のある行があれば作る）
 	for _, x := range turns {
-		if crewOwnerAt(ow, x.t) >= 0 || !crewKiroRow(x) {
+		if crewTurnOwner(ow, x) >= 0 || !crewKiroRow(x) {
 			continue
 		}
 		found := -1
-		for i, p := range plain {
-			first, last := spans[i][0], spans[i][1]
-			if p.Project != info.Cwd || first == nil || x.t < *first || x.t > *last+crewTurnSlack {
-				continue
+		if x.acp != "" {
+			if byID == nil {
+				byID = make(map[string]int, len(plain))
+				for i, p := range plain {
+					if _, dup := byID[p.ID]; !dup {
+						byID[p.ID] = i
+					}
+				}
 			}
-			if found >= 0 {
-				found = -2 // 2 つ以上
-				break
+			if i, ok := byID[x.acp]; ok {
+				found = i
 			}
-			found = i
+		} else {
+			for i, p := range plain {
+				first, last := spans[i][0], spans[i][1]
+				if p.Project != info.Cwd || first == nil || x.t < *first || x.t > *last+crewTurnSlack {
+					continue
+				}
+				if found >= 0 {
+					found = -2 // 2 つ以上
+					break
+				}
+				found = i
+			}
 		}
 		if found < 0 || taken[plain[found]] {
 			continue
 		}
 		taken[plain[found]] = true
 		f := info
-		f.Former = true
+		f.Former, f.Sid = true, plain[found].ID // この会話の kiro-cli の会話 ID（今の sid ではない）
 		tagCrewInfo(plain[found], f)
 		ow = append(ow, newCrewOwner(plain[found], f))
 		sortCrewOwners(ow)
@@ -1573,7 +1643,8 @@ func claimCrewFormer(ow []*crewOwner, turns []crewTurn, plain []*core.Builder, i
 type crewTurn struct {
 	t, start, credits float64
 	model, provider   string      // provider は行の "provider"（"acp"・"claude_code"・"codex" など。crewElsewhere）
-	harness           string      // その会話の実際の backend（"codex"・"kiro"・"claude_code" など。新しい Crew だけが書く。metrics/harness.py）
+	harness           string      // その会話の実際の backend（"codex"・"kiro"・"kas"・"claude_code" など。新しい Crew だけが書く。metrics/harness.py）
+	acp               string      // acp_session_id（そのターンを動かした ACP の会話 ID。新しい Crew だけが書く。crewTurnOwner）
 	u                 core.Tokens // input → In、output → Out、cache_create → CW、cache_read → CR（重ならない）
 	cost              float64     // backend が返した USD（kiro-cli の行は 0）
 	ctx               float64     // context_used ÷ context_window（わからなければ -1）
@@ -1612,6 +1683,10 @@ func loadCrewUsage(home string, errs *fileErrs) map[string][]crewTurn {
 			x := crewTurn{t: *t, start: start, credits: c, model: core.Str(e["model"]), provider: core.Str(e["provider"]), harness: core.Str(e["harness"]),
 				u:    core.Tokens{In: crewCount(e["input"]), Out: crewCount(e["output"]), CW: crewCount(e["cache_create"]), CR: crewCount(e["cache_read"])},
 				cost: crewCount(e["cost"]), ctx: -1, stop: core.Str(e["stop_reason"])}
+			// 会話 ID は会話に結びつけるのにだけ使う。形の合わないもの（壊れた行）は、書いていないものとして時刻で決める
+			if id := core.Str(e["acp_session_id"]); crewSidPattern.MatchString(id) {
+				x.acp = id
+			}
 			// コンテキストの使用率。窓がない・0 の行は使わない（Crew の context_occupancy と同じ）
 			if used, ok := core.Num(e["context_used"]); ok && used >= 0 && !math.IsInf(used, 0) {
 				if w, ok := core.Num(e["context_window"]); ok && w > 0 && !math.IsInf(w, 0) {
@@ -1633,7 +1708,9 @@ func loadCrewUsage(home string, errs *fileErrs) map[string][]crewTurn {
 // （Crew の providers/acp.py の cleanup_session の注記）。Codex の backend も Codex 自身が ~/.codex に記録を書くものとみなす。
 // Claude Code では、Crew の会話 ID（session_map の sid）と Claude Code の履歴の会話 ID が同じかは、手元の根拠（Crew と claude-agent-acp の公開ソース）では確かめられない。
 // 結びつけられないまま足すと同じトークンとコストを 2 度数えるので、これらの行ではトークンとドル額を足さない（ターン・時刻・モデルは数える）。
-// Codex では sid がスレッド ID そのものなので、会話キーの今の backend が Codex なら、Crew のセッションごと Codex のセッションに譲る（CrewInfo.codexClaim）。
+// Codex では sid がスレッド ID そのものなので、会話キーの今の backend が Codex なら、Crew のセッションごと Codex のセッションに譲る（CrewInfo.yieldClaim）。
+// KAS の engine（"kas"）も会話を Kiro IDE / CLI (V3) の記録として自分で書くが、kiroku がそこから読むのはクレジットだけでトークンはないので、
+// KAS の行のトークンとドル額は足す。クレジットを 2 度数えないよう、会話キーの今の backend が KAS なら Crew のセッションごと V3 のセッションに譲る（kasClaim）。
 //
 // 行の provider は書いたところで意味が違う: 裏方の処理・記憶の整理は本当の backend の名前（llm_helpers.py の _provider_label →
 // providers/acp.py の provider_label。"acp"（kiro-cli）・"claude_code"・"codex"・"kas"・"goose" など）、ダッシュボードとサブエージェントは
@@ -1645,12 +1722,18 @@ func loadCrewUsage(home string, errs *fileErrs) map[string][]crewTurn {
 // そこで label が kiro-cli（空か "acp"）なら、行そのもので決める（crewCodexRow）。label が kiro-cli・Claude Code・Codex のどれでもない
 // （goose など）なら数える。タスクの実行と webhook の行は、Claude Code で動いても "acp" で、会話キーが session_map から
 // 消えていると見分けられないので、トークンを数える（2 度数えることがある）。
+// 新しい Crew は行に harness（そのターンを動かした本当の backend。metrics/harness.py の harness_of）を書くので、あればそれで決める
+// （"kiro" は kiro-cli。"unknown"・"other" は決めない）。
 func crewElsewhere(x crewTurn, label string) bool {
 	switch {
 	case crewOwnHistory(x.provider):
 		return true
 	case x.provider != "" && x.provider != "acp": // 本当の backend の名前（kas・goose など）
 		return false
+	case x.harness == "kiro":
+		return false
+	case x.harness != "" && x.harness != "unknown" && x.harness != "other":
+		return crewOwnHistory(x.harness)
 	case crewOwnHistory(label):
 		return true
 	case label != "" && label != "acp":
@@ -1675,9 +1758,14 @@ func crewCodexRow(x crewTurn) bool {
 // crewCodexModelMax は Codex のモデル ID として見る長さの上限（バイト）。
 const crewCodexModelMax = 200
 
-// crewOwnHistory は、Crew の backend の名前が、kiroku が自分の履歴を別に読むエージェント（Claude Code と Codex）か。
+// crewOwnHistory は、Crew の backend の名前（provider の名前か harness）が、トークンとドル額を kiroku が別の履歴から読むエージェントか
+// （Claude Code（"claude_code"、harness では Claude の ACP の backend の "claude" も）と Codex）。
 func crewOwnHistory(provider string) bool {
-	return provider == "claude_code" || provider == "codex"
+	switch provider {
+	case "claude_code", "claude", "codex":
+		return true
+	}
+	return false
 }
 
 func sumCredits(cs []core.Credit) float64 {
@@ -1803,11 +1891,12 @@ func crewOnly(home, slot string, turns []crewTurn, info *CrewInfo, title string,
 		}
 		s.Key = "kiro-crew:" + id[len("crew:"):]
 		if !bg && info != nil {
-			s.Yield = info.codexClaim() // Codex の backend の会話は、Codex の記録のセッションがあればそちらだけを数える
+			s.Yield = info.yieldClaim() // Codex・KAS の backend の会話は、それぞれの記録のセッションがあればそちらだけを数える
 			// state.json が消えて backend がわからないサブエージェントでも、crew-log の child_sid があり、
-			// 使用量の行が Codex の会話（harness "codex"）だと言っていれば、そのスレッドに譲る
-			if s.Yield == "" && info.Provider == "" && info.Sid != "" && crewRowsHarness(groups[g]) == "codex" {
-				s.Yield = codexClaim(info.Sid)
+			// 使用量の行が Codex・KAS・Claude Code の会話（harness。Claude Code のサブエージェントの行は provider "claude_code"）だと
+			// 言っていれば、その会話のセッションに譲る
+			if s.Yield == "" && info.Provider == "" && info.Sid != "" {
+				s.Yield = crewBackendClaim(crewRowsHarness(groups[g]), info.Sid, info.Subagent)
 			}
 		}
 		switch {
@@ -1935,14 +2024,20 @@ func configObject(path string) map[string]any {
 	return m
 }
 
-// crewRowsHarness は、行のどれもが同じ harness を書いていればそれ（書いていない行があれば、ほかの backend かもしれないので空）。
+// crewRowsHarness は、行のどれもが同じ backend だと言っていればそれ（言っていない行があれば、ほかの backend かもしれないので空）。
+// 行の backend は harness。harness のない行（harness を書く前の Crew）でも、provider が "claude_code" なら Claude Code
+// （サブエージェントの行は Claude Code の seam なら "claude_code"、ほかは "acp"。subagent_manager/usage_row.py）。
 func crewRowsHarness(rows []crewTurn) string {
 	h := ""
 	for _, x := range rows {
-		if x.harness == "" || h != "" && x.harness != h {
+		b := x.harness
+		if b == "" && x.provider == "claude_code" {
+			b = "claude_code"
+		}
+		if b == "" || h != "" && b != h {
 			return ""
 		}
-		h = x.harness
+		h = b
 	}
 	return h
 }
