@@ -1048,6 +1048,8 @@ async function run(env) {
       const tn = [...lab.childNodes].filter(n => n.nodeType === 3).pop(); if (!tn || !tn.length) return; const r = document.createRange(); r.setStart(tn, tn.length - 1); r.setEnd(tn, tn.length);
       const lr = r.getBoundingClientRect(), mid = x => (x.top + x.bottom) / 2; if (lr.height && bs.some(b => Math.abs(mid(b.getBoundingClientRect()) - mid(lr)) > 8)) out.push(k.textContent); }); return out; });
     check("名前の最後の語と「ƒx」「?」が同じ行にある", bad.length === 0, bad.slice(0, 3).join(" / "));
+    check("費用と産出の推移の、線の端の 2 つの合計が重ならない", await p.evaluate(() => { const [a, b] = [...document.querySelectorAll("#review .icum .icnl")].map(e => e.getBoundingClientRect());
+      return !a || !b || !a.height || a.bottom <= b.top + 0.5; }));
     check("値のボタンの名前は、分けた名前の 2 つを合わせたもの", await p.evaluate(() => { const v = document.querySelector('#review .mrow .mv[aria-labelledby]'); if (!v) return true;
       const ids = v.getAttribute("aria-labelledby").split(" "); return ids.length === 3 && ids.every(i => document.getElementById(i)) && /\S\s\S|\S$/.test(document.getElementById(ids[0]).textContent + document.getElementById(ids[1]).textContent); }));
     await view("cal");

@@ -447,7 +447,10 @@ function skBack(R){ cumFit(R); (R || document).querySelectorAll(".isk svg").forE
     tx.before(r); }); }); }
 // cumFit は、費用と産出の推移の図の字を、カードの幅によらず画面で 12px ほどに保つ（図は幅いっぱいに伸び縮みするので、そのままだと字も 2 倍や 0.7 倍になる）。
 // 描いた幅 ÷ viewBox の幅を --k に入れ、CSS で字の大きさを割り戻す。skBack と同じく、見えているときにしか測れない
-function cumFit(R){ (R || document).querySelectorAll(".icum svg").forEach(svg => { const w = svg.getBoundingClientRect().width, vw = svg.viewBox.baseVal.width; if (w > 0 && vw > 0) svg.style.setProperty("--k", (vw / w).toFixed(3)); }); }
+// 字を大きくした分、線の端の 2 つの合計（費用と産出）が重ならないよう、産出の合計を費用の合計の字の高さぶん下に置き直す（狭い画面で「$6.87」と「299 lines」が重なった）
+function cumFit(R){ (R || document).querySelectorAll(".icum svg").forEach(svg => { const w = svg.getBoundingClientRect().width, vw = svg.viewBox.baseVal.width; if (!(w > 0 && vw > 0)) return;
+  svg.style.setProperty("--k", (vw / w).toFixed(3)); const a = svg.querySelector(".icnl.in"), b = svg.querySelector(".icnl.out"); if (!a || !b) return;
+  const h = a.getBBox().height; if (h > 0) b.setAttribute("y", (+a.getAttribute("y") + Math.max(16, h + 2)).toFixed(1)); }); }
 addEventListener("resize", () => { clearTimeout(skBack.h); skBack.h = setTimeout(() => skBack($("#review")), 150); });
 // insPack は、サマリーのカードを列に詰めて並べる（石積み）。行ごとに高さをそろえると、低いカードの中が大きく空くので、
 // 各カードを自分の高さのまま、空いている列のいちばん上に置く。カードの高さは中身や幅で変わるので、変わるたびに測り直す

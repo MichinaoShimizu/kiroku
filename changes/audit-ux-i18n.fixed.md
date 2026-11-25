@@ -25,3 +25,4 @@
 - Japanese: the note that more history is needed to compare reads 記録のある過去の月が 4 か月分要ります（いまは 2 か月分） (and 週が 4 週分 for weeks) instead of 過去のか月が 4 要ります
 - A metric's name that wraps keeps its last word with its "ƒx" and "?" instead of leaving the "?" alone on the next line ("Claude Code sessions that reached a commit or PR" at 1440 px)
 - Japanese: session time has one name, セッション時間, in Unit cost per input's switch (セッション時間 1 時間), its formula, the From input to output switch and the notes (were セッションの 1 時間, セッションの作業時間 and セッションの時間)
+- Cost and output over time: on a phone the two totals at the end of the lines no longer overlap ("$6.87" and "299 lines")
