@@ -108,6 +108,9 @@ Fixed: D-1 and the retaken screenshots (D-2); G1, G2, G4–G6, same-second commi
 
 Follow-up the same day (the maintainer said to continue, and decided: an archive size cap only; the recommended Japanese terms; headings follow the guide's rule and say "Estimated cost"): with `HOME` unset no agent's history is read from the current folder (Claude Code had globbed `*/*.jsonl` and read `.claude/settings.json` there); the archive skips files over `core.MaxZstd` (1 GiB) and lists them under Data sources; `claudeManagedDir` has a per-OS test; `core.AgentEnv` and `Agent.Env` are removed; tools/upstream reports the tool versions pinned in the workflows (I6), and govulncheck is bumped to v1.10.0; Japanese uses 手動, PR, ここまで, 範囲 and ばらつき (with a test against the old variants); headings say "Estimated cost"; the phone legend row shows "+N ›" while it scrolls; Data sources stays open after "Keep a copy in this folder".
 
+
+`/pre-pr` on the follow-up: `hostile-tester` found `KIROCREW_HOME=~/…` read as a folder named `~` under the current folder when the home is unknown, a relative `XDG_DATA_HOME` used for the archive and the old Kiro CLI database, `.kiroku-tmp-*` left by a stopped copy, and right-to-left overrides in names reordering nearby numbers; all fixed with tests. `user-tester` found the phone legend badge hiding a focused chip, counting a visible one and paging into half chips, `serve --check` without `HOME` advising "use an agent for a while", ここまで where "until today" was meant, "Cost per …" chart captions, ばらつき for two ideas (the IQR is now 四分位範囲), capitalised names mid-sentence, two Japanese wordings for "reached a commit or PR", and the archive notice covering the row focus moved to; all fixed with tests.
+
 Still open after the fixes:
 - E: whether KAS `messages.jsonl` has V3's `usage_summary` lines (inferred from Crew's reader); Kiro CLI 3.6 `/compact <instructions>` and recaps (no sample); `acp_session_id` of subagents sharing the parent's runtime; Kiro Crew 0.14.0 only tagged as rc in git (agents.md says 0.13.1 until the weekly run, which will also add the tools table). Due: next data run
 - G: most `pause()` waits in smoke.mjs stay (no single condition to wait for). Due: next code run
@@ -117,7 +120,7 @@ Still open after the fixes:
 ### Loop
 | Run | Findings (certain) | Fixed | Median days to fix | Open items | Overdue | Previous items resolved |
 |---|---|---|---|---|---|---|
-| 2026-11-25 full (check, then fixed) | 56 (+14 in /pre-pr) | 56 (+14) | 0 (same day; PR open) | 4 groups | 0 (Sol price due 12-01) | 2 of 14 (+1 partly) |
+| 2026-11-25 full (check, then fixed) | 56 (+25 in /pre-pr) | 56 (+25) | 0 (same day; PR open) | 4 groups | 0 (Sol price due 12-01) | 2 of 14 (+1 partly) |
 | 2026-11-24 full | 62 (+9 in /pre-pr) | 28 (+9) | 0 (same day; PR open) | 14 groups | 0 | 4 of 13 |
 | 2026-11-20 ux, i18n | 25 | 25 | 0 (same day; PR open) | 2 new (and 26 not rechecked) | 1 (F, from 2026-11-19) | — (aspect run) |
 | 2026-11-19 full | 60 | 34 | 0 (same day; PR open) | 26 | 1 (F) | 9 of 24 |
