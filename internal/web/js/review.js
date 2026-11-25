@@ -5,8 +5,11 @@ function limitHits(ws, we){ const H = []; DATA.forEach(s => (s.limits || []).for
 function compactionsOf(ws, we){ const C = []; DATA.forEach(s => (s.compactions || []).forEach(t => { if (t >= ws && t < we) C.push({t, s}); })); return C.sort((a,b) => a.t - b.t); }
 /* i 番目のコンパクションが自動か手動か（わからなければ ""）。履歴の値はそのまま出さず、決まった言葉にする */
 function compactKind(s, i){ return ({auto: t("automatic"), manual: t("manual")})[(s.compactKinds || [])[i]] || ""; }
-/* i 番目の利用上限のエラー文にあった解除の時刻（"3:45pm" など、書いてあるとおりの文。日付や時間帯がないこともある）。なければ "" */
-function limitReset(s, i){ const r = String((s.limitResets || [])[i] || ""); // 履歴の文（"9pm" など）。読める時刻は、ほかの時刻と同じ 24 時間に
+/* i 番目の利用上限の解除の時刻。履歴に時刻（UNIX 秒、Codex の resets_at）があれば、ほかの時刻と同じく今いる時間帯で出す
+   （当たった日と違う日なら日付も付ける）。なければエラー文にあった時刻（"3:45pm" など、書いてあるとおりの文。日付や時間帯がないこともある）。どちらもなければ "" */
+function limitReset(s, i){ const at = +((s.limitResetAt || [])[i]) || 0, hit = (s.limits || [])[i];
+  if (hit > 0 && at > hit && at <= hit + 366 * 86400) return md(at) === md(hit) ? hm(at) : `${md(at)} ${hm(at)}`; // 当たったあと 1 年までの時刻だけ（Go の LimitUntil と同じ）
+  const r = String((s.limitResets || [])[i] || ""); // 履歴の文（"9pm" など）。読める時刻は、ほかの時刻と同じ 24 時間に
   return r.replace(/\b(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m\.?\b/gi, (m, h, mm, ap) => { h = +h % 12 + (ap.toLowerCase() === "p" ? 12 : 0); return `${String(h).padStart(2, "0")}:${mm || "00"}`; }); }
 /* 見直す候補の判定に使う部品（期間 [ws, we) を渡す。推移の計算でも使う） */
 const inP = (s, ws, we) => s.segs.some(([a,b]) => b > ws && a < we);

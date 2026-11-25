@@ -558,6 +558,54 @@ func TestCodexLimitHits(t *testing.T) {
 	}
 }
 
+// 利用上限に当たったときの解除の時刻（#570）。当たったスナップショットの、使用率が 100% 以上の枠の resets_at を取る。
+// 両方の枠が当たっていれば遅いほう。当たった枠がない（クレジットの使い切りなど）・resets_at がない・当たる前の時刻なら取らない。
+// 1 分以内に続いたターンのエラー（解除の時刻なし）とは 1 回にまとめ、時刻は残す。サブエージェントのものも親に時刻ごと入れる。
+func TestCodexLimitResetAt(t *testing.T) {
+	home := t.TempDir()
+	base := float64(1791244800) // 2026-10-06T00:00:00Z
+	tc := func(at, rl string) string {
+		return `{"timestamp":"` + at + `","type":"event_msg","payload":{"type":"token_count","info":null,"rate_limits":` + rl + `}}`
+	}
+	writeCodex(t, home, "thr-rs",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-rs","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T00:00:10.000Z","type":"event_msg","payload":{"type":"user_message","message":"直して"}}`,
+		// ターンのエラーが先、スナップショットが 1 分以内にあと: 1 回にまとめ、解除の時刻はスナップショットから
+		`{"timestamp":"2026-10-06T00:01:00.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t1","error":{"message":"limit","codex_error_info":"usage_limit_exceeded"}}}`,
+		tc("2026-10-06T00:01:05.000Z", `{"limit_id":"codex","primary":{"used_percent":100,"window_minutes":300,"resets_at":1791262800},"secondary":{"used_percent":40,"window_minutes":10080,"resets_at":1791800000},"rate_limit_reached_type":"rate_limit_reached"}`),
+		// 両方の枠が 100% 以上（101% もありうる）: 遅いほう
+		tc("2026-10-06T01:00:00.000Z", `{"limit_id":"codex","primary":{"used_percent":101.5,"window_minutes":300,"resets_at":1791262800},"secondary":{"used_percent":100,"window_minutes":10080,"resets_at":1791800000},"rate_limit_reached_type":"rate_limit_reached"}`),
+		// 100% の枠がない（クレジットの使い切り）: 時刻なし
+		tc("2026-10-06T02:00:00.000Z", `{"limit_id":"codex","primary":{"used_percent":30,"window_minutes":300,"resets_at":1791270000},"secondary":null,"credits":{"has_credits":false,"balance":"0"},"rate_limit_reached_type":"workspace_member_credits_depleted"}`),
+		// resets_at がない・当たった時刻より前・文字列: 時刻なし
+		tc("2026-10-06T03:00:00.000Z", `{"primary":{"used_percent":100,"window_minutes":300},"rate_limit_reached_type":"rate_limit_reached"}`),
+		tc("2026-10-06T04:00:00.000Z", `{"primary":{"used_percent":100,"window_minutes":300,"resets_at":1791244000},"rate_limit_reached_type":"rate_limit_reached"}`),
+		tc("2026-10-06T05:00:00.000Z", `{"primary":{"used_percent":100,"window_minutes":300,"resets_at":"<b>soon</b>"},"rate_limit_reached_type":"rate_limit_reached"}`),
+		// 大きすぎる・配列・1 年より先: 時刻なし。小数はそのまま
+		tc("2026-10-06T06:00:00.000Z", `{"primary":{"used_percent":100,"window_minutes":300,"resets_at":1e15},"rate_limit_reached_type":"rate_limit_reached"}`),
+		tc("2026-10-06T07:00:00.000Z", `{"primary":{"used_percent":100,"window_minutes":300,"resets_at":[1791262800]},"rate_limit_reached_type":"rate_limit_reached"}`),
+		tc("2026-10-06T08:00:00.000Z", `{"primary":{"used_percent":100,"window_minutes":300,"resets_at":1825000000},"rate_limit_reached_type":"rate_limit_reached"}`),
+		tc("2026-10-06T09:00:00.000Z", `{"primary":{"used_percent":100,"window_minutes":300,"resets_at":1791284400.5},"rate_limit_reached_type":"rate_limit_reached"}`),
+	)
+	writeCodex(t, home, "thr-rs-sub",
+		`{"timestamp":"2026-10-06T00:30:00.000Z","type":"session_meta","payload":{"id":"thr-rs-sub","timestamp":"2026-10-06T00:30:00.000Z","cwd":"/Users/me/web","source":{"subagent":{"thread_spawn":{"parent_thread_id":"thr-rs","agent_role":"explorer"}}}}}`,
+		tc("2026-10-06T00:30:10.000Z", `{"limit_id":"codex","primary":{"used_percent":100,"window_minutes":300,"resets_at":1791264000},"rate_limit_reached_type":"rate_limit_reached"}`),
+	)
+	bs := load(t, &Codex{Home: home})
+	if len(bs) != 1 {
+		t.Fatalf("sessions = %d, want 1", len(bs))
+	}
+	s := bs[0].Finish(15)
+	wantT := []float64{base + 60, base + 1810, base + 3600, base + 7200, base + 10800, base + 14400, base + 18000, base + 21600, base + 25200, base + 28800, base + 32400}
+	wantAt := []float64{1791262800, 1791264000, 1791800000, 0, 0, 0, 0, 0, 0, 0, 1791284400.5}
+	if fmt.Sprint(s.Limits) != fmt.Sprint(wantT) || fmt.Sprint(s.LimitResetAt) != fmt.Sprint(wantAt) {
+		t.Errorf("limits = %v resets = %v, want %v %v", s.Limits, s.LimitResetAt, wantT, wantAt)
+	}
+	if len(s.LimitResets) != 0 {
+		t.Errorf("limitResets = %v, want none（Codex には解除の時刻の文がない）", s.LimitResets)
+	}
+}
+
 // turn_aborted の reason が interrupted のときだけ、人が止めたとして数える。
 func TestCodexInterrupted(t *testing.T) {
 	home := t.TempDir()
