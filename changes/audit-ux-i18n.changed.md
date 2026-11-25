@@ -1,0 +1,8 @@
+- The Output card's row is named "Claude Code sessions that reached a commit or PR", and the change in a share from the previous period is in percentage points ("+8 pts vs last week") rather than a percent of a percent
+- Tokens by type names its rows "Input tokens" and "Output tokens"
+- The figure for a week or month in progress is called "A day to match last week" (or month) everywhere: the top band, its dialog and day chart, How you worked and "?"; "pace" now means only the projection to the end of the period
+- Japanese uses 推定 for every end-of-period projection (月末の推定, 週末の推定, 推定（破線）)
+- The Data sources button reads "Keep a copy in this folder", and its messages say "copy" instead of "backup", as the CLI and the guide do
+- "Estimated cost per active hour" (and its credits and tokens forms) is now "per session hour", since it divides by each session's own time
+- A short line under the logo says what kiroku is
+- From input to output's "ƒx" says that it counts sessions in the period they started in, so its total can differ from the Input panel

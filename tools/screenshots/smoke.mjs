@@ -88,6 +88,8 @@ async function run(env) {
     check("絞り込んでいないときは、凡例に件数（20 / 20 sessions）を出さない", await p.locator("#legend .count").count() === 0);
     check("ロゴはこのファイルを開き直すリンク（/ ではディスクの一番上へ行く）", await p.evaluate(() => document.querySelector("#home").getAttribute("href") === location.href.split(/[?#]/)[0]));
     check("ロゴが検索欄に隠れない", await p.evaluate(() => document.querySelector(".brand .word").getBoundingClientRect().right <= document.querySelector(".search").getBoundingClientRect().left));
+    check("ロゴの下に kiroku が何かを 1 行で出し、検索欄に重ならない（とても狭い画面では出さない）", await p.evaluate(w => { const g = document.querySelector(".tagline"), r = g.getBoundingClientRect();
+      return w < 375 ? !g.checkVisibility() : g.checkVisibility() && r.height < 20 && r.right <= document.querySelector(".search").getBoundingClientRect().left; }, env.viewport.width));
     // カレンダーが主役：① から下のパネルは閉じていて、上の帯は使ったものだけ
     check("上の帯は使ったものだけ（残したもの：コミット・変えた行・PR は出さない）", await p.locator('#kpis .kpi.out, #kpis [data-metric="commits"], #kpis [data-metric="lines"], #kpis [data-metric="aiCommits"], #kpis [data-metric="prs"]').count() === 0);
     if (env.viewport.width > 820 && env.viewport.width < 1440) check("上の数字の帯は 1 行（折り返さない）", await p.evaluate(() => new Set([...document.querySelectorAll("#kpis .kpi")].map(k => Math.round(k.getBoundingClientRect().top))).size === 1));
@@ -234,6 +236,9 @@ async function run(env) {
     check("押すと詳細が開く", await drawerOpen());
     const box = await p.locator("#drawer").boundingBox();
     check("詳細が画面に収まる", box && box.x >= -1 && box.x + box.width <= env.viewport.width + 1, JSON.stringify(box));
+    // 広い画面では、流れ（左の列）が操作・数値・情報（右の列）より先：Tab が「閉じる → 右 → 左 → 右」と行き来しない
+    check("Tab の順が、見た目の列の順（左の流れ → 右の列）", await p.evaluate(() => { const c = document.querySelector("#panel .scols"); if (!c) return true;
+      const f = c.querySelector(":scope > .sflow"), wide = matchMedia("(min-width:1100px)").matches; return !f || (wide ? c.firstElementChild === f : !f.nextElementSibling || f.nextElementSibling.matches(".sinfo")); }));
     check("閉じるボタンが種類の行に並び、ボタンだけの空いた帯がない", await p.evaluate(() => { const c = document.querySelector("#close").getBoundingClientRect(), e = document.querySelector("#panel .eyebrow").getBoundingClientRect();
       return Math.abs((c.top + c.bottom) / 2 - (e.top + e.bottom) / 2) < 12 && c.left > e.left; }));
     const rep = p.locator("#panel .tl li.rp").first();
@@ -270,8 +275,9 @@ async function run(env) {
       const c = await p.evaluate(async () => { window.__copied = null; // 会話全体を Markdown で写す（見出しは発言者と時刻、本文はプロンプトの順）
         const b = document.querySelector("#drawer .flowhd .fcopy"); if (!b) return {none: true};
         const s = DATA.find(x => x.id === st.sel); b.click(); await new Promise(z => setTimeout(z, 600));
-        return {label: b.getAttribute("aria-label"), got: window.__copied || "", first: String(s.prompts[0].text || "").slice(0, 30), n: s.prompts.length}; });
-      check("会話全体を Markdown でコピーできる", !c.none && /Copy the conversation as Markdown/.test(c.label) && c.got.startsWith("# ") && (c.got.match(/^## You/gm) || []).length === c.n && c.got.includes(c.first), JSON.stringify({...c, got: c.got.slice(0, 80)}));
+        return {label: b.getAttribute("aria-label"), title: b.title, text: b.textContent.trim(), got: window.__copied || "", first: String(s.prompts[0].text || "").slice(0, 30), n: s.prompts.length}; });
+      // 読み上げの名前は見えている文字から始まる（aria-label で別の名前にしない。説明は title に）
+      check("会話全体を Markdown でコピーできる", !c.none && !c.label && c.text === "Copy as Markdown" && /Copy the conversation as Markdown/.test(c.title) && c.got.startsWith("# ") && (c.got.match(/^## You/gm) || []).length === c.n && c.got.includes(c.first), JSON.stringify({...c, got: c.got.slice(0, 80)}));
     }
     { // 前後のセッションへ（キーと、見出しの帯の ‹ ›）・キーで流れをスクロール・流れの全画面
       const id0 = await p.evaluate(() => st.sel);
@@ -337,6 +343,11 @@ async function run(env) {
         const F = lastFlags, side = f => insSide(f), ok = F.every((f, i) => i === 0 || side(F[i - 1]) < side(f) || side(F[i - 1]) === side(f) && ((F[i - 1].stake && F[i - 1].stake.c) ?? -1) >= ((f.stake && f.stake.c) ?? -1));
         return ok; }));
       check("見直す候補はどれも、サマリーの指標の横の印から開ける", await p.evaluate(() => [...new Set(lastFlags.map(f => GOTO[f.k] || f.k))].every(id => document.querySelector(`#review .fmark[data-goto="${id}"]`))));
+      // 表示中の期間に出ていない候補も、出たときに印の置き場所があるか（モデルの選び方は「?」のない図に置く。置き場所がないと印が消える）。
+      // 写しの上で候補をすべて置いてみて、どれにも見えている印が付くかを見る
+      check("どの種類の見直す候補にも、見えている印が付く", await p.evaluate(() => { const R = document.querySelector("#review").cloneNode(true); R.querySelectorAll(".fmark").forEach(x => x.remove());
+        document.body.append(R); try { const ks = ["limits", "fix", "friction", "longctx", "modelfit", "heavy", "repeats"]; placeFlags(R, ks.map(k => ({k, ids: []})));
+          return ks.every(k => [...R.querySelectorAll(`.fmark[data-goto="${GOTO[k] || k}"]`)].some(m => !m.closest("[hidden]"))); } finally { R.remove(); } }));
       check("エージェント別の表に、エージェントごとの行がある（費用とクレジットを混ぜない）", await p.evaluate(() => document.querySelectorAll("#review .iagt tbody tr").length >= 2));
       check("サマリーにエージェントの切り替えはない（いつもすべてのエージェント）", await p.evaluate(() => !document.querySelector("#review [data-ag]")));
       { // 投入の量（推定費用・Kiro credits・トークン）は、どのエージェントの分もまとめ、棒はエージェントの色で積み上げる。色の凡例に名前を添える
@@ -533,8 +544,9 @@ async function run(env) {
       const a = act.getBoundingClientRect(), f = flow.getBoundingClientRect(), wide = innerWidth >= 1100;
       return {n: v.length, inAct: !v.length || !!v[0].closest(".sact"), wide, place: wide ? a.left > f.right - 1 : a.top < f.top,
         flowOnly: !flow.querySelector(".mini, .files, .trow, .dresume, #srun"),
-        // HTML の順（Tab の順）が見た目の順と同じ：操作 → 数値 → 流れ → 情報。1 列ではモデル・ツールは流れより下
-        order: [".sact", ".smet", ".sflow", ".sinfo"].map(c => document.querySelector("#panel .scols > " + c)).filter((e, i) => e || i).every((e, i, a) => e && (!i || (a[i-1].compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING))),
+        // HTML の順（Tab の順）が見た目の順と同じ：1 列では操作 → 数値 → 流れ → 情報（モデル・ツールは流れより下）。
+        // 2 列では左の流れ → 右の列（操作 → 数値 → 情報）。「閉じる → 右 → 左 → 右」と行き来しない
+        order: (wide ? [".sflow", ".sact", ".smet", ".sinfo"] : [".sact", ".smet", ".sflow", ".sinfo"]).map(c => document.querySelector("#panel .scols > " + c)).filter((e, i) => e || i !== (wide ? 1 : 0)).every((e, i, a) => e && (!i || (a[i-1].compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING))),
         toolsBelow: wide || [...document.querySelectorAll("#panel .trow")].every(e => e.getBoundingClientRect().top > f.bottom - 1)}; });
     check("詳細の HTML の順は、操作・数値・流れ・情報（Tab の順が見た目と合う）", rs.order === true, JSON.stringify(rs));
     check("1 列では、使ったツールは流れより下", rs.toolsBelow === true, JSON.stringify(rs));
@@ -948,6 +960,14 @@ async function run(env) {
     check("押すと、今月の日ごとの内訳（月末の推定）が開き、週の表示はそのまま", dlg.open && dlg.txt.includes(mp.v) && dlg.txt.includes(mp.so) && await p.evaluate(() => st.mode === "week"), dlg.txt.slice(0, 120));
     await p.keyboard.press("Escape"); await pause();
     await view("sum");
+    // 途中の週の時間外の割合は、過去の週の同じ曜日・時刻までと比べる（土日を含む週まるごととは比べない）
+    check("途中の週の時間外の割合は、過去の週の同じところまでと比べる", await p.evaluate(() => { if (soFar() == null) return true;
+      const {ws} = period(), cut = nowMs() / 1000 - ws, b = insOffRange(50), hs = historyStart(), want = [];
+      for (let i = 1; i <= INS_N; i++){ const q = periodBack(i); if (q.ws < hs || !q.S) continue; const x = insOff(insMinutes(q.ws, Math.min(q.we, q.ws + cut))); if (x != null) want.push(x); }
+      const whole = []; for (let i = 1; i <= INS_N; i++){ const q = periodBack(i); if (q.ws < hs || !q.S) continue; const x = insOff(insMinutes(q.ws, q.we)); if (x != null) whole.push(x); }
+      return JSON.stringify(b.xs) === JSON.stringify(want) && JSON.stringify(want) !== JSON.stringify(whole); }));
+    // 途中の週の推移の読み上げは、推定を値として読まず、これまでの値と推定だと言う
+    check("途中の週の推移の読み上げは「so far」と推定を言う", await p.evaluate(() => { const x = document.querySelector('#review .itile[data-ch="cost"] .tspk .sr'); return !x || /so far, estimated .+ by the end/.test(x.textContent); }));
     const cb = p.locator('#review .iksw[data-sw="cost"] [data-v="credits"]');
     if (await cb.count()){ // 今週にクレジットの記録がなければ、投入のパネルにクレジットの選択肢は出ない（数字のない選択肢は出さない）
       await cb.click(); await pause(); // コストのパネルでクレジットを選ぶ

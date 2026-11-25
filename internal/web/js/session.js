@@ -1,5 +1,12 @@
 // 詳細パネルのセッション、プロンプトの流れ、詳細の開け閉め（フォーカスの戻し先）
 /* ── drawer: session detail ── */
+// 広い画面では、プロンプトの流れが左の列、操作・数値・情報が右の列（CSS の grid で置く）。Tab の順が「閉じる → 右 → 左 → 右」と
+// 行き来しないよう、広い画面では流れを列の先頭に移す（狭い画面では、操作と数値のあと、情報の前。見た目の順のまま）
+const WIDE_DETAIL = matchMedia("(min-width:1100px)");
+function placeFlow(){ const c = $("#panel .scols"), f = c && c.querySelector(":scope > .sflow"); if (!f) return;
+  if (WIDE_DETAIL.matches){ if (c.firstElementChild !== f) c.prepend(f); return; }
+  const info = c.querySelector(":scope > .sinfo"); if (info && f.nextElementSibling !== info) c.insertBefore(f, info); }
+WIDE_DETAIL.addEventListener("change", placeFlow);
 const FIXRE = /違う|ちがう|そうじゃな|やり直|戻して|元に戻|取り消|じゃなくて|\b(?:wrong|incorrect|nope|revert|undo|roll ?back|start over|not what|that's not|try again|(?:doesn't|does not|didn't|did not|still not|isn't|is not) work(?:ing)?|still (?:broken|failing|fails)|you broke)\b/i; // 言い直し・中断らしいプロンプト（プロンプトの流れで点の色を変える）
 function detail(s){
   if (!s){ st.sel = null; return summary(); }
@@ -62,6 +69,7 @@ function detail(s){
     </section>
     </div>
   </div>`;
+  placeFlow();
   bindGitEvents(P);
   const hl = P.querySelector("a[data-hist]"); if (hl) hl.onclick = e => { e.preventDefault(); saveHistory(s, hl); };
   P.querySelectorAll(".sflags [data-goto]").forEach(b => b.onclick = () => openWorth(b.dataset.goto, b));
@@ -203,7 +211,7 @@ function promptFlow(s){
   flush(Infinity);
   const rest = s.prompts.length - FLOW_SHOW, also = hiddenEv ? ` (and ${plural(hiddenEv, "other event")})` : "";
   const showMore = JA ? (hiddenEv ? t("Show {n} more prompts (and {m} other events)", {n: rest, m: hiddenEv}) : t("Show {n} more prompts", {n: rest})) : `Show ${plural(rest, "more prompt")}${also}`;
-  const bar = `<div class="flowhd"><h3>${esc(t("Prompt flow"))}</h3><button class="pill fcopy" type="button" aria-label="${esc(t("Copy the conversation as Markdown"))}" title="${esc(t("Copy the conversation as Markdown"))}">${ico("copy")}<span>${esc(t("Copy as Markdown"))}</span></button>${(on => `<button class="pill ffull" type="button" aria-pressed="${on}" title="${esc(t("Prompt flow full screen (F)"))}"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="${on ? "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" : "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"}"/></svg><span>${esc(on ? t("Exit full screen") : t("Full screen"))}</span></button>`)($("#drawer").classList.contains("flowfull"))}</div>`; // 出し方の切り替えと凡例は置かない（印には title と読み上げの名前がある）
+  const bar = `<div class="flowhd"><h3>${esc(t("Prompt flow"))}</h3><button class="pill fcopy" type="button" title="${esc(t("Copy the conversation as Markdown"))}">${ico("copy")}<span>${esc(t("Copy as Markdown"))}</span></button>${(on => `<button class="pill ffull" type="button" aria-pressed="${on}" title="${esc(t("Prompt flow full screen (F)"))}"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="${on ? "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" : "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"}"/></svg><span>${esc(on ? t("Exit full screen") : t("Full screen"))}</span></button>`)($("#drawer").classList.contains("flowfull"))}</div>`; // 出し方の切り替えと凡例は置かない（印には title と読み上げの名前がある）
   const cutNote = !LIVE && s.prompts.some(p => p.len > 0 || (p.reply && p.reply.len > 0)) ? `<p class="note">${esc(t("Long prompts and replies end with … here. Open with kiroku serve to read them in full."))}</p>` : "";
   return `${bar}${cutNote}<ol class="tl">${rows.join("")}</ol>${rest > 0 ? `<button class="more pall">${esc(showMore)}</button>` : ""}`;
 }

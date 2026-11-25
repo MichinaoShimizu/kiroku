@@ -1,0 +1,19 @@
+- "Expensive models for light work" gets its Worth a look mark again, on By model next to the Input value (or on Where it went)
+- On a past week, How you worked's lower-cost note says "Different in the week shown" instead of "Different this week"
+- The note after copying a prompt reads "kiroku didn't run or send anything"
+- Cost and output over time: axis and end labels stay about 12 px at any width (they grew to 25 px on a 1000 px window and shrank to 10 px on a phone); the output total has its unit ("695 lines"); the hint under a chart is no longer colored like a link
+- On a phone, From input to output's caption describes the list shown instead of the hidden diagram's band widths
+- The usage-limit mark in the week calendar sits at the right edge of its session so it no longer hides the start of the name
+- A screen reader reads an in-progress period in a trend chart as the amount so far and the end-of-period estimate, not the estimate alone
+- Session details: Tab goes from the prompt flow (left) to the right column on wide windows instead of jumping right, left and back
+- Kinds of work shows "—" instead of $0.00 for a kind with no AI commits
+- A usual range is no longer rounded across the value ("On pace for 11.7: above your usual 9–12"), and both ends have the same decimals ("50.8%–64.0%")
+- Durations keep "1h 24m" on one line, and What changed from the last period fits more of each project's name under its bar, with the full name in its tooltip and the chart's screen-reader text
+- Screen readers: the copy buttons and the calendar's 0–7h switch are named starting with their visible text, and a value's name no longer includes "Show the formula"
+- Japanese: month sparklines say "10月" instead of English month names, "push" is プッシュ, the calendar's day labels and the Cost and output over time tooltip use Japanese separators and brackets, and the week calendar's tooltips say "Kiro credits 8.4" and "Active time" instead of "Credits 8.4 credits" and "Active"
+- The "?" text for Usage limit hits says Claude Code reset times are shown in 24-hour time, and Long conversations mentions that only sessions with 8 or more responses count
+- `kiroku serve --check` and Data sources list both `$KIRO_HOME` and `~/.kiro` for Kiro IDE / CLI (V3) and Kiro CLI (V2) when kiroku reads both
+- "Close to usual" says, in its tooltip and "ƒx", that the value is outside the usual range by less than 10% of its edge, and the "Expensive models for light work" threshold reads as a sentence
+- `kiroku help` points to `kiroku update --help`, which says that a build from your organization's repository updates through `gh` and checks the build provenance
+- In a week or month in progress, When you worked compares the off-hours share with the same part of past periods (up to the same weekday and time, or the same number of days) instead of whole periods with their weekends
+- The week or month in which your history starts is left out of the Worth a look and "?" trends as it is in the Summary charts, and the chart's tooltip says why

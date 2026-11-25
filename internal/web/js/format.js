@@ -25,7 +25,7 @@ function dSpan(a, b, y){ if (a.toDateString() === b.toDateString()) return y ? d
 function dStamp(t){ return `${dMDY(new Date(t*1000))}${isJA() ? " " : ", "}${hm(t)}`; } // Oct 6, 2026, 17:14（時刻はカレンダーと同じ 24 時間で）
 function md(t){ const d = new Date(t*1000); return isJA() ? `${dMD(d)}(${DOW[d.getDay()]})` : `${DOW[d.getDay()]}, ${dMD(d)}`; } // Mon, Sep 28・9月28日(月)
 function dur(m, html){ m = Math.round(m); const h = Math.floor(m/60), r = m%60;
-  const u = x => html ? `<small>${x}</small>` : x; return h ? `${h}${u("h")}${r ? ` ${r}${u("m")}` : ""}` : `${r}${u("m")}`; }
+  const u = x => html ? `<small>${x}</small>` : x; return h ? `${h}${u("h")}${r ? `\u00a0${r}${u("m")}` : ""}` : `${r}${u("m")}`; } // 「1h 24m」は途中で折り返さない
 function tok(n){ n = n || 0; return n >= 1e9 ? (n/1e9).toFixed(1)+"B" : n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? Math.round(n/1e3)+"K" : String(n); }
 const commas = n => n.toLocaleString(LOC()); // 1,234（数のカンマ区切りはこれで）
 // 足した行・消した行：git diff にならって、足した行は緑、消した行は赤（a と r は書式を整えた数の文字列）

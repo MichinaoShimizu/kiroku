@@ -669,3 +669,31 @@ func TestLastEnd(t *testing.T) {
 		t.Errorf("lastEnd が違う:\n%s", out)
 	}
 }
+
+// いつもの範囲の両端（insight.js の insLoHi）。丸めた端が値をまたがないこと（「11.7：いつもの 9–12 より上」としない）、
+// 両端の小数の桁がそろうこと（「50.8%–64%」としない）。insLoHi だけを取り出し、MET と fmtM は置き換える
+func TestLoHi(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/insight.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`(?ms)^function insLoHi\(fm, b\)\{.*?^\}$`).FindString(strings.ReplaceAll(string(src), "\r\n", "\n"))
+	if m == "" {
+		t.Fatal("insight.js に insLoHi が見つからない")
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "lohi_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "lohi.js")
+	if err := os.WriteFile(f, append([]byte(m+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("insLoHi が違う:\n%s", out)
+	}
+}

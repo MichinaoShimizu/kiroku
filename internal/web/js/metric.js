@@ -9,8 +9,8 @@ const BRK = {
   projection: {n: "Month-end cost (estimate)", h: "projection", v: x => x.cost, f: v => usd(v), proj: "cost"},
   credits: {n: "Kiro credits", h: "credits", v: x => x.credits, f: cr, ses: s => s.credits},
   projectionCr: {n: "Month-end credits (estimate)", h: "projectionCr", v: x => x.credits, f: cr, proj: "credits"},
-  pace: {n: "A day to match the last period", h: "pace", v: x => x.cost, f: v => usd(v)},
-  paceCr: {n: "Credits a day to match the last period", h: "paceCr", v: x => x.credits, f: cr},
+  pace: {n: "A day to match last week or month", h: "pace", v: x => x.cost, f: v => usd(v)},
+  paceCr: {n: "Credits a day to match last week or month", h: "paceCr", v: x => x.credits, f: cr},
   active: {n: "Active time", h: "active", v: x => x.minutes ?? x.active, f: v => dur(v), ses: s => sesMin(s)},
   sessions: {n: "Sessions / prompts", h: "prompts", v: x => x.prompts, f: v => `${Math.round(v)}`, ses: s => s.nPrompts},
   limits: {n: "Usage limit hits", h: "limits"},
@@ -21,7 +21,7 @@ const BRK = {
   lines: {n: "Lines in Git commits", h: "lines"},
   prs: {n: "Pull requests", h: "prs"},
   costPerCommit: {n: "Claude Code cost per AI commit", h: "costPerCommit"},
-  outSessions: {n: "Sessions that reached a commit or PR", h: "outSessions"},
+  outSessions: {n: "Claude Code sessions that reached a commit or PR", h: "outSessions"},
   focus: {n: "Focus blocks (60+ min)", h: "focus"},
   fix: {n: "Prompts with corrections or interruptions", h: "fix"},
   bigPrompts: {n: "Oversized prompts", h: "bigPrompts"},
@@ -102,7 +102,7 @@ function paceBody(w, k, m, brief){
   const same = a == null || n == null ? null : pw.days.slice(0, Math.min(n, pw.days.length)).reduce((s, d) => s + (d.commits || 0), 0);
   const out = a == null || b == null ? "" : `<p class="note">${esc(t(M ? "Left behind: {a} commits last month ({s} by the same day), {b} so far this month." : "Left behind: {a} commits last week ({s} by the same day), {b} so far this week.", {a, s: same ?? "—", b}))}</p>`;
   if (brief) return {title, body: calc + `<p class="note">${esc(note)}</p>`};
-  return {title, big, body: calc + `<p class="note">${esc(note)}</p>` + out + mDays(w, m, x.rest > 0 ? {avg: x.per, tip: "≈ {v} to match the last period", label: "Pace to match the last period"} : null)};
+  return {title, big, body: calc + `<p class="note">${esc(note)}</p>` + out + mDays(w, m, x.rest > 0 ? {avg: x.per, tip: M ? "≈ {v} to match last month" : "≈ {v} to match last week", label: title} : null)};
 }
 const MB = {
   pace(w){ const r = paceBody(w, "cost", BRK.pace), c = r && paceBody(w, "credits", BRK.paceCr, true); // 帯は 1 つの枠なので、クレジットもここに
@@ -134,7 +134,7 @@ const MB = {
     const xs = inRange.filter(s => s.outputs && (s.outputs.commits || s.outputs.prs)).sort((a,b) => b.start - a.start);
     const what = s => [s.outputs.commits ? plural(s.outputs.commits, "commit") : "", s.outputs.prs ? plural(s.outputs.prs, "PR") : ""].filter(Boolean).join(" · ");
     return {big: `${Math.round(w.outSessions*100/base)}<small>%</small>`, body: calcH([["Reached a commit or PR", `${w.outSessions}`], "÷", ["Claude Code sessions", `${base}`]]) +
-      mBars("By project", pjRows(countBy(xs, s => s.project)), cnt) + mList("Sessions that reached a commit or PR", xs.map(s => sesCardH(s, sesMeta(s), what(s))), 10)}; },
+      mBars("By project", pjRows(countBy(xs, s => s.project)), cnt) + mList("Claude Code sessions that reached a commit or PR", xs.map(s => sesCardH(s, sesMeta(s), what(s))), 10)}; },
   focus(w){ if (!w.focus.length) return null; const {ws, we} = period(), ses = DATA.filter(s => inP(s, ws, we));
     const main = b => { const a = b.t, e = b.t + b.min*60; let best = null, bv = 0; // その時間にいちばん長く動いていた、同じプロジェクトのセッション
       ses.forEach(s => { if (s.project !== b.project) return; const v = s.segs.reduce((t, [x, y]) => t + Math.max(0, Math.min(y, e) - Math.max(x, a)), 0); if (v > bv){ bv = v; best = s; } }); return best; };
