@@ -226,7 +226,13 @@ var pathExe = func() string {
 }
 
 // where は履歴の置き場所を書く。見つからなかったエージェントは、場所のかわりにそう書く。
+// ホームがわからない（HOME が空など）ときの空の場所は、入っていないのではなく、場所がわからない。
 func where(p string) string {
+	if p == "" {
+		if h, err := os.UserHomeDir(); err != nil || h == "" {
+			return "folder unknown: HOME is not set"
+		}
+	}
 	if p == "" || p == "none" {
 		return "not installed"
 	}

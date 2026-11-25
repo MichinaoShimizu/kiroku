@@ -22,3 +22,16 @@ func TestWhereShortensEveryPath(t *testing.T) {
 		t.Errorf("where(none) = %q", got)
 	}
 }
+
+// HOME が空なら、既定の場所はわからない（今のフォルダを読まない）。serve --check は「入っていない」ではなく、そう書く
+func TestWhereWithoutHome(t *testing.T) {
+	for _, k := range []string{"HOME", "USERPROFILE"} {
+		t.Setenv(k, "")
+	}
+	if got := where(""); got != "folder unknown: HOME is not set" {
+		t.Errorf("where(\"\") = %q", got)
+	}
+	if got := where("none"); got != "not installed" {
+		t.Errorf("where(none) = %q", got)
+	}
+}

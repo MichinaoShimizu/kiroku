@@ -560,13 +560,13 @@ func HideWithheld(s *core.Session) *core.Session {
 	return s.Hidden(crewPrivateText, crewPrivateTitle)
 }
 
-// DefaultCrewHome は KIROCREW_HOME か ~/.kiro/crew。
+// DefaultCrewHome は KIROCREW_HOME か ~/.kiro/crew（どちらもわからなければ ""）。
 // Crew は KIRO_HOME を見ない（config/paths.py の _default_home は Path.home()/.kiro/crew。KIRO_HOME が動かすのは kiro-cli の履歴だけ）。
 func DefaultCrewHome() string {
 	if d := crewHomeOverride(os.Getenv("KIROCREW_HOME")); d != "" {
 		return d
 	}
-	return filepath.Join(home(), ".kiro", "crew")
+	return inHome(".kiro", "crew")
 }
 
 // crewHomeOverride は KIROCREW_HOME の値を Crew と同じく読む（config/paths.py の _valid_override_home）。

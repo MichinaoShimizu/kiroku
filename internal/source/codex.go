@@ -70,15 +70,18 @@ func (c *Codex) ChecksFormat() bool { return true }
 // Watch は会話が入っている場所だけ。~/.codex の下にはログ（log/codex-tui.log）や history.jsonl などもあり、
 // ずっと書き換わるので、Home ごと見張ると何か書かれるたびに全部を読み直してしまう。
 func (c *Codex) Watch() []string {
+	if c.Home == "" {
+		return nil
+	}
 	return []string{filepath.Join(c.Home, "sessions"), filepath.Join(c.Home, "archived_sessions"), filepath.Join(c.Home, "session_index.jsonl")}
 }
 
-// DefaultCodexHome は CODEX_HOME か ~/.codex。
+// DefaultCodexHome は CODEX_HOME か ~/.codex（どちらもわからなければ ""）。
 func DefaultCodexHome() string {
 	if d := os.Getenv("CODEX_HOME"); d != "" {
 		return d
 	}
-	return filepath.Join(home(), ".codex")
+	return inHome(".codex")
 }
 
 type codexFile struct {
@@ -130,6 +133,9 @@ func codexSameWrite(copied []core.Obj, marker core.Obj) bool {
 
 func (c *Codex) files() []string {
 	var out []string
+	if c.Home == "" {
+		return nil // 今のフォルダからの相対パスを読まない
+	}
 	seen := map[string]bool{} // archived_sessions と同じファイル名は 1 回だけ
 	add := func(ps []string) {
 		for _, p := range ps {
@@ -152,6 +158,9 @@ func (c *Codex) files() []string {
 // titles は session_index.jsonl（{id, thread_name}、後のほうが新しい）。
 func (c *Codex) titles() map[string]string {
 	out := map[string]string{}
+	if c.Home == "" {
+		return out
+	}
 	core.ReadJSONL(filepath.Join(c.Home, "session_index.jsonl"), func(e core.Obj) {
 		if id, name := core.Str(e["id"]), core.Str(e["thread_name"]); id != "" && name != "" {
 			out[id] = name
