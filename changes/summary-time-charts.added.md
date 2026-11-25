@@ -1,4 +1,1 @@
-- Summary: three cards in Breakdown that show how the period went over time
-  - Cost and output over time: running totals of estimated cost (or Kiro credits) and of lines in Git commits, Git commits or lines edited by AI, each as a share of its period total, with the longest stretch where cost rose while output stayed flat shaded
-  - Sessions running at once: a step line of how many sessions were active at the same moment, how long 2 or more ran at once and the most at once
-  - Prompt length and corrections: one dot per session, average prompt length against the share of prompts with corrections or interruptions, sized by cost; a dot opens its session
+- Summary: a Cost and output over time card, first in Breakdown: running totals of estimated cost (or Kiro credits) and of lines in Git commits, Git commits or lines edited by AI, each as a share of its period total. The longest stretch where cost rose 15 points or more while output rose 2 points or less is shaded and named, so you can open those days in the calendar

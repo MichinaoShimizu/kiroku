@@ -1174,9 +1174,6 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .iwtf .wft{fill:color-mix(in oklab,var(--ink-3) 55%,var(--surface))}.iwtf .wft.cur{fill:var(--acc)}
 .iwtf .wfu{fill:color-mix(in oklab,var(--ink) 30%,var(--surface))}.iwtf .wfd{fill:color-mix(in oklab,var(--ink) 62%,var(--surface))} /* 増えた分は薄い灰、減った分は濃い灰（プロジェクトの色や良し悪しの色と重ならないように） */
 .iwtf .wfc{stroke:var(--ink-3);stroke-dasharray:3 3;stroke-width:1}
-.ilf .ilfp{fill:var(--c);fill-opacity:.72;stroke:var(--s-lowest);stroke-width:1;cursor:pointer}.ilf .ilfp:hover,.ilf .ilfp:focus-visible{fill-opacity:1;stroke:var(--ink);outline:none} /* プロンプトの長さと言い直し：点はエージェントの色。押すとそのセッション */
-.ilf .tagk{margin-top:6px}
-.icc .iccl{fill:none;stroke:var(--acc);stroke-width:1.5;stroke-linejoin:round}.icc .iccf{fill:var(--acc);fill-opacity:.18}.icc .icc2{fill:var(--acc-soft)}.icc .icc2l{stroke:var(--acc);stroke-opacity:.5;stroke-dasharray:3 3} /* 同時に動いたセッション：2 本以上の帯を薄く塗る */
 .icum .icl{fill:none;stroke-width:2;stroke-linejoin:round}.icum .icl.in{stroke:var(--acc)}.icum .icl.out{stroke:var(--ink-2);stroke-dasharray:5 3} /* 費用は実線、産出は破線（色だけに頼らない） */
 .icum .icst{fill:color-mix(in oklab,var(--ink-3) 18%,transparent)}.icum .icnl{font-size:11px;font-family:var(--sans);font-weight:600;font-variant-numeric:tabular-nums}.icum .icnl.in{fill:var(--acc-ink)}.icum .icnl.out{fill:var(--ink-2)}
 .iwtf .wfv{font-size:11px;fill:var(--ink-2);text-anchor:middle;font-family:var(--sans);font-variant-numeric:tabular-nums}
