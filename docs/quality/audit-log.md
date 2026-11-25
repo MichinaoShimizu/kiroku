@@ -108,19 +108,16 @@ Fixed: D-1 and the retaken screenshots (D-2); G1, G2, G4–G6, same-second commi
 
 Follow-up the same day (the maintainer said to continue, and decided: an archive size cap only; the recommended Japanese terms; headings follow the guide's rule and say "Estimated cost"): with `HOME` unset no agent's history is read from the current folder (Claude Code had globbed `*/*.jsonl` and read `.claude/settings.json` there); the archive skips files over `core.MaxZstd` (1 GiB) and lists them under Data sources; `claudeManagedDir` has a per-OS test; `core.AgentEnv` and `Agent.Env` are removed; tools/upstream reports the tool versions pinned in the workflows (I6), and govulncheck is bumped to v1.10.0; Japanese uses 手動, PR, ここまで, 範囲 and ばらつき (with a test against the old variants); headings say "Estimated cost"; the phone legend row shows "+N ›" while it scrolls; Data sources stays open after "Keep a copy in this folder".
 
-Still open after the fixes (the items marked resolved above are done):
-- E: whether KAS `messages.jsonl` has V3's `usage_summary` lines (inferred from Crew's reader); Kiro CLI 3.6 `/compact <instructions>` and recaps (no sample); `acp_session_id` of subagents sharing the parent's runtime; Kiro Crew 0.14.0 only tagged as rc in git (agents.md says 0.13.1 until the weekly run). Due: next data run
-- A: with `HOME` unset, the default history folders (`.claude/projects`, `.codex`, `.kiro`) still resolve against the current folder for reading (escaped, nothing written); readers don't treat an empty root alike, so it needs its own change. A size cap or format check for archived links (decides: maintainer). Due: next security run
-- B: the phone chip-row scroll hint; the Data sources panel closes after "Keep a copy in this folder" (the toast confirms). Due: next ux run
-- C F11 (canonical Japanese terms beyond session time) and F12 ("Cost" in headings). Decides: maintainer
-- G: most `pause()` waits in smoke.mjs stay (no single condition); `claudeManagedDir` has no per-OS table test; `core.AgentEnv` is now used only by its test. Due: next code run
-- I6 (tool versions outside Dependabot) and I7's ruleset part (restrict who creates `v*` tags: a Settings change for the maintainer)
+Still open after the fixes:
+- E: whether KAS `messages.jsonl` has V3's `usage_summary` lines (inferred from Crew's reader); Kiro CLI 3.6 `/compact <instructions>` and recaps (no sample); `acp_session_id` of subagents sharing the parent's runtime; Kiro Crew 0.14.0 only tagged as rc in git (agents.md says 0.13.1 until the weekly run, which will also add the tools table). Due: next data run
+- G: most `pause()` waits in smoke.mjs stay (no single condition to wait for). Due: next code run
+- I7's ruleset part (restrict who creates `v*` tags): a Settings change for the maintainer
 - Carried unchanged: E5, E7, the GPT-5.6 Sol price (due 2026-12-01), the reports grader items, the Go-side native metric labels, `?key=` in browser histories, SECURITY.md line lengths
 
 ### Loop
 | Run | Findings (certain) | Fixed | Median days to fix | Open items | Overdue | Previous items resolved |
 |---|---|---|---|---|---|---|
-| 2026-11-25 full (check, then fixed) | 56 (+14 in /pre-pr) | 54 (+14) | 0 (same day; PR open) | 9 groups | 0 (Sol price due 12-01) | 2 of 14 (+1 partly) |
+| 2026-11-25 full (check, then fixed) | 56 (+14 in /pre-pr) | 56 (+14) | 0 (same day; PR open) | 4 groups | 0 (Sol price due 12-01) | 2 of 14 (+1 partly) |
 | 2026-11-24 full | 62 (+9 in /pre-pr) | 28 (+9) | 0 (same day; PR open) | 14 groups | 0 | 4 of 13 |
 | 2026-11-20 ux, i18n | 25 | 25 | 0 (same day; PR open) | 2 new (and 26 not rechecked) | 1 (F, from 2026-11-19) | — (aspect run) |
 | 2026-11-19 full | 60 | 34 | 0 (same day; PR open) | 26 | 1 (F) | 9 of 24 |
