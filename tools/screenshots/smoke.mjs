@@ -1040,6 +1040,18 @@ async function run(env) {
     await p.evaluate(w => { setMode("week"); const [y, m, d] = w.split("-").map(Number); st.week = new Date(y, m - 1, d); render(); }, w0); await pause();
   });
 
+  await step("名前の最後の語と「ƒx」「?」", async () => {
+    await view("sum");
+    // 名前が折り返すとき、「?」や「ƒx」だけが次の行に落ちない（最後の語といっしょに。1440 の「…reached a commit or PR」で「?」だけが落ちた）
+    const bad = await p.evaluate(() => { const out = []; document.querySelectorAll("#review .mrow .mk, #review .stat .k").forEach(k => { const lab = k.querySelector(".kt > span[id]");
+      const bs = [...k.querySelectorAll("button")].filter(b => b.checkVisibility()); if (!lab || !bs.length || !lab.checkVisibility()) return;
+      const tn = [...lab.childNodes].filter(n => n.nodeType === 3).pop(); if (!tn || !tn.length) return; const r = document.createRange(); r.setStart(tn, tn.length - 1); r.setEnd(tn, tn.length);
+      const lr = r.getBoundingClientRect(), mid = x => (x.top + x.bottom) / 2; if (lr.height && bs.some(b => Math.abs(mid(b.getBoundingClientRect()) - mid(lr)) > 8)) out.push(k.textContent); }); return out; });
+    check("名前の最後の語と「ƒx」「?」が同じ行にある", bad.length === 0, bad.slice(0, 3).join(" / "));
+    check("値のボタンの名前は、分けた名前の 2 つを合わせたもの", await p.evaluate(() => { const v = document.querySelector('#review .mrow .mv[aria-labelledby]'); if (!v) return true;
+      const ids = v.getAttribute("aria-labelledby").split(" "); return ids.length === 3 && ids.every(i => document.getElementById(i)) && /\S\s\S|\S$/.test(document.getElementById(ids[0]).textContent + document.getElementById(ids[1]).textContent); }));
+    await view("cal");
+  });
   if (env === envs[0]) await step("前の週並みに収める 1 日の目安", async () => {
     await p.evaluate(() => go(null)); await pause();
     const b = p.locator('#kpis [data-metric="pace"]');

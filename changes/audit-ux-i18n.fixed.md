@@ -23,3 +23,4 @@
 - Japanese: the Worth a look and "?" trend captions write their range with 〜 ("0%〜18%") like other Japanese ranges
 - A day to match last week: the commits line starts "Output (commits):" like the Japanese 産出（コミット） instead of "Left behind:", the trend extended to the end of the period has its own legend entry ("Trend, projected") next to the dashed daily target, and the Kiro credits formula ends "A day 5 credits" with its unit
 - Japanese: the note that more history is needed to compare reads 記録のある過去の月が 4 か月分要ります（いまは 2 か月分） (and 週が 4 週分 for weeks) instead of 過去のか月が 4 要ります
+- A metric's name that wraps keeps its last word with its "ƒx" and "?" instead of leaving the "?" alone on the next line ("Claude Code sessions that reached a commit or PR" at 1440 px)
