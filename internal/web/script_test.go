@@ -563,3 +563,35 @@ for (const bad of ["javascript:alert(1)", "http://github.com/corp/kiroku", "http
 		t.Errorf("repoURL が違う:\n%s", out)
 	}
 }
+
+// 「Expensive models for light work」（lightOf）が、主なモデルが Opus 系か Fable 系で、プロンプト 3 件以下・編集なし・$0.3 以上の
+// セッションを拾うこと（#569）。review.js から mainModel・pricey・lightOf だけを取り出し、DATA と inP を置き換えて Node で動かす。
+func TestLightOf(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/review.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var code []string
+	for _, re := range []string{`(?m)^const mainModel = .*$`, `(?m)^const pricey = .*$`, `(?ms)^function lightOf\(ws, we\)\{.*?; \}$`} {
+		m := regexp.MustCompile(re).FindString(strings.ReplaceAll(string(src), "\r\n", "\n"))
+		if m == "" {
+			t.Fatalf("review.js に %s が見つからない", re)
+		}
+		code = append(code, m)
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "lightof_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "lightof.js")
+	if err := os.WriteFile(f, append([]byte(strings.Join(code, "\n")+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("lightOf が違う:\n%s", out)
+	}
+}

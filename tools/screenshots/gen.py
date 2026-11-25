@@ -126,6 +126,27 @@ random.seed(4242); extra.seed(4243); more.seed(4244)
 for d in range(84, 35, -1): claude_day(d)
 random.setstate(_st[0]); extra.setstate(_st[1]); more.setstate(_st[2])
 for d in range(35, -1, -1): claude_day(d)
+# 高いモデル（Fable）で、編集せずに短く終わった調べもの。「Expensive models for light work」と日報の手がかりに出す。乱数は使わない（ほかのダミーデータを変えない）
+def fable_light(d, h, title, ask, reads):
+    start = today - dt.timedelta(days=d) + dt.timedelta(hours=h, minutes=12)
+    if start > now - dt.timedelta(minutes=30): return
+    sid = str(uuid.UUID(int=d * 100 + h)); cwd = os.path.join(REPOS, "web-app"); t = start; lines = []
+    for i, txt in enumerate([title, ask]):
+        lines.append({"type":"user","timestamp":t.isoformat(),"cwd":cwd,"gitBranch":"main","sessionId":sid,"message":{"role":"user","content":txt}})
+        for k, f in enumerate(reads):
+            t += dt.timedelta(seconds=40); mid = f"msg_fable{d:02d}{h:02d}{i}{k}"
+            usage = {"input_tokens":400,"output_tokens":2500,"cache_creation_input_tokens":12000,"cache_read_input_tokens":30000 + k * 8000}
+            lines.append({"type":"assistant","timestamp":t.isoformat(),"cwd":cwd,"gitBranch":"main","sessionId":sid,"requestId":"req_"+mid,"message":{"id":mid,"model":"claude-fable-5-2","role":"assistant","content":[{"type":"tool_use","id":"t"+mid,"name":"Read","input":{"file_path":f"{cwd}/src/{f}.ts"}}],"usage":usage}})
+            lines.append({"type":"user","timestamp":(t+dt.timedelta(seconds=3)).isoformat(),"cwd":cwd,"sessionId":sid,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t"+mid,"content":"ok"}]}})
+        t += dt.timedelta(seconds=20); rid = f"msg_fable{d:02d}{h:02d}{i}r"
+        lines.append({"type":"assistant","timestamp":t.isoformat(),"cwd":cwd,"gitBranch":"main","sessionId":sid,"requestId":"req_"+rid,"message":{"id":rid,"model":"claude-fable-5-2","role":"assistant","content":[{"type":"text","text":"The session token is checked in src/auth.ts before every API call; the refresh happens in src/api.ts when it is within five minutes of expiry."}]}})
+        t += dt.timedelta(seconds=90)
+    dirn = os.path.join(OUT, "home", ".claude", "projects", "-Users-me-web-app"); os.makedirs(dirn, exist_ok=True)
+    with open(f"{dirn}/{sid}.jsonl","w") as f:
+        for l in lines: f.write(json.dumps(l, ensure_ascii=False)+"\n")
+wed = (today - last_wed).days  # スクリーンショットとテストで開く先週の木曜と金曜に置く
+fable_light(wed - 1, 18, "Explain how the auth token refresh works", "Where is it tested?", ["auth", "api", "session", "util"])
+fable_light(wed - 2, 19, "Where does the checkout total get rounded?", "Is the same rounding used in the cart?", ["cart", "checkout", "money"])
 # 履歴を長く残す設定にしておく（既定の 30 日のままだと、画面に「過去の履歴が消えます」のお知らせが出る）
 os.makedirs(os.path.join(OUT, "home", ".claude"), exist_ok=True)
 json.dump({"cleanupPeriodDays": 3650}, open(os.path.join(OUT, "home", ".claude", "settings.json"), "w"))
