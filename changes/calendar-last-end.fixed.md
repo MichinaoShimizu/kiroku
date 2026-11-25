@@ -1,1 +1,0 @@
-- The week and month calendars no longer fail with a RangeError when a week or month has no records and the history has about 200,000 sessions or more

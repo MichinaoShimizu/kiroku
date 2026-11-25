@@ -1,1 +1,0 @@
-- `kiroku autostart` removes the login item kiroku 4 added even when an environment variable such as `PATH` contains a control character (a tab, for example); before, it silently left the item in place

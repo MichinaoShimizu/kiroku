@@ -1,2 +1,0 @@
-- `kiroku serve`: when it answers with an error (a 500, for example) or sends data the view can't read, the view says so and points to the terminal, instead of "Not connected to kiroku serve"
-- `kiroku serve`: when reading new history fails, the view's live indicator says it is showing what was read before (and to see the terminal), instead of still showing "last checked" as if all was well

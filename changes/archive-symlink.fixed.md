@@ -1,1 +1,0 @@
-- `kiroku archive` copies a history file that is a symbolic link in full and copies it again when the file it points to changes; before, the copy was cut to the length of the link and never refreshed
