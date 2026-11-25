@@ -59,6 +59,7 @@ type ghError struct {
 	msg      string
 	notFound bool
 	detail   string // 標準エラーの全体（64 KiB まで、端末に出せる形で）。gh attestation verify の結果を見分けるため
+	code     int    // gh の終了コード（4 はログインしていない。わからなければ 0）
 }
 
 func (e *ghError) Error() string { return e.msg }
@@ -132,7 +133,12 @@ func runGH(ctx context.Context, show io.Writer, args ...string) ([]byte, error) 
 		if line == "" {
 			line = err.Error()
 		}
-		return nil, &ghError{msg: "gh: " + termSafe(line, 300), notFound: nf, detail: termSafe(strings.ReplaceAll(stderr.buf.String(), "\n", " "), 64<<10)}
+		code := 0
+		var ee *exec.ExitError
+		if errors.As(err, &ee) {
+			code = ee.ExitCode()
+		}
+		return nil, &ghError{msg: "gh: " + termSafe(line, 300), notFound: nf, detail: termSafe(strings.ReplaceAll(stderr.buf.String(), "\n", " "), 64<<10), code: code}
 	}
 	return out.buf.Bytes(), nil
 }
@@ -189,6 +195,7 @@ var ghAttestNote io.Writer = os.Stderr
 // GitHub のランナーが作ったものか（artifact attestation）を、置きかえる前に gh attestation verify で確かめる。install.sh と同じ決まり：
 //   - 証明が見つからない・合わない：止める（置きかえない）
 //   - 確かめられない（古い gh・GitHub に届かない）：警告だけ。KIROKU_REQUIRE_ATTESTATION=1 なら止める
+//   - gh にログインしていない（終了コード 4）：そう言って止める（置きかえない）
 //   - KIROKU_SKIP_ATTESTATION=1：確かめない
 //
 // gh には、本人だけが読める一時フォルダ（0700）に書いたファイル（0600）を渡す。引数はどれも確かめた形（repoPattern・validTag）だけ。
@@ -250,6 +257,11 @@ func ghVerifyAttestation(tag, name string, archive []byte) error {
 	// 「合わない」の印が 1 つでもあれば、ほかにどんな言葉（timeout など）があっても止める（確かめられなかったことにしない）
 	if attestMismatch.MatchString(low) {
 		return fmt.Errorf("the build provenance of %s does not match %s, not updating (gh attestation verify failed; set KIROKU_SKIP_ATTESTATION=1 to skip this check)", name, termSafe(releaseRepo, 200))
+	}
+	// 終了コード 4 は gh にログインしていないとき。証明が合わないのとは別なので
+	// そう言うが、確かめられていないので置きかえない（安全な側。ログインするか、KIROKU_SKIP_ATTESTATION=1 で飛ばす）
+	if ge.code == 4 {
+		return fmt.Errorf("gh is not logged in (gh auth login), so the build provenance of %s could not be checked; not updating (log in, or set KIROKU_SKIP_ATTESTATION=1 to skip this check)", name)
 	}
 	switch {
 	case strings.Contains(low, "unknown command") || strings.Contains(low, "unknown flag"):
