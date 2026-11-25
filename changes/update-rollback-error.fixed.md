@@ -1,0 +1,1 @@
+- `kiroku update` on Windows: if placing the new kiroku fails and putting the previous one back fails too, the error now says so and where the previous kiroku is (`kiroku.exe.old`); before, only the first error was shown

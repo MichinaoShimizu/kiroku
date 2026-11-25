@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/fs"
 	"math"
@@ -143,17 +144,20 @@ type repo struct {
 }
 
 // repoOf は、作業場所の作業ツリーのルートと、共通の git ディレクトリ（git worktree でも本体と同じ）を返す。リポジトリでなければ空。
-func repoOf(ctx context.Context, p string) [2]string {
+// sure は答えが確かか: リポジトリだった、作業場所がない、git が終わって「リポジトリでない」と答えた（終了コードが 0 以外）ときは true。
+// 時間切れや git を動かせなかったときは false（覚えておかず、次の読み直しで調べ直す）。
+func repoOf(ctx context.Context, p string) (tc [2]string, sure bool) {
 	if st, err := os.Stat(p); err != nil || !st.IsDir() {
-		return [2]string{}
+		return [2]string{}, true
 	}
 	out, err := git(ctx, p, "rev-parse", "--show-toplevel", "--git-common-dir")
 	if err != nil {
-		return [2]string{}
+		var ee *exec.ExitError
+		return [2]string{}, ctx.Err() == nil && errors.As(err, &ee)
 	}
 	f := strings.Split(strings.TrimSpace(out), "\n")
 	if len(f) < 2 {
-		return [2]string{}
+		return [2]string{}, true
 	}
 	top, common := filepath.Clean(strings.TrimSpace(f[0])), strings.TrimSpace(f[1])
 	if !filepath.IsAbs(common) { // 古い git は作業場所からの相対パスで返す
@@ -162,7 +166,7 @@ func repoOf(ctx context.Context, p string) [2]string {
 	if c, err := filepath.EvalSymlinks(common); err == nil {
 		common = c
 	}
-	return [2]string{top, filepath.Clean(common)}
+	return [2]string{top, filepath.Clean(common)}, true
 }
 
 // RepoTimeout は 1 つのリポジトリを読む時間の上限。リポジトリごとに数える（大きなリポジトリが 1 つあっても、ほかは読める）。
@@ -245,6 +249,7 @@ func NewCache() *Cache {
 
 // Collect は CollectAll と同じ。前回から変わっていないリポジトリは読み直さない。
 // 時間切れになったリポジトリは前回の結果を使い（なければ何も出さない）、そのルートを stale で返す。
+// どのリポジトリにあるかを調べる git rev-parse が時間切れになり、前の答えもない作業場所は、その作業場所を stale で返す。
 func (c *Cache) Collect(data []*core.Session) (commits []Commit, pushes []Push, stale []string) {
 	if _, err := exec.LookPath("git"); err != nil {
 		return nil, nil, nil
@@ -265,6 +270,7 @@ func (c *Cache) Collect(data []*core.Session) (commits []Commit, pushes []Push, 
 		}
 	}
 	got := make([]topCache, len(ask))
+	sure := make([]bool, len(ask))
 	each(len(ask), func(i int) {
 		p := ask[i]
 		var mt time.Time
@@ -272,11 +278,22 @@ func (c *Cache) Collect(data []*core.Session) (commits []Commit, pushes []Push, 
 			mt = st.ModTime()
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), RepoTimeout)
-		got[i] = topCache{tc: repoOf(ctx, p), at: now, mtime: mt}
+		tc, ok := repoOf(ctx, p)
+		got[i], sure[i] = topCache{tc: tc, at: now, mtime: mt}, ok
 		cancel()
 	})
 	for i, p := range ask {
-		tops[p] = got[i]
+		if sure[i] {
+			tops[p] = got[i]
+			continue
+		}
+		// 時間切れ・git を動かせなかった: 答えは覚えない（次の読み直しで調べ直す）。前にリポジトリだとわかっていればそれを使い、
+		// わからなければそのコミットは出せないので、ほかの時間切れと同じく stale で知らせる
+		if prev, ok := c.tops[p]; ok && prev.tc[0] != "" {
+			tops[p] = topCache{tc: prev.tc, mtime: prev.mtime} // at はゼロ（次の読み直しでまた調べる）
+		} else {
+			stale = append(stale, p)
+		}
 	}
 	c.tops = tops               // 今回の履歴にない作業場所は忘れる
 	repos := map[string]*repo{} // 共通の git ディレクトリごと。本体と git worktree は同じリポジトリとしてまとめる
@@ -337,7 +354,7 @@ func (c *Cache) Collect(data []*core.Session) (commits []Commit, pushes []Push, 
 		}
 	}
 	c.repos = next
-	sort.Slice(commits, func(i, j int) bool { return commits[i].T < commits[j].T })
+	sort.SliceStable(commits, func(i, j int) bool { return commits[i].T < commits[j].T }) // 同じ秒のコミットは読んだ順（リポジトリの順、git log の順）
 	sort.SliceStable(pushes, func(i, j int) bool { return pushes[i].T < pushes[j].T })
 	return commits, pushes, stale
 }
@@ -374,7 +391,7 @@ func repoKey(ctx context.Context, common string, r *repo) string {
 	}
 	refs, _ := git(ctx, r.top, "show-ref", "--head") // コミットがまだないと失敗するが、空のまま使う
 	wts, _ := git(ctx, r.top, "worktree", "list", "--porcelain")
-	sort.Slice(r.ai, func(i, j int) bool { return r.ai[i].t < r.ai[j].t })
+	sort.SliceStable(r.ai, func(i, j int) bool { return r.ai[i].t < r.ai[j].t }) // 同じ秒の実行はセッションの順（印が読み直しごとに変わらない）
 	h := sha256.New()
 	fmt.Fprintf(h, "%s\x00%s\x00%v\x00%v\x00%s\x00%s\x00%s\x00%s\x00%s", r.top, r.project, r.since, r.ai, r.email, r.web, refs, wts, reflogStamp(common))
 	return hex.EncodeToString(h.Sum(nil))
@@ -558,6 +575,7 @@ func readRepo(ctx context.Context, r *repo) []Commit {
 			out[best].AI, out[best].Session = true, a.session
 		}
 	}
+	slices.Reverse(out) // git log は新しい順。古い順にしておけば、同じ秒のコミットも親が先に並ぶ（Collect の並べ替えは安定）
 	return out
 }
 

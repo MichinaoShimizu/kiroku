@@ -44,6 +44,8 @@ type live struct {
 	ready bool          // 最初の読み込みが終わったか（mu で守る）。終わるまでは読み込み中の画面と 503 を返す
 	fail  error         // 最初の読み込みの失敗（mu で守る）。読み込み中の画面に出す
 	prog  *loadProgress // 最初の読み込みの進み具合（読み込み中の画面が /progress で見る）
+	// stale は、最初の読み込みのあとの読み直しに失敗し、前の集計のまま答えているか（mu で守る）。/stamp のヘッダーで画面に知らせる
+	stale bool
 
 	reload sync.Mutex // 読み直しは 1 本ずつ（load の中の loadCache は同時に使えない）
 }
@@ -68,7 +70,7 @@ func (l *live) refresh() error {
 	}
 	js := parts.JSON()
 	l.mu.Lock()
-	l.snap, l.html, l.json = snap, []byte(html), js
+	l.snap, l.html, l.json, l.stale = snap, []byte(html), js, false
 	l.mu.Unlock()
 	return nil
 }
@@ -109,6 +111,13 @@ func (l *live) start(every time.Duration, stop <-chan struct{}) {
 func (l *live) markReady() {
 	l.mu.Lock()
 	l.ready, l.fail = true, nil
+	l.mu.Unlock()
+}
+
+// setStale は、読み直しに失敗して前の集計のまま答えているかを覚える。
+func (l *live) setStale(v bool) {
+	l.mu.Lock()
+	l.stale = v
 	l.mu.Unlock()
 }
 
@@ -188,6 +197,7 @@ func (l *live) watch(last string, every time.Duration, stop <-chan struct{}) {
 		}
 		before := l.count()
 		if err := l.refresh(); err != nil {
+			l.setStale(true) // 端末に出す前に（出たのを見てから /stamp を読んでも、失敗が見えるように）
 			fmt.Fprintf(l.print, "%s reload failed: %v\n", styleFor(l.print).warn("!"), err)
 			continue
 		}
@@ -374,6 +384,9 @@ func (l *live) handler() http.Handler {
 		}
 		l.mu.RLock()
 		defer l.mu.RUnlock()
+		if l.stale { // 読み直しに失敗して前の集計のまま。画面は「最終確認」の代わりにそれを出す（くわしいわけは端末だけ）
+			w.Header().Set("X-Kiroku-Reload", "failed")
+		}
 		send(w, "text/plain", []byte(strconv.FormatFloat(l.snap.gen, 'f', -1, 64)))
 	})
 	return secureHeaders(mux)
@@ -564,6 +577,17 @@ var looksLikeServe = func(addr string) bool {
 	defer r.Body.Close()
 	b, _ := io.ReadAll(io.LimitReader(r.Body, 64<<10))
 	return r.StatusCode == http.StatusForbidden && (strings.Contains(string(b), "<h1>Open kiroku with its key</h1>") || strings.Contains(string(b), "<h1>鍵を付けて kiroku を開いてください</h1>"))
+}
+
+// probeAddr は、すべてのネットワークで待ち受けるアドレスを、手元から問い合わせるアドレスにする。
+func probeAddr(addr string) string {
+	if strings.HasPrefix(addr, "0.0.0.0:") {
+		return "127.0.0.1:" + strings.TrimPrefix(addr, "0.0.0.0:")
+	}
+	if strings.HasPrefix(addr, "[::]:") {
+		return "127.0.0.1:" + strings.TrimPrefix(addr, "[::]:")
+	}
+	return addr
 }
 
 // openRunning は、addr で kiroku serve がもう動いていれば（鍵は送らずに確かめる）、止めずに、動いている画面を鍵つきで開く（5.0 より前の kiroku open）。

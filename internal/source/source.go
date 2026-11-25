@@ -125,9 +125,18 @@ func All(o Options) []Source {
 		&Claude{Root: o.ClaudeRoot, Archive: sub(o.Archive, core.ArchiveDirOf("Claude Code"))},
 		&KiroIDE{Home: o.KiroHome, Legacy: o.KiroLegacy},
 		&KiroCLI{Home: o.KiroHome, Legacy: o.KiroLegacy, CrewHome: q(o.CrewHome, DefaultCrewHome()), CrewArchive: sub(o.Archive, core.ArchiveDirOf("Kiro Crew"))},
-		&QStore{Label: "Kiro CLI (SQLite)", Fam: "kiro", DB: q(o.KiroCLIDB, filepath.Join(DataDir("kiro-cli"), "data.sqlite3")), Command: "kiro-cli chat --resume", ResumeID: "kiro-cli chat --resume-id"},
+		&QStore{Label: "Kiro CLI (SQLite)", Fam: "kiro", DB: q(o.KiroCLIDB, kiroCLIDB()), Command: "kiro-cli chat --resume", ResumeID: "kiro-cli chat --resume-id"},
 		&Codex{Home: q(o.CodexHome, DefaultCodexHome())},
 	}
+}
+
+// kiroCLIDB は古い Kiro CLI の data.sqlite3 の既定の場所（ホームがわからなければ ""。何も読まない）。
+func kiroCLIDB() string {
+	d := DataDir("kiro-cli")
+	if d == "" {
+		return ""
+	}
+	return filepath.Join(d, "data.sqlite3")
 }
 
 // sub は保存場所 dir の下のフォルダ（dir が空なら空）。

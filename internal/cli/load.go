@@ -268,11 +268,14 @@ var openBrowser = func(target string) error {
 }
 
 // cleanupOldExe は、Windows で update したときに残る kiroku.exe.old を消す（使っていなければ）。
-func cleanupOldExe() {
-	if runtime.GOOS != "windows" {
+func cleanupOldExe() { removeOldExe(runtime.GOOS, os.Executable) }
+
+// removeOldExe は cleanupOldExe の中身（テストで OS と実行ファイルを変えられるよう、受け取る）。
+func removeOldExe(goos string, executable func() (string, error)) {
+	if goos != "windows" {
 		return
 	}
-	if exe, err := os.Executable(); err == nil {
+	if exe, err := executable(); err == nil {
 		os.Remove(exe + ".old")
 	}
 }

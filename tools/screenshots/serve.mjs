@@ -110,7 +110,8 @@ try {
   await p.waitForURL(u => u.port === String(otherPort), { timeout: 10000 });
   await p.goto(`http://localhost:${otherPort}/typed`);
   await p.goto(`http://127.0.0.1:${otherPort}/typed-ip`);
-  await p.waitForTimeout(500); // favicon を取りに来るのを待つ
+  // favicon を取りに来るのを待つ（来たらすぐ先へ。ブラウザが取りに来なくても、長くて 2 秒で先へ）
+  for (const end = Date.now() + 2000; Date.now() < end && !["localhost", "127.0.0.1"].every(h => seen.some(r => r.url === "/favicon.ico" && (r.headers.host || "").startsWith(h + ":")));) await p.waitForTimeout(50);
   check("ほかのポートのサーバーに届いた（確かめになっている）", seen.length >= 3, String(seen.length));
   const leaks = seen.filter(r => JSON.stringify(r).includes(key));
   check("ほかのポートのサーバーへの問い合わせに鍵が載らない", leaks.length === 0, JSON.stringify(leaks));
@@ -170,6 +171,39 @@ try {
   const so = await po.evaluate(async k => (await fetch("ai/run", { method: "POST", headers: { "X-Kiroku-Key": k, "X-Kiroku": "1", "Content-Type": "application/json" }, body: JSON.stringify({ agent: "codex", prompt: "x", consent: true }) })).status, key);
   check("--ai を付けても、/ai/run は 404", so === 404, String(so));
   await po.close();
+
+  // kiroku serve が 500 や読めないデータを返したときは、「つながっていない」ではなく、そう言って端末を見るよう案内する。
+  // 読み直しに失敗して前の集計のまま答えているとき（/stamp の X-Kiroku-Reload: failed）は、バッジがそれを言う
+  for (const [what, fulfill, want] of [["500", { status: 500, body: "boom" }, /answered with an error \(500\)/], ["読めないデータ", { status: 200, contentType: "application/json", body: "{" }, /could not be read/]]) {
+    const pe = await ctx.newPage();
+    await pe.route("**/data.json", r => r.fulfill(fulfill));
+    await pe.goto(`${base}/`);
+    await pe.waitForSelector("#locked", { timeout: 10000 });
+    const lt = await pe.locator("#locked").innerText();
+    check(`data.json が${what}のとき、つながっていないとは言わず、そう案内する`, want.test(lt) && /kiroku serve could not send your history/.test(lt) && !/Not connected/.test(lt), lt);
+    await pe.close();
+  }
+  {
+    const pr = await ctx.newPage();
+    let mode = "ok";
+    await pr.route("**/stamp", async r => {
+      if (mode === "ok") return r.continue();
+      const res = await r.fetch();
+      await r.fulfill(mode === "500" ? { status: 500, body: "boom" } : { response: res, headers: { ...res.headers(), "x-kiroku-reload": "failed" } });
+    });
+    await pr.goto(`${base}/`);
+    await pr.waitForSelector(".run[data-sid]", { timeout: 15000 });
+    mode = "failed";
+    await pr.waitForFunction(() => /Could not read the latest history/.test(document.querySelector("#live").title), null, { timeout: 15000 });
+    check("読み直しに失敗しているとき、バッジがそう言う", await pr.evaluate(() => document.querySelector("#live").classList.contains("off")));
+    mode = "500";
+    await pr.waitForFunction(() => /answered with an error \(500\)/.test(document.querySelector("#live").title), null, { timeout: 15000 }).then(() => true, () => false)
+      .then(ok => check("/stamp が 500 のとき、バッジはつながっていないとは言わない", ok));
+    mode = "ok";
+    await pr.waitForFunction(() => /last checked/.test(document.querySelector("#live").title), null, { timeout: 15000 }).then(() => true, () => false)
+      .then(ok => check("直れば、バッジは最終確認の時刻に戻る", ok));
+    await pr.close();
+  }
 
   // 鍵のないブラウザ（同じコンピューターのほかのユーザーなど）は、案内だけを見る
   const fresh = await b.newContext();

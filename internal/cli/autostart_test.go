@@ -7,18 +7,17 @@ import (
 	"testing"
 )
 
-// fakeAutostart は、ホーム・OS・launchctl / systemctl・待ち受けの確認を差しかえ、実行したコマンドを返す。
+// fakeAutostart は、ホーム・OS・launchctl / systemctl を差しかえ、実行したコマンドを返す。
 func fakeAutostart(t *testing.T, goos string) (home string, ran *[]string) {
 	t.Helper()
 	home = t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", "")
-	oldOS, oldExe, oldHome, oldRun := autostartGOOS, autostartExe, autostartHome, runCmd
+	oldOS, oldHome, oldRun := autostartGOOS, autostartHome, runCmd
 	t.Cleanup(func() {
-		autostartGOOS, autostartExe, autostartHome, runCmd = oldOS, oldExe, oldHome, oldRun
+		autostartGOOS, autostartHome, runCmd = oldOS, oldHome, oldRun
 	})
 	autostartHome = func() (string, error) { return home, nil }
 	autostartGOOS = goos
-	autostartExe = func() (string, error) { return filepath.Join(home, "bin", "kiroku"), nil }
 	var cmds []string
 	runCmd = func(name string, args ...string) error {
 		cmds = append(cmds, name+" "+strings.Join(args, " "))
@@ -27,64 +26,29 @@ func fakeAutostart(t *testing.T, goos string) (home string, ran *[]string) {
 	return home, &cmds
 }
 
-// macOS は launchd の plist、Linux は systemd --user のユニット。引数と環境変数は 1 語のまま、記号もそのまま入る。
-func TestPlanAutostart(t *testing.T) {
-	env := map[string]string{"PATH": "/opt/homebrew/bin:/usr/bin", "CLAUDE_CONFIG_DIR": "/Users/me/my claude"}
-	p, err := planAutostart("darwin", "/Users/me", "/Users/me/bin/kiroku & co", []string{":8485"}, env)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, want := range []string{"<string>/Users/me/bin/kiroku &amp; co</string>", "<string>serve</string>", "<string>--no-open</string>", "<string>:8485</string>",
-		"<key>CLAUDE_CONFIG_DIR</key><string>/Users/me/my claude</string>", "<key>RunAtLoad</key><true/>", xmlText(filepath.Join("/Users/me", "Library", "Logs", "kiroku.log"))} {
-		if !strings.Contains(p.content, want) {
-			t.Errorf("plist に %q がない:\n%s", want, p.content)
-		}
-	}
-	if p.path != filepath.Join("/Users/me", "Library", "LaunchAgents", autostartLabel+".plist") {
-		t.Errorf("plist の場所: %s", p.path)
-	}
-
+// kiroku 4 が書いた設定ファイルの場所と、外すコマンド（macOS は launchd の plist、Linux は systemd --user のユニット）
+func TestAutostartPaths(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", "")
-	p, err = planAutostart("linux", "/home/me", "/home/me/my bin/kiroku", nil, map[string]string{"PATH": "/usr/bin", "CODEX_HOME": "/home/me/100%$x"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, want := range []string{`ExecStart="/home/me/my bin/kiroku" "serve" "--no-open"` + "\n", `Environment="CODEX_HOME=/home/me/100%%$x"`, "WantedBy=default.target"} {
-		if !strings.Contains(p.content, want) {
-			t.Errorf("ユニットに %q がない:\n%s", want, p.content)
-		}
-	}
-	if p.path != filepath.Join("/home/me", ".config", "systemd", "user", "kiroku.service") {
-		t.Errorf("ユニットの場所: %s", p.path)
-	}
-
-	// Environment= の値は $ をそのまま、\ と " はエスケープする。ExecStart= は $ を $$ にする
-	p, err = planAutostart("linux", "/home/me", "/home/me/$bin/kiroku", nil, map[string]string{"CLAUDE_CONFIG_DIR": `/home/me/a "b" \c $d`})
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, want := range []string{`ExecStart="/home/me/$$bin/kiroku"`, `Environment="CLAUDE_CONFIG_DIR=/home/me/a \"b\" \\c $d"` + "\n"} {
-		if !strings.Contains(p.content, want) {
-			t.Errorf("ユニットに %q がない:\n%s", want, p.content)
-		}
-	}
-	// 改行などの制御文字は、ユニットの別の行として読まれてしまうので断る
 	for _, c := range []struct {
-		exe string
-		env map[string]string
+		goos, home, path, off string
+		ok                    bool
 	}{
-		{"/home/me/kiroku", map[string]string{"CODEX_HOME": "/x\nExecStartPre=/bin/false"}},
-		{"/home/me/kiroku", map[string]string{"PATH": "/usr/bin\r"}},
-		{"/home/me/kiroku", map[string]string{"KIRO_HOME": "/x\ty"}},
-		{"/home/me/kiro\nku", nil},
+		{"darwin", "/Users/me", filepath.Join("/Users/me", "Library", "LaunchAgents", autostartLabel+".plist"), "launchctl bootout", true},
+		{"linux", "/home/me", filepath.Join("/home/me", ".config", "systemd", "user", "kiroku.service"), "systemctl --user disable --now kiroku.service", true},
+		{"windows", `C:\Users\me`, "", "", false},
+		{"freebsd", "/home/me", "", "", false},
 	} {
-		if _, err := planAutostart("linux", "/home/me", c.exe, nil, c.env); err == nil || !strings.Contains(err.Error(), "control character") {
-			t.Errorf("%q %v: err = %v", c.exe, c.env, err)
+		path, off, ok := autostartPaths(c.goos, c.home)
+		if path != c.path || ok != c.ok {
+			t.Errorf("%s: %q %v, want %q %v", c.goos, path, ok, c.path, c.ok)
+		}
+		if c.ok && (len(off) != 1 || !strings.HasPrefix(strings.Join(off[0], " "), c.off)) {
+			t.Errorf("%s: off = %v, want %q…", c.goos, off, c.off)
 		}
 	}
-
-	if _, err := planAutostart("windows", `C:\Users\me`, `C:\bin\kiroku.exe`, nil, nil); err == nil || !strings.Contains(err.Error(), "shell:startup") {
-		t.Errorf("Windows は Startup フォルダを案内する: %v", err)
+	t.Setenv("XDG_CONFIG_HOME", "/home/me/cfg")
+	if path, _, _ := autostartPaths("linux", "/home/me"); path != filepath.Join("/home/me/cfg", "systemd", "user", "kiroku.service") {
+		t.Errorf("XDG_CONFIG_HOME: %s", path)
 	}
 }
 
@@ -93,14 +57,14 @@ func TestPlanAutostart(t *testing.T) {
 func TestAutostartRemoved(t *testing.T) {
 	for _, goos := range []string{"linux", "darwin"} {
 		_, ran := fakeAutostart(t, goos)
-		p, err := currentAutostart(nil)
-		if err != nil {
+		path, _, ok := currentAutostartPaths()
+		if !ok {
+			t.Fatal(goos)
+		}
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.MkdirAll(filepath.Dir(p.path), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(p.path, []byte(p.content), 0o644); err != nil {
+		if err := os.WriteFile(path, []byte("dummy login item\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		var b strings.Builder
@@ -108,12 +72,12 @@ func TestAutostartRemoved(t *testing.T) {
 		if !strings.Contains(b.String(), `run "kiroku autostart" to remove it`) {
 			t.Errorf("%s: serve --check does not say how to remove the old login item:\n%s", goos, b.String())
 		}
-		err = dispatch([]string{"autostart", "on"})
+		err := dispatch([]string{"autostart", "on"})
 		if err == nil || !strings.Contains(err.Error(), "removed in kiroku 5.0") {
 			t.Errorf("%s: kiroku autostart on = %v, want an error naming 5.0", goos, err)
 		}
-		if _, err := os.Stat(p.path); !os.IsNotExist(err) {
-			t.Errorf("%s: the login item %s is still there", goos, p.path)
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Errorf("%s: the login item %s is still there", goos, path)
 		}
 		if len(*ran) == 0 {
 			t.Errorf("%s: the login item was not unregistered", goos)
@@ -123,5 +87,31 @@ func TestAutostartRemoved(t *testing.T) {
 		if len(*ran) != 0 {
 			t.Errorf("%s: ran %v with no login item", goos, *ran)
 		}
+		b.Reset()
+		doctorReport(&b, nil, 1, t.TempDir(), release{}, false)
+		if strings.Contains(b.String(), "kiroku autostart") {
+			t.Errorf("%s: serve --check still names the login item after it was removed", goos)
+		}
+	}
+}
+
+// 環境変数に制御文字（PATH のタブなど）があっても、登録は外れる。kiroku 4 のユニットの中身は作り直さない
+func TestAutostartRemovedWithControlCharInEnv(t *testing.T) {
+	_, ran := fakeAutostart(t, "linux")
+	path, _, _ := currentAutostartPaths()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("dummy login item\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", os.Getenv("PATH")+":/opt/a\tb")
+	t.Setenv("CODEX_HOME", "/home/me/x\ny")
+	removeAutostart()
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Errorf("the login item %s is still there", path)
+	}
+	if len(*ran) == 0 {
+		t.Error("the login item was not unregistered")
 	}
 }

@@ -1,4 +1,6 @@
 // kiroku serve のときの自動更新と、鍵を付けて data.json を読んでから描く起動
+// HTTPError は kiroku serve が 200 以外で答えたこと（つながらないこととは分けて出す）
+class HTTPError extends Error { constructor(status){ super(String(status)); this.status = status; } }
 /* ── live（kiroku serve） ── 新しい履歴を見つけたら、見ている週・選んだセッションはそのままで取り込む */
 function startLive(){
   const badge = $("#live"); badge.hidden = false;
@@ -9,16 +11,23 @@ function startLive(){
     // 届いたデータは HTML に入れたものと同じく時計（SHIFT）をずらしてから比べ・取り込む。描くときの誤りは、つながらないこととは分けて出す
     let j = null;
     try {
-      const r = await kfetch("stamp"); if (!r.ok) throw new Error(r.status);
+      const r = await kfetch("stamp"); if (!r.ok) throw new HTTPError(r.status);
       if (shiftTimes(parseFloat(await r.text())) !== GENERATED){
-        const d0 = await kfetch("data.json"); if (!d0.ok) throw new Error(d0.status);
+        const d0 = await kfetch("data.json"); if (!d0.ok) throw new HTTPError(d0.status);
         j = shiftTimes(await d0.json());
       }
-      badge.classList.remove("off"); badge.title = t("Updates automatically as your history grows (last checked {time})", {time: hm(Date.now()/1000)});
+      // 読み直しに失敗して、kiroku serve が前の集計のまま答えている（くわしいわけは端末に出ている）
+      const failed = r.headers.get("X-Kiroku-Reload") === "failed";
+      badge.classList.toggle("off", failed);
+      badge.title = failed ? t("Could not read the latest history, so this shows what was read before. See the terminal where kiroku serve runs for details.")
+        : t("Updates automatically as your history grows (last checked {time})", {time: hm(Date.now()/1000)});
     } catch(e){
       badge.classList.add("off");
-      // 403 は鍵が変わった（kiroku serve を起動し直しても直らない。kiroku serve が要る）
-      badge.title = String(e && e.message) === "403" ? t("Open kiroku with its key") : t("Not connected to kiroku serve. If you stopped it, start it again to resume.");
+      // 403 は鍵が変わった（kiroku serve を起動し直しても直らない。kiroku serve が要る）。ほかの答え（500 など）は、つながっているがうまくいっていない
+      const st = e instanceof HTTPError ? e.status : 0;
+      badge.title = st === 403 ? t("Open kiroku with its key")
+        : st ? t("kiroku serve answered with an error ({status}). See the terminal where kiroku serve runs for details.", {status: st})
+        : t("Not connected to kiroku serve. If you stopped it, start it again to resume.");
     }
     if (j){
       try {
@@ -35,9 +44,9 @@ function startLive(){
 }
 /* kiroku serve の / は鍵なしでも開けるので、履歴を入れていない骨組み（META.shell）。localStorage の鍵を付けて data.json を読み、
    届いてから最初の描画（期間を選ぶところから）をする。鍵がない・違う（403）ときは、履歴の代わりに kiroku serve の案内を出す */
-// showLocked は、履歴の代わりに出す案内。key なら kiroku serve の案内（lockedPage と同じ文）、そうでなければ、つながらないこと。
-// 文字はすべて textContent で入れる
-function showLocked(key){
+// showLocked は、履歴の代わりに出す案内。key なら kiroku serve の案内（lockedPage と同じ文）、status（数）なら kiroku serve が
+// その答えを返したこと、"bad" なら届いたデータが読めなかったこと、どれでもなければ、つながらないこと。文字はすべて textContent で入れる
+function showLocked(key, status){
   $("main").hidden = true;
   const box = document.createElement("main"), el = (tag, s) => { const x = document.createElement(tag); x.textContent = s; return x; };
   box.className = "wrap locked"; box.id = "locked";
@@ -45,6 +54,9 @@ function showLocked(key){
   const withCmd = (s, cmd) => { const p = document.createElement("p"), [a, b] = s.split("{cmd}"); p.append(a, el("code", cmd), b || ""); return p; };
   if (key) box.append(el("h2", t("Open kiroku with its key")), el("p", t("kiroku serve shows your history only to a browser that has its key, so that other users of this computer can't read it.")),
     withCmd(t("Run {cmd} in a terminal to open this page with the key. After that, this browser can open it without the key."), "kiroku serve"));
+  else if (status) box.append(el("h2", t("kiroku serve could not send your history")), el("p", status === "bad"
+    ? t("The data it sent could not be read. Reload this page; if this happens again, see the terminal where kiroku serve runs.")
+    : t("kiroku serve answered with an error ({status}). See the terminal where kiroku serve runs for details, then reload this page.", {status})));
   else box.append(el("h2", t("Not connected to kiroku serve")), el("p", t("If you stopped it, start it again, then reload this page.")));
   $("main").after(box);
 }
@@ -55,9 +67,10 @@ async function openShell(){
   try { r = await kfetch("data.json"); } catch(e){ showLocked(false); return; }
   if (r.status === 503){ setTimeout(() => location.reload(), 1000); return; } // 読み込み中に戻っていた（/ が読み込み中の画面を返す）
   if (r.status === 403){ showLocked(true); return; }
+  if (!r.ok){ showLocked(false, r.status); return; } // 500 など: つながっているが、送れなかった（わけは端末に出ている）
   let j = null;
-  try { if (r.ok) j = await r.json(); } catch(e){}
-  if (!j){ showLocked(false); return; }
+  try { j = await r.json(); } catch(e){}
+  if (!j){ showLocked(false, "bad"); return; }
   applyData(shiftTimes(j));
   $("main").hidden = false;
   boot(); startLive();

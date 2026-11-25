@@ -661,8 +661,8 @@ func TestServeRetryAfterFailure(t *testing.T) {
 	n.Store(1)
 	touch("b.jsonl")
 	waitFor(t, "読み直しの失敗の表示", func() bool { return strings.Contains(out.String(), "reload failed:") })
-	if code, body, _ := fetchHost(t, "GET", srv.URL+"/stamp", ""); code != 200 || body != "1" {
-		t.Errorf("読み直しに失敗したあとの /stamp = %d %q（前の集計のままのはず）", code, body)
+	if code, body, h := fetchHost(t, "GET", srv.URL+"/stamp", ""); code != 200 || body != "1" || h.Get("X-Kiroku-Reload") != "failed" {
+		t.Errorf("読み直しに失敗したあとの /stamp = %d %q %v（前の集計のまま、失敗を画面に知らせるはず）", code, body, h)
 	}
 	if l.count() != 1 {
 		t.Errorf("読み直しに失敗したのに集計が変わった: %d", l.count())
@@ -671,8 +671,8 @@ func TestServeRetryAfterFailure(t *testing.T) {
 	failing.Store(false)
 	touch("c.jsonl")
 	waitFor(t, "もう一度読み直す", func() bool { return l.count() == 2 })
-	if code, body, _ := fetchHost(t, "GET", srv.URL+"/stamp", ""); code != 200 || body != "2" {
-		t.Errorf("/stamp = %d %q", code, body)
+	if code, body, h := fetchHost(t, "GET", srv.URL+"/stamp", ""); code != 200 || body != "2" || h.Get("X-Kiroku-Reload") != "" {
+		t.Errorf("/stamp = %d %q %v", code, body, h)
 	}
 }
 
