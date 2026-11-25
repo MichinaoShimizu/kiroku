@@ -319,6 +319,9 @@ func lineLimit() string { return sizeLimit(MaxLine) }
 // sizeLimit は大きさの上限を読みやすく書く（64 MiB など）。
 func sizeLimit(n int) string { return sizeLimit64(int64(n)) }
 
+// SizeLimit は sizeLimit の int64 版（1 GiB など。ほかのパッケージのメッセージ用）。
+func SizeLimit(n int64) string { return sizeLimit64(n) }
+
 func sizeLimit64(n int64) string {
 	if n >= 1<<30 && n%(1<<30) == 0 {
 		return fmt.Sprintf("%d GiB", n>>30)

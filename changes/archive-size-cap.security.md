@@ -1,0 +1,1 @@
+- `kiroku serve --archive` no longer copies a history file (or a file linked under a history file's name) larger than 1 GiB, the most kiroku decompresses from one copy; it skips it and reports it under "Data sources" as a file that couldn't be read

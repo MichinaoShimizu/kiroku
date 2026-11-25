@@ -192,10 +192,12 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 	rcache := report.NewCache() // 週と月も、セッションとコミットが変わっていない期間は集計し直さない
 	load := func() snapshot {
 		on := archiveOn(dir)
+		var skipped map[string]error
 		if on {
-			keepCopies(picked, dir)
+			_, skipped = keepCopies(picked, dir)
 		}
 		data, rep := collectCached(all, want, gap, cache)
+		rep = withSkipped(rep, skipped)
 		if data == nil {
 			data = []*core.Session{} // 画面では null ではなく空の一覧として扱う
 		}

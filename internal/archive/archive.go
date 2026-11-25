@@ -7,6 +7,7 @@ package archive
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -186,6 +187,26 @@ func Path(src, dst, file string) (string, bool) {
 	return filepath.Join(dst, rel) + ".zst", true
 }
 
+// ErrTooLarge は、コピーを残すには大きすぎるファイル（copyLimit より大きい）なので残さなかったこと。
+var ErrTooLarge = errors.New("too large to keep a copy")
+
+// maxCopy は、コピーを残すファイル 1 つの大きさの上限（バイト）。0 なら core.MaxZstd（kiroku がコピーを読むときにほどく上限。
+// それより大きいファイルのコピーは、残しても読めない）。履歴の名前でリンクされたほかの大きなファイルを、読み直しのたびに
+// 何 GB も圧縮して保存場所を埋めないため。テストで小さくする。
+var maxCopy int64
+
+func copyLimit() int64 {
+	if maxCopy > 0 {
+		return maxCopy
+	}
+	return core.MaxZstd
+}
+
+// tooLarge は、大きすぎて残さなかったファイルのエラー（読めなかったファイルと同じく、ファイル名をつけて知らせる）。
+func tooLarge(path string) error {
+	return fmt.Errorf("%s: %w (larger than %s)", path, ErrTooLarge, core.SizeLimit(copyLimit()))
+}
+
 // Sync は src の下の .jsonl を dst の下に圧縮して残す。前回から変わっていないファイルは圧縮し直さない。
 // 元のファイルが消えても、コピーは消さない。保存した（圧縮し直した）数を返す。
 func Sync(src, dst string) (int, error) {
@@ -216,6 +237,12 @@ func Sync(src, dst string) (int, error) {
 		// 大きさで切ってしまい、先が変わっても残し直さない）。先がない・読めないものは飛ばす
 		info, err := os.Stat(p)
 		if err != nil || info.Size() == 0 {
+			return nil
+		}
+		if info.Size() > copyLimit() { // 開かずに飛ばす（compress も、開いたファイルの大きさで確かめ直す）
+			if first == nil {
+				first = tooLarge(p)
+			}
 			return nil
 		}
 		out, ok := Path(src, dst, p)
@@ -262,6 +289,9 @@ func compress(src, dst string) error {
 	info, err := in.Stat()
 	if err != nil {
 		return err
+	}
+	if info.Size() > copyLimit() { // Sync が大きさを見たあとで、リンクの先が変わっていても
+		return tooLarge(src)
 	}
 	if err := core.PrivateDir(filepath.Dir(dst)); err != nil {
 		return err
