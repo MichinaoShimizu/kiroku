@@ -144,6 +144,11 @@ async function run(env) {
       sm.click(); await wait(); const saved = store.get("insBrk", false) === true; summary();
       const B2 = document.querySelector("#review details.insbrk"), top = [...B2.querySelectorAll(":scope > .insg > .insrow h4")].map(h => h.textContent);
       return closed && saved && B2.open && top.some(x => /When you worked/.test(x)) && top.some(x => /Where it went/.test(x)) && top.some(x => /Most edited files/.test(x)) && !top.some(x => /^(Trend|Usage|Spread per session)/.test(x)); }));
+    check("投入から産出の流れの右（狭い画面では下）に、費用と産出の推移のカード（2 本の線）があり、内訳の中にはない", await p.evaluate(() => {
+      const f = document.querySelector("#review .isflow"), cs = f ? [...f.children] : [], sk = cs.find(c => c.querySelector(".isk")), cu = cs.find(c => c.querySelector(".icum"));
+      if (!sk || !cu || document.querySelector("#review .insbrk .icum") || cu.querySelectorAll("path.icl").length !== 2) return false;
+      const a = sk.getBoundingClientRect(), b = cu.getBoundingClientRect();
+      return innerWidth >= 1300 ? b.left >= a.right - 1 && Math.abs(a.top - b.top) < 2 && b.width <= innerWidth / 2 + 1 : b.top >= a.bottom - 1; }));
     check("サマリーの頭に見直す候補の行はない", await p.evaluate(() => !document.querySelector("#review .iworth") && !/Worth a look/.test(document.querySelector("#review .insight").textContent.slice(0, 400))));
     check("見直す候補（Worth a look）の指標のカードが、たたんだ内訳の中にあれば、その候補を開くと内訳が開く（開いたことも覚える）", await p.evaluate(async () => {
       store.set("insBrk", false); summary(); const B = document.querySelector("#review details.insbrk");
@@ -882,9 +887,10 @@ async function run(env) {
       const ks2 = await p.locator(`#review [data-${attr}]`).evaluateAll(xs => xs.map(x => x.dataset[Object.keys(x.dataset)[0]]));
       for (const k of ks2){ await p.locator(`#review [data-${attr}="${k}"]`).click(); await pause();
         check(`${name}を ${k} にすると、その量の図と 1 文になる`, await p.evaluate(([key, k, sel]) => st[key] === k && !!document.querySelector(`#review ${sel} svg`) && !!document.querySelector(`#review ${sel}`).closest(".inscol").querySelector(".isay"), [key, k, sel])); } }
-    check("投入から産出の流れ（サンキー）は、4 枚のパネルのすぐ下（内訳の上）の幅いっぱいの 1 枚で、内訳の段には繰り返さない", await p.evaluate(() => { const h = document.querySelector("#review .insh"), k = document.querySelector("#review .iskw"); if (!k || !k.querySelector(".isk")) return false;
-      const hr = h.getBoundingClientRect(), kr = k.getBoundingClientRect(), between = [...document.querySelectorAll("#review .insg, #review .insrow")].every(x => x.getBoundingClientRect().top >= kr.bottom - 1);
-      return kr.top >= hr.bottom - 1 && Math.abs(kr.left - hr.left) < 2 && Math.abs(kr.right - hr.right) < 2 && between && document.querySelectorAll("#review .isk").length === 1 && !k.closest(".insrow"); }));
+    check("投入から産出の流れ（サンキー）は、4 枚のパネルのすぐ下（内訳の上）の段の左に 1 枚（段は幅いっぱい。右に費用と産出の推移がなければ、サンキーが幅いっぱい）で、内訳の段には繰り返さない", await p.evaluate(() => { const h = document.querySelector("#review .insh"), f = document.querySelector("#review .isflow"), k = document.querySelector("#review .isk") && document.querySelector("#review .isk").closest(".iskw"); if (!f || !k) return false;
+      const hr = h.getBoundingClientRect(), fr = f.getBoundingClientRect(), kr = k.getBoundingClientRect(), between = [...document.querySelectorAll("#review .insg, #review .insrow")].every(x => x.getBoundingClientRect().top >= fr.bottom - 1);
+      const side = f.classList.contains("two") && innerWidth >= 1300;
+      return fr.top >= hr.bottom - 1 && Math.abs(fr.left - hr.left) < 2 && Math.abs(fr.right - hr.right) < 2 && Math.abs(kr.left - hr.left) < 2 && (side || Math.abs(kr.right - hr.right) < 2) && between && document.querySelectorAll("#review .isk").length === 1 && !k.closest(".insrow"); }));
     { // サンキーの 1 文は、全体がどこへ行ったかを言い切る：コミットか PR あり・なし（None）・記録しないエージェントの分のうち 0 でないものを全部、全体に対する割合で。割合は足して 100
       const sk = await p.evaluate(() => { const c = document.querySelector("#review .isk"); if (!c) return null; const say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay"), out = [...c.querySelectorAll(".sklist .skcol:last-child .skn2")].map(x => x.textContent);
         return {unk: out.some(x => /^(Not recorded|記録なし)$/.test(x)), none: out.some(x => /^(None|なし)$/.test(x)), fil: out.some(x => /^(Files changed only|ファイルの変更だけ)$/.test(x)), yes: out.some(x => /^(Commit or PR|コミットか PR)$/.test(x)), txt: say ? say.textContent : "", list: [...c.querySelectorAll(".sklist .skcol")].map(g => [...g.querySelectorAll("li b")].reduce((a, b) => a + parseInt(b.textContent), 0))}; });

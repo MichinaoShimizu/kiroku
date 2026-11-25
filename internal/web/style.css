@@ -1174,6 +1174,8 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .iwtf .wft{fill:color-mix(in oklab,var(--ink-3) 55%,var(--surface))}.iwtf .wft.cur{fill:var(--acc)}
 .iwtf .wfu{fill:color-mix(in oklab,var(--ink) 30%,var(--surface))}.iwtf .wfd{fill:color-mix(in oklab,var(--ink) 62%,var(--surface))} /* 増えた分は薄い灰、減った分は濃い灰（プロジェクトの色や良し悪しの色と重ならないように） */
 .iwtf .wfc{stroke:var(--ink-3);stroke-dasharray:3 3;stroke-width:1}
+.icum .icl{fill:none;stroke-width:2;stroke-linejoin:round}.icum .icl.in{stroke:var(--acc)}.icum .icl.out{stroke:var(--ink-2);stroke-dasharray:5 3} /* 費用は実線、産出は破線（色だけに頼らない） */
+.icum .icst{fill:color-mix(in oklab,var(--ink-3) 18%,transparent)}.icum .icnl{font-size:11px;font-family:var(--sans);font-weight:600;font-variant-numeric:tabular-nums}.icum .icnl.in{fill:var(--acc-ink)}.icum .icnl.out{fill:var(--ink-2)}
 .iwtf .wfv{font-size:11px;fill:var(--ink-2);text-anchor:middle;font-family:var(--sans);font-variant-numeric:tabular-nums}
 /* ドーナツ（どこに使ったか）：横棒の左に */
 .iwdn{display:flex;gap:18px;align-items:center}.iwdn>.iwrows{flex:1;min-width:0}.insfig.iwdn svg.idn{width:140px;height:140px;flex:none}
@@ -1273,7 +1275,9 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .ithd{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
 .itft{min-width:0}
 /* どこへ流れたか（サンキー）：投入と出力の 2×2 のすぐ下に、幅いっぱいの 1 枚（サマリーで唯一の全幅のカード）。狭いカードでは文字を座標の上で大きく */
-.inscol.iskw{margin:16px 0 12px;container-type:inline-size}
+.inscol.iskw{container-type:inline-size}
+.isflow{display:grid;gap:16px;margin:16px 0 12px}
+@media (min-width:1300px){.isflow.two{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}} /* 広い画面では、流れ（サンキー）の右に費用と産出の推移。狭ければ下に積む */
 .iskw .skgh{padding:0;margin:0}.iskw .skgh::before{background:linear-gradient(var(--in),var(--out))} /* 投入から出力へ：パネルの見出しと同じ大きさで、左の線は投入の青から出力の紫へ */
 @container (max-width:900px){.iskw .isk .skt,.iskw .isk .skh{font-size:14px}}
 /* 作業のしかた：12 の指標は、細いタイルの 3 列ではなく、出力のカードと同じ 1 行 1 指標の一覧に（名前は左、値は右、評価の文はその下）。
