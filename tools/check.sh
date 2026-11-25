@@ -1,6 +1,6 @@
 #!/bin/sh
 # CI（.github/workflows/ci.yml）と同じチェックを手元でまとめて回す。PR を出す前に使う。
-#   sh tools/check.sh          # gofmt・go vet・staticcheck・govulncheck・go test・changes/ の断片・go build・shellcheck
+#   sh tools/check.sh          # gofmt・go vet・staticcheck・govulncheck・go test・changes/ の断片・verify-release.sh のテスト・go build・shellcheck
 #   sh tools/check.sh --e2e    # それに加えて、画面の e2e（smoke.mjs・xss.mjs・serve.mjs。Node と Playwright が必要）
 # staticcheck と govulncheck の版は ci.yml から読む（版を上げるときは ci.yml だけを書き換える）。
 # 途中で失敗しても最後まで回し、失敗したものを最後に並べて 1 で終わる。
@@ -70,6 +70,16 @@ changelog() {
   return 1
 }
 
+# tools/verify-release.sh のテスト（偽の curl と gh で動かす。ネットワークには出ない）
+verify_release_test() {
+  if out=$(sh tools/verify-release_test.sh 2>&1); then
+    printf '%s\n' "$out" | tail -n 1
+    return 0
+  fi
+  printf '%s\n' "$out" | grep -v '^ok: '
+  return 1
+}
+
 build() {
   out=$(mktemp -d) || return 1
   go build -o "$out/kiroku" .
@@ -115,6 +125,7 @@ step staticcheck env GOTOOLCHAIN="$toolchain" go run "$staticcheck" ./...
 step govulncheck env GOTOOLCHAIN="$toolchain" go run "$govulncheck" ./...
 step test go test ./...
 step changelog changelog
+step verify-release verify_release_test
 step build build
 step seclint go run ./tools/seclint
 step shellcheck shellcheck_scripts

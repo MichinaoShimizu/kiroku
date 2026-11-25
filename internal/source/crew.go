@@ -431,19 +431,21 @@ var crewMetaMark = []byte(`"metadata"`)
 // crewFilePrivate は、Crew の会話の記録のファイル（.zst のコピーも）のどれかの行が、中身を残さない会話のメタデータか。
 // 1 行目の BOM は読み飛ばす（Crew の json.loads は BOM のある行を読めず、中身を残さない側に倒す）。
 // 1 行目が長すぎて読めない（core.MaxLine を超える）か、memory_mode を含むのに読めないときも、中身を残さない会話とみなす
-// （Crew もメタデータの行を読めなければ断る。history_derivation.py の memory_mode_from_header_line）。ない・開けないファイルは false。
+// （Crew もメタデータの行を読めなければ断る。history_derivation.py の memory_mode_from_header_line）。
+// ない・ふつうのファイルでないものは false。開けない・ほどけない（壊れた .zst）・途中で読めないものは、
+// メタデータを確かめられないので中身を残さない会話とみなす（閉じる側に倒す）。
 // 1 行は core.MaxLine までしか持たないので、使うメモリは決まっている。
 func crewFilePrivate(path string) bool {
-	f, err := openRegular(path)
+	f, err := openRegular(path) // ふつうのファイルでないものは os.ErrNotExist
 	if err != nil {
-		return false
+		return !errors.Is(err, os.ErrNotExist)
 	}
 	defer f.Close()
 	var src io.Reader = f
 	if strings.HasSuffix(path, ".zst") {
 		d, err := core.NewZstdReader(f)
 		if err != nil {
-			return false
+			return true
 		}
 		defer d.Close()
 		src = d
@@ -468,7 +470,7 @@ func crewFilePrivate(path string) bool {
 			}
 		}
 		if err != nil {
-			return false
+			return !errors.Is(err, io.EOF) // 終わりまで読めたのでなければ、残りにメタデータがあるかもしれない
 		}
 	}
 }

@@ -184,6 +184,8 @@ function calShort(act, u, un, kinds){ // 月のマス：コスト系（太く）
   return `${uk ? `<span class="acs${q}">${unitH(v || "—")}</span>` : ""}<span class="act${q}"><span class="tlong">${esc(act ? dur(act) : "—")}</span><span class="tshort" aria-hidden="true">${esc(sh)}</span></span>`;
 }
 const filtering = () => !!st.q || st.hidden.size > 0;
+// 最後のセッションの終わり（UNIX 秒）。Math.max(...list.map(…)) は、20 万件ほどで引数が多すぎて RangeError になるので reduce で
+const lastEnd = list => list.reduce((m, s) => s.end > m ? s.end : m, -Infinity);
 /* カレンダーに出すコミット：凡例で隠したプロジェクトのものは出さない。検索中は、一致したセッションの間のコミットと、それ自体が一致したコミットだけ */
 const gitHit = c => [c.hash, c.subject, c.body || "", ...(c.files || []).map(f => f.path)].join("\n").toLowerCase().includes(st.q);
 function gitShown(shown){
@@ -202,7 +204,7 @@ function monthGrid(shown, ms, me, todayKey){
   const un = filtering() ? 1 : 0, G = un ? gitShown(shown) : null;
   let note = "", noteGo = null;
   if (!un && !META.scope && !(S && S.days.some(d => d && d.active))){ // 記録のない月も空のマスを描き、上に「ない」の 1 行と、記録のある最後の月へ行くボタン
-    const last = DATA.length ? monthOf(new Date(Math.max(...DATA.map(s => s.end)) * 1000)) : null, jump = last && last.getTime() !== st.month.getTime();
+    const last = DATA.length ? monthOf(new Date(lastEnd(DATA) * 1000)) : null, jump = last && last.getTime() !== st.month.getTime();
     note = emptyNote(t("No records in {month}.", {month: dMY(st.month)}), jump ? t("Go to the latest month with records ({month})", {month: dMY(last)}) : "");
     noteGo = () => { st.month = last; st.sel = null; st.animate = true; render(); }; }
   const wks = []; for (let r = 0; r < 6 && addDays(first, 7*r).getTime()/1000 < me; r++) wks.push(addDays(first, 7*r));
@@ -272,7 +274,7 @@ function timeline(shown, inWeek, ws, we, todayKey){
   let note = "", noteGo = null;
   if (!inWeek.length || !shown.length){
     // 記録のない週も、曜日と時刻の枠は描き、上に 1 度だけ「ない」と言い、記録のある最後の週へ行けるようにする（月は大文字のまま。toLowerCase で "jul 6" にしない）
-    const last = !inWeek.length && !META.scope && DATA.length ? mondayOf(new Date(Math.max(...DATA.map(s => s.end))*1000)) : null, jump = last && last.getTime() !== st.week.getTime();
+    const last = !inWeek.length && !META.scope && DATA.length ? mondayOf(new Date(lastEnd(DATA) * 1000)) : null, jump = last && last.getTime() !== st.week.getTime();
     note = emptyNote(inWeek.length ? t("No sessions match the current filters.") : META.scope ? t("This file has no records for this week.") : st.week.getTime() === mondayOf(today0()).getTime() ? t("No records this week.") : t("No records in the week of {date}.", {date: dMD(st.week)}),
       jump ? t("Go to the latest week with records ({date})", {date: dMD(last)}) : "");
     noteGo = () => { st.week = last; st.sel = null; st.animate = true; render(); scrollToWork(); };
