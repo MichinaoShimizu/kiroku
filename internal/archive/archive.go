@@ -198,7 +198,9 @@ func Sync(src, dst string) (int, error) {
 		if d.IsDir() || !strings.HasSuffix(p, ".jsonl") {
 			return nil
 		}
-		info, err := d.Info()
+		// 大きさと更新時刻はリンクの先のもので見る（d.Info は Lstat なので、.jsonl がシンボリックリンクだとリンク自身の
+		// 大きさで切ってしまい、先が変わっても残し直さない）。先がない・読めないものは飛ばす
+		info, err := os.Stat(p)
 		if err != nil || info.Size() == 0 {
 			return nil
 		}
@@ -209,7 +211,7 @@ func Sync(src, dst string) (int, error) {
 		if prev, err := os.Stat(out); err == nil && prev.ModTime().Equal(info.ModTime()) {
 			return nil
 		}
-		if err := compress(p, out, info); err != nil {
+		if err := compress(p, out); err != nil {
 			if errors.Is(err, core.ErrNotRegular) {
 				return nil // ふつうのファイルでないもの（名前つきパイプなど）は残さない（大きさ 0 のものと同じ）
 			}
@@ -236,12 +238,17 @@ func resolve(p string) string {
 }
 
 // compress は src を zstd で圧縮して dst に書く。途中で失敗しても前のコピーは残る（一時ファイルに書いてから置きかえる）。
-func compress(src, dst string, info fs.FileInfo) error {
+// 大きさと更新時刻は、開いたファイル（シンボリックリンクなら、その先）から読む。
+func compress(src, dst string) error {
 	in, err := core.OpenRegular(src) // シンボリックリンクの先が名前つきパイプでも止まらない
 	if err != nil {
 		return err
 	}
 	defer in.Close()
+	info, err := in.Stat()
+	if err != nil {
+		return err
+	}
 	if err := core.PrivateDir(filepath.Dir(dst)); err != nil {
 		return err
 	}
