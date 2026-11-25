@@ -240,7 +240,7 @@ function keepRow(r){ // 計測の状態に添える：どこまでさかのぼ�
   const o = r.oldest ? dMDY(new Date(r.oldest*1000)) : "";
   const k = r.retention, link = k && k.docs ? ` ${ext(k.docs, esc(t("official docs ↗")))}` : "", by = k && k.who ? `${esc(k.who)}: ` : ""; // by は、履歴を消すものが Report と違うとき（Kiro CLI の行の Kiro Crew）
   const set = k ? {h: `<code>${esc(k.setting)}</code>`} : null; // 設定の名前（<code>）
-  // how は、既定のままで消える履歴を残す 2 つの方法。バックアップ先のフォルダを先に見せる（押す前に、どこに何ができるかわかるように）
+  // how は、既定のままで消える履歴を残す 2 つの方法。コピーを残すフォルダを先に見せる（押す前に、どこに何ができるかわかるように）
   const dir = META.archive && META.archive.dir, how = () => { const v = {snippet: {h: `<code>${esc(k.snippet || `"${k.setting}": 3650`)}</code>`},
       file: {h: `<code>${esc(k.file || "")}</code>`}, dir: dir ? {h: `<code>${esc(dir)}</code>`} : t("a folder on this computer"),
       on: {h: "<code>kiroku serve --archive on</code>"}, off: {h: "<code>kiroku serve --archive off</code>"}};

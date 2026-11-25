@@ -139,12 +139,12 @@ function insSpark(b, label, W = 480, bar = false){
   const sl = (p, i) => { const [yy, mm, dd] = p.key.split("-").map(Number), yr = i === 0 || mm === 1; return wk ? `${mm}/${dd}` : JA ? (yr ? `${yy}年${mm}月` : `${mm}月`) : (yr ? `${MON[mm - 1]} ${yy}` : MON[mm - 1]); }; // 月は、最初と 1 月に年を添える（同じ月の名前が 2 度出ても見分けられるように）
   // 名前はいつも横書き（斜めにすると読みにくく、下の段の上限の印とも重なる）。間が狭いとき（週の日付が 1 期間の幅に収まらない）は、1 つおきに出す（表示中の期間と、そこから 2 つおきは残す）
   const xl = ps.map((q, i) => { const alt = (n - 1 - i) % 2 && (n > 6 || thin); return `<text class="sxl${i === n - 1 ? " cur" : alt ? ` alt${thin ? " thin" : ""}` : i === 0 && !wk && !bar ? " s" : ""}${i === 0 && q.v == null && n > 1 ? " nodat" : ""}" x="${x(i).toFixed(1)}" y="${(+y0 + 14 + LB).toFixed(1)}">${esc(sl(q.p, i))}</text>`; }).join("");
-  // 累積は時間の流れなので、途中の期間の「ここまで」は右端（期間の終わり）ではなく、期間のうち過ぎた割合の位置に置く。そこから期間の終わりの予測までを破線に
+  // 累積は時間の流れなので、途中の期間の「ここまで」は右端（期間の終わり）ではなく、期間のうち過ぎた割合の位置に置く。そこから期間の終わりの推定までを破線に
   const xc = i => ps[i].cur && b.part && n > 1 ? x(n - 2) + insFrac() * (x(n - 1) - x(n - 2)) : x(i);
   const cpts = ps.map((q, i) => q.c == null ? null : `${xc(i).toFixed(1)},${y2(q.c).toFixed(1)}`).filter(Boolean);
   const cuml = cpts.length < 2 ? "" : `<polyline class="cuml" points="${cpts.join(" ")}"/>`;
   // 平均（オレンジの線）は、右端の値だけを書く（全部の点に書くと、紫の数字と重なる）。線の終わりの点の左に。
-  // 途中の期間は今までの値（予測の点ではなく）。紫の点より上なら上に、下なら下に
+  // 途中の期間は今までの値（推定の点ではなく）。紫の点より上なら上に、下なら下に
   const cEnd = cpts.length < 2 || ps[n - 1].c == null ? "" : (() => { const cv = ps[n - 1].c, ex = xc(n - 1), ey = y2(cv), up = ey < y(b.v);
     return `<circle class="cud" cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="2.5"/><text class="cuv" x="${(ex - 7).toFixed(1)}" y="${(up ? Math.max(T + 8, ey - 6) : ey + 13).toFixed(1)}">${esc(ptS(cv))}</text>`; })();
   let marks;
@@ -159,10 +159,10 @@ function insSpark(b, label, W = 480, bar = false){
     marks = ps.map((q, i) => q.v == null ? "" : !q.cur ? fill("sbar", i, q.v) : b.part ? (b.v > b.cur ? rc("sbar ext", i, b.cur, b.v) : "") + fill("sbar cur", i, b.cur) : fill("sbar cur", i, q.v)).join("");
   } else {
     const line = ps.map((q, i) => q.v == null || (q.cur && b.part) ? null : `${x(i).toFixed(1)},${y(q.v).toFixed(1)}`).filter(Boolean).join(" ");
-    // 途中の期間の予測：前の期間の点からペース換算の点まで（推移）と、前の期間の累積から予測の累積まで（累積）を破線で
+    // 途中の期間の推定：前の期間の点からペース換算の点まで（推移）と、前の期間の累積から推定の累積まで（累積）を破線で
     const pv = n > 1 ? ps[n - 2] : null, prj = !b.part || !pv ? "" : (pv.v != null ? `<line class="prj" x1="${x(n - 2).toFixed(1)}" y1="${y(pv.v).toFixed(1)}" x2="${x(n - 1).toFixed(1)}" y2="${y(b.v).toFixed(1)}"/>` : "")
       + `<circle class="sofar" cx="${xc(n - 1).toFixed(1)}" cy="${y(b.cur).toFixed(1)}" r="2.5"/><text class="sofl" x="${(xc(n - 1) - 5).toFixed(1)}" y="${(y(b.cur) + (y(b.cur) < H - B - 22 ? 15 : -7)).toFixed(1)}">${esc(t("So far"))} ${esc(ptS(b.cur))}</text>`; // 途中の期間の今までの値（印だけだと、データのずれに見える）
-    // 各点の実際の値を点の上に（谷の点と上端に近い点は下に）。棒の上の数字と同じく、間に収まらないときは 1 つおきに（表示中の期間と、そこから 2 つおきは残す）。途中の期間は「So far」に添える（予測の点には付けない）
+    // 各点の実際の値を点の上に（谷の点と上端に近い点は下に）。棒の上の数字と同じく、間に収まらないときは 1 つおきに（表示中の期間と、そこから 2 つおきは残す）。途中の期間は「So far」に添える（推定の点には付けない）
     const palt = Math.max(0, ...ps.map(q => q.v == null ? 0 : ptS(q.v).length)) * 5.5 > step - 3;
     const pvl = ps.map((q, i) => { if (q.v == null || (q.cur && b.part) || ((n - 1 - i) % 2 && palt)) return ""; const yy = y(q.v), r = q.cur ? 4.5 : 2.5;
       const nb = [ps[i - 1], ps[i + 1]].filter(z => z && z.v != null && !(z.cur && b.part)).map(z => z.v), dn = (nb.length && q.v < nb.reduce((a, c) => a + c, 0) / nb.length && yy < H - B - 14) || yy <= T + 14; // 谷の点は下に（線と重ならないように）
@@ -242,8 +242,8 @@ function insVerdict(b, F, hab){
 const tickS = (k, v, step) => { const dp = Math.min(3, (String(+step.toPrecision(6)).split(".")[1] || "").length);
   if (/^cost/.test(k) && dp > 2) return "$" + v.toFixed(dp); // 0.025 刻みの費用は 3 桁で（2 桁に丸めると $0.03・$0.05・$0.08 と刻みが不ぞろいに見える）
   if (!/^credits/.test(k) && MET[k] && MET[k].fmt) return tickM(k, v); return (dp ? v.toFixed(dp) : commas(v)) + (MET[k] && MET[k].u === "%" ? "%" : ""); };
-// insEndLabel は、途中の期間をこのペースで終えたときの値の言い方（月は「月末の予測」、週は「週末の予測」）
-// kv は、ツールチップの「名前: 値」。日本語は全角のコロン（「月末の予測：176 credits」と同じ書き方にそろえる）
+// insEndLabel は、途中の期間をこのペースで終えたときの値の言い方（月は「月末の推定」、週は「週末の推定」）
+// kv は、ツールチップの「名前: 値」。日本語は全角のコロン（「月末の推定：176 credits」と同じ書き方にそろえる）
 const kv = (k, v) => isJA() ? `${k}：${v}` : `${k}: ${v}`;
 const insEndLabel = v => st.mode === "month" ? t("Month-end estimate: {v}", {v}) : t("End-of-week estimate: {v}", {v});
 // insTicks は、0 から v までを切りのよい刻み（1・2・2.5・5 の 10 の累乗倍）で want 本ほどに分ける。数える指標は整数の刻み、時間（分）は 1 時間単位
@@ -309,7 +309,7 @@ function insHeadlines(F){
   const {S: w, P: pw, ws, we} = period(), u = (w && w.usage) || {}, M = st.mode === "month";
   const P = {cost: [], out: [], unit: [], uin: []}; // パネルごとの選択肢 {key, h}
   let HAB = null; // 作業のしかたの違い（単価の評価で使う。期間ごとに 1 度だけ数える）
-  // 途中の期間で、期間の長さに比例する数字には、どれも期間の終わりの予測を添える（費用・クレジット・時間・トークン・コミット・push・PR）
+  // 途中の期間で、期間の長さに比例する数字には、どれも期間の終わりの推定を添える（費用・クレジット・時間・トークン・コミット・push・PR）
   const tile = (panel, key, label, b, v, f, m, help) => { f = [].concat(f || []).filter(Boolean); const ob = INS_RATE.has(panel) ? null : b; // 単価には評価の文の色（insVerdict）があるので、大きく外れた印（insOdd）は重ねない
     if (b && b.part && !f.some(x => x && x.pc)) f.push(pace(b.cur, b.v, MET[b.k] && MET[b.k].int ? (z => fmtM(b.k, Math.round(z))) : (b.fmt || (z => fmtM(b.k, z)))));
     if (INS_RATE.has(panel) && b && b.k && MET[b.k]) f.unshift({v: insVerdict(b, F, HAB || (HAB = insHabits()))});
@@ -381,7 +381,7 @@ function insHeadlines(F){
   const now = soFar() != null ? (M ? t("This month") : t("This week")) : (M ? t("Month shown") : t("Week shown"));
   const limAny = limitHits(periodBack(INS_N).ws, periodBack(0).we).length > 0; // グラフの範囲に利用上限への到達があれば、凡例に赤い三角を足す
   // 推移のグラフの凡例は、パネルごとに 1 つ。グラフの下に置く（グラフの上に行を足して、隣のパネルのグラフより下がらないように）
-  // 項目ごとに、グラフのどの印の説明か（data-lg）。見せているタイルのグラフにその印がなければ隠す（insLg。単価に推定・予測は描かない、など）
+  // 項目ごとに、グラフのどの印の説明か（data-lg）。見せているタイルのグラフにその印がなければ隠す（insLg。単価に推定は描かない、など）
   const L1 = (cls, sel, text) => `<span class="lg ${cls}" data-lg="${sel}">${esc(text)}</span>`;
   // 量のパネル（投入・出力）は棒、単価のパネルは点と線（insSpark）。凡例の印もそれに合わせる
   const lgd = id => { const bar = !INS_RATE.has(id), est = M ? t("Month-end estimate") : t("End-of-week estimate");
@@ -460,7 +460,7 @@ function insPack(R){
   if (insRO) insRO.disconnect();
   if (window.ResizeObserver){ insRO = new ResizeObserver(() => requestAnimationFrame(fit)); rows.forEach(r => { insRO.observe(r); [...r.children].forEach(c => insRO.observe(c)); }); }
 }
-// insLg は、パネルの凡例を、見せているタイルのグラフが描いた印の項目だけにする（描いていない推定・予測・上限の印などを並べない）
+// insLg は、パネルの凡例を、見せているタイルのグラフが描いた印の項目だけにする（描いていない推定・上限の印などを並べない）
 function insLg(sec){ const tl = [...sec.querySelectorAll(".ikrow > .itile")].find(x => !x.hidden), svg = tl && tl.querySelector(".tspk svg");
   sec.querySelectorAll(".tlg [data-lg]").forEach(x => { x.hidden = !svg || !svg.querySelector(x.dataset.lg); }); }
 function bindInsight(R){

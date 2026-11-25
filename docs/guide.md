@@ -448,7 +448,7 @@ How each history is read and how duplicates are excluded is described in [source
 
 ### History retention
 
-Some agents delete old history automatically. Deleted history cannot be shown by kiroku and cannot be recovered, so set this up early if you want to look back further. In the view, "Data sources" shows the oldest record for each agent, and while Claude Code or Kiro Crew is still on its 30-day default, it is flagged there (with a ⚠ on the folded section) with a link to the docs and the two ways to keep the history: the setting and the file to put it in, or a backup to kiroku's folder, which it names. `kiroku serve --check` shows the same under "Keeping history".
+Some agents delete old history automatically. Deleted history cannot be shown by kiroku and cannot be recovered, so set this up early if you want to look back further. In the view, "Data sources" shows the oldest record for each agent, and while Claude Code or Kiro Crew is still on its 30-day default, it is flagged there (with a ⚠ on the folded section) with a link to the docs and the two ways to keep the history: the setting and the file to put it in, or keeping a copy in kiroku's folder ("Keep a copy in this folder"), which it names. `kiroku serve --check` shows the same under "Keeping history".
 
 | Agent | Deletes automatically? | Setting |
 |---|---|---|
