@@ -114,7 +114,7 @@ const pctOf = (a, b) => b ? Math.round(a * 100 / b) : null;
 const MET = {
   limits: {f: (w, ws, we) => limitHits(ws, we).length, low: true, u: "", int: true},
   longctx: {f: (w, ws, we) => longCtxOf(ws, we).length, low: true, u: "", int: true},
-  heavy: {f: (w, ws, we) => w.usage && w.usage.cost >= 0.01 ? pctOf(idleOf(ws, we).c, w.usage.cost) : null, low: true, u: "%", cap: "Share of cost with no commit or PR"},
+  heavy: {f: (w, ws, we) => w.usage && w.usage.cost >= 0.01 ? pctOf(idleOf(ws, we).c, w.usage.cost) : null, low: true, u: "%", cap: "Share of estimated cost with no commit or PR"},
   cost: {f: w => w.usage ? w.usage.cost : null, low: true, fmt: v => usd(v)},
   costPerCommit: {f: w => w.costPerCommit, low: true, fmt: v => usd(v)},
   // コミットあたりのトークン：推定費用と同じく、Claude Code のセッション（期間に始まったもの）のトークン ÷ AI が実行したコミット

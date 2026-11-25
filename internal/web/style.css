@@ -103,11 +103,15 @@ button.kpi:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
 
 /* ── legend ─────────────────────────────────────────────── */
 .legend{display:flex;align-items:center;gap:8px}
+.legend .lrw{position:relative;flex:1;min-width:0;display:flex}
 .legend .lrow{position:relative;flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px} /* 読み上げ用の .sr（absolute）が横スクロールの外へはみ出してページを広げないように */
 .fnote{margin:-4px 0 10px;font-size:var(--fs-xs);color:var(--ink-3);line-height:1.5} /* 絞り込みの最中の断り書き */
 .legend .lrow::-webkit-scrollbar{display:none}
 .legend .lab{font-size:var(--fs-xs);letter-spacing:.08em;color:var(--ink-3);margin-right:4px;white-space:nowrap}
 .legend .lab small{letter-spacing:0;font-size:var(--fs-xs);margin-left:2px}
+/* 横にスクロールする並びの右に続きがあるあいだ、右端に隠れているチップの数（「+3 ›」。calendar.js の lrowHint）。押すと右へ送る */
+.legend .lmore{position:absolute;right:0;top:50%;transform:translateY(-50%);height:24px;display:inline-flex;align-items:center;padding:0 8px;border-radius:12px;font-size:var(--fs-xs);font-weight:600;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--rule-2);box-shadow:-10px 0 10px var(--bg);cursor:pointer;white-space:nowrap;font-variant-numeric:tabular-nums;user-select:none}
+.legend .lmore[hidden]{display:none}
 .cbsel{display:inline-block;flex:none;font-size:var(--fs-xs);color:var(--ink-3);white-space:nowrap;margin-right:6px}
 .cbsel .cbt{margin-right:6px}
 /* 週のカレンダーの右端の印の見方（カレンダーと同じ形の印を、流れに置き直す） */
@@ -706,8 +710,8 @@ dialog.mdlg h3{margin:20px 0 8px}
   .week{padding:18px 0 14px;gap:14px}
   .wk .d{font-size:var(--fs-3xl)}
   .legend{flex-wrap:wrap;row-gap:6px}.legend .count{order:-1;flex-basis:100%;padding-left:0} /* スマホでは件数を色分けの並びの上に（横にスクロールする並びの右端だと、画面の外に隠れる） */
-  .legend .lrow{order:1;flex-basis:100%} /* スマホでは色分けのチップを自分の行に（「Color by」の横では幅が足りず、長い名前のチップが切れる） */
-  .legend .lrow{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent);padding-right:24px}.legend .lrow .chip{flex:none} /* チップは 1 行にして横にスクロール（折り返すと 3〜4 行を使い、カレンダーが画面の下へ押し出される）。右端をぼかして続きがあると示す */
+  .legend .lrw{order:1;flex-basis:100%} /* スマホでは色分けのチップを自分の行に（「Color by」の横では幅が足りず、長い名前のチップが切れる） */
+  .legend .lrow{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;scroll-padding-inline-end:64px}.legend .more .lrow{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 56px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 56px),transparent)}.legend .lrow .chip{flex:none} /* チップは 1 行にして横にスクロール（折り返すと 3〜4 行を使い、カレンダーが画面の下へ押し出される）。右端をぼかして続きがあると示す */
   .kpi .v .sep{display:block;height:0;overflow:hidden} /* 「費用 · クレジット」は、区切りで 2 行に分ける（3 列の枠では途中で折り返して読みにくい） */
   .wk{flex-wrap:wrap;row-gap:10px} /* 英語のように長い文言でも、移動のボタンが画面の外に出ないように */
   .wk .nav{flex-wrap:wrap;row-gap:8px;margin-left:0;min-width:0} /* ボタンが増えても、狭い画面では折り返す */
@@ -779,7 +783,7 @@ body.srch .week,body.srch #legend,body.srch #fnote,body.srch #tl,body.srch #revi
    凡例は横に並べてはみ出す分は横スクロール（「クリックで非表示」は読み上げとツールチップにだけ）。
    数字が多い月表示などは、数字を一回り小さくして 1 行に（.kpis.dense は calendar.js が数で付ける） */
 @media (min-width:1201px){ /* 1200px 以下では、チップを横に隠さずに折り返す（はみ出たチップが途中で切れて見えるので） */
-  .legend .lrow{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 24px),transparent);padding-right:24px}
+  .legend .lrow{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;scroll-padding-inline-end:64px}.legend .more .lrow{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 56px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 56px),transparent)}
   .legend .lab small{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
   .chip{flex:none}
 }
@@ -1284,6 +1288,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .isflow{display:grid;gap:16px;margin:16px 0 12px}
 @media (min-width:1300px){.isflow.two{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}} /* 広い画面では、流れ（サンキー）の右に費用と産出の推移。狭ければ下に積む */
 .iskw .skgh{padding:0;margin:0}.iskw .skgh::before{background:linear-gradient(var(--in),var(--out))} /* 投入から出力へ：パネルの見出しと同じ大きさで、左の線は投入の青から出力の紫へ */
+.iskw .skgh{flex-wrap:nowrap} /* 狭い画面で名前が折り返しても、左の線と「ƒx」を名前の横に（名前だけの行や、「ƒx」だけの行を作らない） */
 @container (max-width:900px){.iskw .isk .skt,.iskw .isk .skh{font-size:14px}}
 /* 作業のしかた：12 の指標は、細いタイルの 3 列ではなく、出力のカードと同じ 1 行 1 指標の一覧に（名前は左、値は右、評価の文はその下）。
    124px の幅のタイルでは名前が 3〜4 行に折れ、段の高さがいちばん高いタイルにそろって、カードの中が空く */

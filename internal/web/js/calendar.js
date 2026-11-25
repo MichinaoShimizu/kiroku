@@ -30,13 +30,14 @@ function render(){
   const noHit = !!st.q && !DATA.some(matches); // 検索がどこにも当たらない（カレンダーは空になり、上の検索結果だけが「ない」と言う）
   // 件数は横にスクロールする並び（.lrow）の外に置く。スマホでは並びの上に出し、チップが多くても画面の外へ押し出されないように
   const CP = calPick((M ? (MONTHS[mkey(st.month)] || {}).days : (WEEKS[key(st.week)] || {}).days) || []), SH = SHADE();
-  $("#legend").innerHTML = `<label class="cbsel"><span class="cbt">${esc(t("Color by"))}</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label>${CP.avail.length > 1 ? `<label class="cbsel"><span class="cbt">${esc(t("Figures"))}</span><select id="calk">${CP.avail.map(k => `<option value="${k}"${k === CP.k ? " selected" : ""}>${esc(SH[k].s)}</option>`).join("")}</select></label>` : ""}<div class="lrow"><span class="lab">${esc(t("Active time"))}<small> · ${esc(t("press to hide"))}</small></span>` +
+  $("#legend").innerHTML = `<label class="cbsel"><span class="cbt">${esc(t("Color by"))}</span><select id="cb2">${Object.entries(CB()).map(([v,l]) => `<option value="${v}"${st.colorBy === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label>${CP.avail.length > 1 ? `<label class="cbsel"><span class="cbt">${esc(t("Figures"))}</span><select id="calk">${CP.avail.map(k => `<option value="${k}"${k === CP.k ? " selected" : ""}>${esc(SH[k].s)}</option>`).join("")}</select></label>` : ""}<div class="lrw"><div class="lrow"><span class="lab">${esc(t("Active time"))}<small> · ${esc(t("press to hide"))}</small></span>` +
     Object.keys(cnt).sort((a,b)=>(mins[b]||0)-(mins[a]||0) || cnt[b]-cnt[a]).map(k => `<button class="chip" style="--c:${colorOf(k)}" data-k="${esc(k)}" aria-pressed="${!st.hidden.has(k)}" title="${esc(t("{name}: {stats} (click to show or hide)", {name: k, stats: `${mins[k] ? dur(mins[k]) + " · " : ""}${plural(cnt[k], "session")}`}))}"><span class="dot"></span>${st.colorBy === "source" ? agMark(k) : ""}<span class="cn">${esc((k))}</span><span class="n">${mins[k] ? dur(mins[k]) : "—"}<span class="sr"> ${esc(t("active"))}</span></span></button>`).join("") +
-    `</div>${filtering() ? `<span class="count">${esc(t(M ? "{n} of the month's {total} sessions" : "{n} of the week's {total} sessions", {n: shown.length, total: inRange.length}))}</span>` : ""}`; // 件数は絞り込んでいるときだけ（ふだんは全件なので言うことがない）
+    `</div><span class="lmore" aria-hidden="true" hidden></span></div>${filtering() ? `<span class="count">${esc(t(M ? "{n} of the month's {total} sessions" : "{n} of the week's {total} sessions", {n: shown.length, total: inRange.length}))}</span>` : ""}`; // 件数は絞り込んでいるときだけ（ふだんは全件なので言うことがない）
   // 検索・凡例で絞り込んでいるあいだ、絞り込めない合計（作業時間・トークンなど）は薄くして、そう断る
   const fn = $("#fnote"); fn.hidden = !filtering() || noHit;
   fn.textContent = `${st.q ? t("This view shows only sessions matching the search and their linked records.") : t("Hidden items are left out of this view.")} ${M ? t("Gray figures, at the top and in each day and week, are totals for all sessions; sessions and commits there count only what is shown.") : t("Gray figures, at the top and under each date, are totals for all sessions; sessions and commits there count only what is shown.")}`;
   $("#legend").hidden = !inRange.length; // 記録のない期間は、色分け・件数を出さない（押しても何も変わらない）
+  const lr = $("#legend .lrow"); if (lr) lr.addEventListener("scroll", lrowHint, {passive: true}); lrowHint();
   const ck = $("#calk"); if (ck) ck.onchange = () => { st.shade = ck.value; store.set("mShade", st.shade); render(); const n = $("#calk"); if (n) n.focus(); }; // 日の数（と月の濃さ）に使う量
   const cb2 = $("#cb2"); if (cb2) cb2.onchange = () => { st.colorBy = cb2.value; st.hidden.clear(); store.set("colorBy", st.colorBy); render(); };
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => { const k = c.dataset.k; st.hidden.has(k) ? st.hidden.delete(k) : st.hidden.add(k); render(); });
@@ -400,6 +401,16 @@ function fitRuns(T){
     el.classList.add(tw(s, "00:00") <= w + 12 ? "nt" : "nn"); }); // 時刻は数字の幅がそろう（tabular-nums）ので 0 で測る。.st は左右の余白に 6px ずつはみ出せる
 }
 if (window.ResizeObserver) new ResizeObserver(() => { const T = $("#tl"); if (T.querySelector(".run")) fitRuns(T); edgeFade(T); }).observe($("#tl"));
+// lrowHint は、凡例のチップの並びが横にスクロールして右に続きがあるあいだだけ、右端に「+3 ›」（隠れているチップの数）を出す。
+// 押すと右へ送る。読み上げとキーボードでは出さない（チップはどれも Tab で届き、フォーカスしたチップは並びが見える所まで送る）
+function lrowHint(){ const r = $("#legend .lrow"), m = $("#legend .lmore"); if (!r || !m) return;
+  const more = r.scrollLeft + r.clientWidth < r.scrollWidth - 2;
+  m.hidden = !more; r.parentElement.classList.toggle("more", more); if (!more) return;
+  if (!m.textContent) m.textContent = "+0 ›"; // 幅を測るために仮の文字を入れる
+  const edge = r.getBoundingClientRect().right - m.offsetWidth - 4, n = [...r.querySelectorAll(".chip")].filter(c => c.getBoundingClientRect().right > edge).length;
+  m.textContent = `+${Math.max(1, n)} ›`; }
+document.addEventListener("click", e => { const m = e.target.closest && e.target.closest("#legend .lmore"); if (!m) return; const r = $("#legend .lrow"); if (r) r.scrollBy({left: r.clientWidth * .8, behavior: "smooth"}); });
+if (window.ResizeObserver) new ResizeObserver(() => lrowHint()).observe($("#legend"));
 // edgeFade は、週のカレンダーが右へまだスクロールできるあいだだけ、右端をぼかす（.morer）。スクロールのたびと、描くたびに見直す
 function edgeFade(T){ const sc = T.querySelector(".calscroll"); T.classList.toggle("morer", !!sc && sc.scrollLeft + sc.clientWidth < sc.scrollWidth - 2); }
 

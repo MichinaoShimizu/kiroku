@@ -229,12 +229,16 @@ function scopeNote(){
 function scopeStart(){ const [y, m, d] = META.scope.key.split("-").map(Number); return new Date(y, m-1, d || 1); }
 function archOn(){ return !!(META.archive && META.archive.on); }
 // keepArchive は「kiroku にコピーを残す」（kiroku serve のときだけ）。kiroku serve --archive on と同じことをして、集計を取り込み直す。
-async function keepArchive(){
+// 描き直しても「Data sources」は開いたまま（summary が開いていたかを引き継ぐ）にし、押した行（name のエージェント）は描き直した行に
+// フォーカスを移す（押したボタンは消えるので、読み上げとキーボードの位置がページの頭へ飛ばないように）。失敗したらボタンを押せるように戻す
+async function keepArchive(name){
   try {
     const r = await kfetch("archive", {method:"POST", headers:{"X-Kiroku":"1"}}); if (!r.ok) throw new Error(r.status);
     applyData(await r.json()); render();
+    const D = $("#review details.dsrc"), li = D && (name != null && D.querySelector(`li[data-dsrc="${CSS.escape(name)}"]`) || D.querySelector("li.arch"));
+    if (li){ for (let d = li.closest("details"); d; d = d.parentElement.closest("details")) d.open = true; li.tabIndex = -1; li.focus({preventScroll: true}); li.scrollIntoView({block: "nearest"}); }
     toast(t("Keeping a copy in {dir}. kiroku adds new history to it each time it reads your history.", {dir: (META.archive && META.archive.dir) || t("kiroku's folder")}), 6000);
-  } catch(e){ toast(t("Couldn't start keeping a copy. Run kiroku serve --archive on instead."), 4500); }
+  } catch(e){ document.querySelectorAll("#review .keeparch").forEach(x => x.disabled = false); toast(t("Couldn't start keeping a copy. Run kiroku serve --archive on instead."), 4500); }
 }
 function keepRow(r){ // 計測の状態に添える：どこまでさかのぼれるか、いつ消えるか
   const o = r.oldest ? dMDY(new Date(r.oldest*1000)) : "";
@@ -278,11 +282,11 @@ function measure(w){
   const warnKeep = r => r.retention && (r.retention.days && !r.retention.set || r.retention.now) && !archOn();
   const found = r => r.n || r.error || r.dup || r.archived || warnKeep(r);
   const row = r => { const dt = JA ? r.detail || r.detailEn : r.detailEn || r.detail; // Go の一言（日本語の Detail と英語の DetailEn）
-    return `<li class="${r.error?"warn":""}">${esc(t(r.name))}${AG_ABOUT[r.name] ? ` <span class="muted">— ${esc(t(AG_ABOUT[r.name]))}</span>` : ""}: ${esc(plural(r.n, "session"))}${dt?` (${esc(dt)})`:""}${r.dup?` (${esc(t("{n} also found elsewhere, counted once", {n: plural(r.dup, "duplicate conversation")}))})`:""}${r.error?` (${esc(t("some files couldn't be read"))})`:""}${formatRow(r)}${keepRow(r)}</li>`; };
+    return `<li class="${r.error?"warn":""}" data-dsrc="${esc(r.name)}">${esc(t(r.name))}${AG_ABOUT[r.name] ? ` <span class="muted">— ${esc(t(AG_ABOUT[r.name]))}</span>` : ""}: ${esc(plural(r.n, "session"))}${dt?` (${esc(dt)})`:""}${r.dup?` (${esc(t("{n} also found elsewhere, counted once", {n: plural(r.dup, "duplicate conversation")}))})`:""}${r.error?` (${esc(t("some files couldn't be read"))})`:""}${formatRow(r)}${keepRow(r)}</li>`; };
   const rows = META.report.filter(found).map(row), nf = META.report.filter(r => !found(r));
   if (nf.length) rows.push(`<li><details class="dnf"><summary>${esc(t("Not found: {n}", {n: nf.length}))}</summary><ul class="mlist">${nf.map(row).join("")}</ul></details></li>`);
   const a = META.archive; // kiroku archive
-  if (a && (a.on || a.files)) rows.push(`<li>${esc(a.on ? t("kiroku's copy: on ({files}, {size})", {files: plural(a.files, "file"), size: bytes(a.bytes)})
+  if (a && (a.on || a.files)) rows.push(`<li class="arch">${esc(a.on ? t("kiroku's copy: on ({files}, {size})", {files: plural(a.files, "file"), size: bytes(a.bytes)})
       : t("kiroku's copy: off. Copies kept so far ({files}, {size}) are still shown", {files: plural(a.files, "file"), size: bytes(a.bytes)}))}<br><code>${esc(a.dir)}</code></li>`);
   const prices = {h: "<code>--prices</code>"};
   if (w.usage && w.usage.unpriced) { const ms = (w.usage.unpricedModels || []).map(m => `<code>${esc((m))}</code>`).join(LSEP());

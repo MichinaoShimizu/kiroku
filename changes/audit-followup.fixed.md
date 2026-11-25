@@ -1,0 +1,2 @@
+- `kiroku serve`: pressing "Keep a copy in this folder" no longer closes Data sources; the row updates in place and the focus moves to it
+- A panel figure's name that wraps keeps its last word with "?" and "ƒx", and the headings of From input to output and Estimated cost and output over time keep "ƒx" beside the name on narrow phones

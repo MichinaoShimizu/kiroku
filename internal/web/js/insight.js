@@ -321,7 +321,7 @@ function insHeadlines(F){
     const row = `<div class="ivrow">${big.length ? `<span class="ivnow">${vh}${insOddH(ob)}<span class="ivk">${esc(t("So far"))}</span></span>${big.map(x => `<span class="ivbig"><b>≈ ${esc(x.big.v)}</b><span class="ivk">${esc(x.big.l)}</span></span>`).join("")}` : vh + insOddH(ob)}</div>`;
     const chip = b === false || f.some(x => obj(x) && x.v != null) ? "" : insChip(b);
     const mix = panel === "cost" ? insModelMix(u, key) : "";
-    P[panel].push({key, h: `<div class="itile${insTone(b)}" data-ch="${key}"><div class="ithd${mix ? " hasm" : ""}">${mix ? `<div class="ithl">` : ""}<span class="il">${esc(label)}${hb(hk)}</span>${row}${f.map(x => obj(x) ? (x.big ? fx(x.f) : x.v != null ? x.v : x.n != null ? pln(x.n) : x.fn != null ? `<span class="fxo fxn">${esc(x.fn)}</span>` : fx(x.f, "", x.p, x.h)) : x === t("Kiro's own count, not an estimate") ? pln(x) : fx(x)).join("")}${mix ? `</div>${mix}` : ""}</div>${insSpark(b, label, 480, !INS_RATE.has(panel))}${chip ? `<div class="itft">${chip}</div>` : ""}</div>`}); }; // 値を押すと、上の帯と同じ内訳
+    P[panel].push({key, h: `<div class="itile${insTone(b)}" data-ch="${key}"><div class="ithd${mix ? " hasm" : ""}">${mix ? `<div class="ithl">` : ""}<span class="il">${ilTail(esc(label), hk)}</span>${row}${f.map(x => obj(x) ? (x.big ? fx(x.f) : x.v != null ? x.v : x.n != null ? pln(x.n) : x.fn != null ? `<span class="fxo fxn">${esc(x.fn)}</span>` : fx(x.f, "", x.p, x.h)) : x === t("Kiro's own count, not an estimate") ? pln(x) : fx(x)).join("")}${mix ? `</div>${mix}` : ""}</div>${insSpark(b, label, 480, !INS_RATE.has(panel))}${chip ? `<div class="itft">${chip}</div>` : ""}</div>`}); }; // 値を押すと、上の帯と同じ内訳
   const days = Math.round((we - ws) / 86400), el = Math.round(insFrac() * days), {V, vs, vsInt, vsk} = insCmp();
   const pace = (cur, v, f, fv = f) => ({f: `${t("pace")} = ${f(cur)} × ${days}${t("d")} ÷ ${el}${t("d")} = ${f(v)}`, big: {l: M ? t("Month-end estimate") : t("End-of-week estimate"), v: fv(v)}, pc: true}); // fv は大きな数字の形（今までの値と同じ形に） // 期間の終わりの推定は、今までの値と同じ大きさで並べる
   // 直近の期間（表示中と過去 INS_N）のどれかに 1 以上あるか（今の期間が 0 でも、推移は見られるように選択肢に残す）
@@ -354,7 +354,7 @@ function insHeadlines(F){
   const bp = insBase("costPerCommit"), oc = w && w.outCost, nc = o.commits, gc = g ? g.commits : 0;
   const perGit = kind => { const k = kind + "PerGitCommit", b = insBase(k); if (!b || !gc) return; const fu = UL[kind][2], used = usedOf(w, kind), den = plural(gc, "Git commit");
     tile("unit", `${kind}:commit`, UL[kind][3], b, kind === "credits" ? crR(b.cur) : fmtM(k, b.cur), [{f: `${t("total")} ${fu(used)} ÷ ${den} = ${fmtM(k, b.cur)}`, p: `${fu(used)} ÷ ${den}`}, {n: t("Git commits can't be split into AI's share, so this divides the period's whole total")}, vsk(k, b.cur)], "", "perGitCommit"); };
-  if (bp && oc && nc) tile("unit", "cost:commit", t("Claude Code cost per AI commit"), bp, fmtM("costPerCommit", bp.cur), [{f: `${usd(oc)} ÷ ${nc} ${t("AI commits")} = ${usd(bp.cur)}`, p: `${usd(oc)} ÷ ${nc} ${t("AI commits")}`}, vsk("costPerCommit", bp.cur)], "costPerCommit");
+  if (bp && oc && nc) tile("unit", "cost:commit", t("Claude Code estimated cost per AI commit"), bp, fmtM("costPerCommit", bp.cur), [{f: `${usd(oc)} ÷ ${nc} ${t("AI commits")} = ${usd(bp.cur)}`, p: `${usd(oc)} ÷ ${nc} ${t("AI commits")}`}, vsk("costPerCommit", bp.cur)], "costPerCommit");
   else perGit("cost");
   // トークンも金額と同じく（Claude Code のセッションのトークン ÷ AI のコミット）
   { const bt = insBase("tokensPerCommit"), ot = DATA.filter(s => s.source === "Claude Code" && s.start >= ws && s.start < we).reduce((a, s) => a + sesTok(s), 0);
@@ -493,7 +493,7 @@ function bindInsight(R){
     b.onclick = e => { e.stopPropagation(); const on = el.classList.toggle("fxon"); b.setAttribute("aria-pressed", String(on)); b.title = on ? t("Hide the formula") : t("Show the formula"); };
     // 名前の要素の中に置く（カードは縦の flex なので、外に置くと横いっぱいの帯になる）。ただし、値のボタンが aria-labelledby で指す名前（枠・行の span）には
     // 入れず、そのすぐ後ろに（値の読み上げに「Show the formula」が混ざらないように）。見出しには、名前だけを読み上げの名前にする
-    if (el.matches(".stat, .mrow")){ const kt = lab.parentElement.querySelector(":scope > .kt"); if (kt) kt.querySelector(":scope > span").after(b); else lab.after(b); } else { if (/^H\d$/.test(lab.tagName)) lab.setAttribute("aria-label", name); lab.append(b); } });
+    if (el.matches(".stat, .mrow")){ const kt = lab.parentElement.querySelector(":scope > .kt"); if (kt) kt.querySelector(":scope > span").after(b); else lab.after(b); } else { if (/^H\d$/.test(lab.tagName)) lab.setAttribute("aria-label", name); (lab.querySelector(":scope > .kt") || lab).append(b); } });
   requestAnimationFrame(() => skBack(R));
   insPack(R);
   for (const [attr, key] of [["skk", "insSk"]]) R.querySelectorAll(`[data-${attr}]`).forEach(b => b.onclick = () => { st[key] = b.dataset[attr]; store.set(key, st[key]); summary(); const nb = $("#review").querySelector(`[data-${attr}="${CSS.escape(b.dataset[attr])}"]`); if (nb) nb.focus(); });
@@ -908,6 +908,6 @@ function insCum(){
   const sy = stall ? t("From {a} to {b}: {in} +{pi}%, {o} +{po}% of the period's totals", {a: when(stall.i), b: when(stall.j, true), pi: Math.round(stall.di), in: inName, o: O.n, po: Math.round(stall.dout)}) : t("No stretch where {in} rose by 15% or more of the period's total while {o} rose 2% or less", {o: O.n, in: inName});
   const th = stall ? t("Open the calendar for those days to see whether it was research, waiting or going in circles") : "";
   const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(INS_OUT())}">${ks.map(x => `<button type="button" data-cok="${x}" aria-pressed="${x === k}">${esc(outs[x].n)}</button>`).join("")}</div>` : "";
-  return `<div class="inshead"><h4 class="ikgh skgh">${esc(t("Cost and output over time"))}</h4>${mtabs}</div>${say(sy, th)}<figure class="insfig icum"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("Cost and output over time"))}">${grid}${sband}<path class="icl in" d="${line(ci)}"/><path class="icl out" d="${line(co)}"/>${ends}${hits}</svg>
+  return `<div class="inshead"><h4 class="ikgh skgh">${esc(t("Estimated cost and output over time"))}</h4>${mtabs}</div>${say(sy, th)}<figure class="insfig icum"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("Estimated cost and output over time"))}">${grid}${sband}<path class="icl in" d="${line(ci)}"/><path class="icl out" d="${line(co)}"/>${ends}${hits}</svg>
     <p class="ifxs">${fx(t("Both lines are the running total as a share of the period's total; a session's {in} is spread over its active time", {in: inName}), "", t("Solid: {in} · dashed: {o}{s}", {in: inName, o: O.n, s: stall ? t(" · shaded: {in} up, {o} flat", {in: inName, o: O.n}) : ""}))}${stall ? fx(t("Shaded: the stretch where {in} rose the most (15% or more of the period's total) while {o} rose 2% or less", {in: inName, o: O.n})) : ""}${k === "aiLines" ? fx(t("A session's AI-edited lines are spread over its active time too")) : ""}</p></figure>`;
 }

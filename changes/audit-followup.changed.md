@@ -1,0 +1,3 @@
+- Headings and figure names say "Estimated cost" (推定費用), as the guide's rule has it, and only switches say "Cost": "Estimated cost and output over time", "Claude Code estimated cost per AI commit", "Sessions with the highest estimated cost per commit" (and per prompt) and "Share of estimated cost with no commit or PR"
+- Japanese uses one word for each idea: 手動 for "by hand", PR for pull request, ここまで for "so far" in a period in progress, 範囲 for a range and ばらつき for a spread (途中 stays for a period in progress and for a first period your history starts partway through)
+- On a phone (and on wide windows), the legend's row of items shows how many are out of view, such as "+3 ›", while there is more to the right; pressing it scrolls the row
