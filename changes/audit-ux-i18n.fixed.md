@@ -26,3 +26,4 @@
 - A metric's name that wraps keeps its last word with its "ƒx" and "?" instead of leaving the "?" alone on the next line ("Claude Code sessions that reached a commit or PR" at 1440 px)
 - Japanese: session time has one name, セッション時間, in Unit cost per input's switch (セッション時間 1 時間), its formula, the From input to output switch and the notes (were セッションの 1 時間, セッションの作業時間 and セッションの時間)
 - Cost and output over time: on a phone the two totals at the end of the lines no longer overlap ("$6.87" and "299 lines")
+- The week band says "Month-end credits (estimate)" (and "Month-end cost (estimate)" in the month view) like "Month-end (estimate)", instead of "Month-end credits"
