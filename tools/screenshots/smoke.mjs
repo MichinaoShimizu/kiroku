@@ -1134,6 +1134,15 @@ async function runJa(env) {
     await p.locator('#view button[data-v="cal"]').click(); await p.waitForTimeout(300);
   });
 
+  await step("前の期間からの増減の軸の名前", async () => {
+    // 日本語の名前は英語のほぼ 2 倍の幅。文字の数で切ると隣の名前と重なった（「先週の同じ日数まで」と「data-pipe…」）。途中の今週で、同じ日数までと比べる形を見る
+    await p.evaluate(() => go(null)); await p.locator('#view button[data-v="sum"]').click(); await p.waitForTimeout(300);
+    const r = await p.evaluate(() => { const xs = [...document.querySelectorAll("#review .iwtf text.ixl")].map(e => { const b = e.getBoundingClientRect(); return {t: [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join(""), l: b.left, r: b.right}; });
+      return {xs, bad: xs.slice(1).filter((x, i) => x.l < xs[i].r - 0.5).map(x => x.t)}; });
+    check("前の期間からの増減の軸の名前が、隣の名前と重ならない", r.xs.length >= 3 && r.bad.length === 0, JSON.stringify(r.bad.length ? r.bad : r.xs.map(x => x.t)));
+    await p.locator('#view button[data-v="cal"]').click(); await p.waitForTimeout(300);
+  });
+
   await step("月表示", async () => {
     await p.keyboard.press("m");
     await p.waitForFunction(() => document.querySelector("#mode button[data-v=month]").getAttribute("aria-pressed") === "true");

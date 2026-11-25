@@ -26,6 +26,12 @@ function dStamp(t){ return `${dMDY(new Date(t*1000))}${isJA() ? " " : ", "}${hm(
 function md(t){ const d = new Date(t*1000); return isJA() ? `${dMD(d)}(${DOW[d.getDay()]})` : `${DOW[d.getDay()]}, ${dMD(d)}`; } // Mon, Sep 28・9月28日(月)
 function dur(m, html){ m = Math.round(m); const h = Math.floor(m/60), r = m%60;
   const u = x => html ? `<small>${x}</small>` : x; return h ? `${h}${u("h")}${r ? `\u00a0${r}${u("m")}` : ""}` : `${r}${u("m")}`; } // 「1h 24m」は途中で折り返さない
+// dispW は、文字列の見た目の幅を、英数字 1 文字を 1 として見積もる（漢字・かな・全角は 2）。fitW は、幅 max に収まるよう切って「…」を付ける。
+// グラフの軸の名前を文字の数で切ると、日本語は英語のほぼ 2 倍の幅になって隣と重なるため（「先週の同じ日数まで」）
+const WIDE = /[\u1100-\u115f\u2e80-\u303e\u3041-\u33ff\u3400-\u4dbf\u4e00-\u9fff\ua000-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6\u{20000}-\u{3fffd}]/u;
+const dispW = s => [...String(s)].reduce((a, c) => a + (WIDE.test(c) ? 2 : 1), 0);
+function fitW(s, max){ s = String(s); if (dispW(s) <= max) return s; let o = "", w = 0;
+  for (const c of s){ const cw = WIDE.test(c) ? 2 : 1; if (w + cw > max - 1) break; o += c; w += cw; } return o + "…"; }
 function tok(n){ n = n || 0; return n >= 1e9 ? (n/1e9).toFixed(1)+"B" : n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? Math.round(n/1e3)+"K" : String(n); }
 const commas = n => n.toLocaleString(LOC()); // 1,234（数のカンマ区切りはこれで）
 // 足した行・消した行：git diff にならって、足した行は緑、消した行は赤（a と r は書式を整えた数の文字列）

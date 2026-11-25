@@ -670,6 +670,34 @@ func TestLastEnd(t *testing.T) {
 	}
 }
 
+// グラフの軸の名前を見た目の幅で切る（format.js の dispW・fitW）。日本語の名前を文字の数で切ると、英語のほぼ 2 倍の幅になって隣と重なった
+func TestFitW(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/format.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := strings.ReplaceAll(string(src), "\r\n", "\n")
+	code := regexp.MustCompile(`(?ms)^const WIDE = .*?^function fitW\(s, max\)\{.*?return o \+ "…"; \}$`).FindString(text)
+	if code == "" {
+		t.Fatal("format.js に WIDE から fitW までが見つからない")
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "fitw_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "fitw.js")
+	if err := os.WriteFile(f, append([]byte(code+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("dispW・fitW が違う:\n%s", out)
+	}
+}
+
 // いつもの範囲の両端（insight.js の insLoHi）。丸めた端が値をまたがないこと（「11.7：いつもの 9–12 より上」としない）、
 // 両端の小数の桁がそろうこと（「50.8%–64%」としない）。insLoHi・insEnds・insExpr を取り出し、MET と fmtM は置き換える。insBase が付ける b.fmt があっても桁がそろうこと
 func TestLoHi(t *testing.T) {
