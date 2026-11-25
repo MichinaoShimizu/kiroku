@@ -134,7 +134,7 @@ function reportSignals(ses, ws, we, cut, rw, sw){ // rw: 繰り返しを数え�
   if (MM.size === 1 && ses.length === 1) L.push(`- Main model: ${oneLine([...MM.keys()][0])}`);
   else if (MM.size) L.push(`- Main model of each session: ${[...MM].sort((a, b) => b[1] - a[1]).map(([m, n]) => `${oneLine(m)} ${plural(n, "session")}`).join(", ")}`);
   const LT = ses.filter(s => pricey(s) && s.nPrompts <= 3 && !s.nFiles);
-  if (LT.length) L.push(`- Short sessions (3 or fewer prompts, no file edits) on an Opus- or Fable-class model (a lighter model may be enough): ${LT.length}${LT.slice(0, 3).map(s => `; ${md(s.start)} ${hm(s.start)} "${cut(s.title, 60)}"${rw && s.cost ? ` ${usd(s.cost)}` : ""}`).join("")}`);
+  if (LT.length) L.push(`- Short sessions (3 or fewer prompts, no file edits) on an Opus-, Fable- or Mythos-class model (a lighter model may be enough): ${LT.length}${LT.slice(0, 3).map(s => `; ${md(s.start)} ${hm(s.start)} "${cut(s.title, 60)}"${rw && s.cost ? ` ${usd(s.cost)}` : ""}`).join("")}`);
   // 長い会話: 1 回の応答で読む入力（文脈）が、前半の 4 倍以上に増えたもの
   const LC = ses.filter(s => s.ctx && s.ctx.length === 3 && s.ctx[0] > 0 && s.ctx[1] >= s.ctx[0] * 4 && s.ctx[2] >= ctxPeakMin(s));
   if (LC.length) L.push(`- Long conversations (the input read per response grew to 4× or more of the first part): ${LC.slice(0, 3).map(s => `${ses.length > 1 ? `${md(s.start)} ${hm(s.start)} "${cut(s.title, 40)}" ` : ""}${tok(s.ctx[0])} → ${tok(s.ctx[1])}, peak ${tok(s.ctx[2])}${s.ctxWindow ? ` of ${tok(s.ctxWindow)}` : ""}`).join("; ")}`);

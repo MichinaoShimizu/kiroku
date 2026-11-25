@@ -18,8 +18,8 @@ function longCtxOf(ws, we){ // 会話が長くなり、1 回の応答で読む�
 // 長い会話とみなす最大の文脈：モデルのコンテキストウィンドウがわかれば、その半分（1M のモデルで 100K は長くないため）。わからなければ 100K
 const ctxPeakMin = s => s.ctxWindow > 0 ? s.ctxWindow * 0.5 : 1e5;
 const mainModel = s => ((s.models || []).slice().sort((a,b) => b[1] - a[1])[0] || [""])[0];
-const pricey = s => /opus|fable/i.test(mainModel(s)); // 主なモデルが高いモデル（Opus 系・Fable 系）か
-function lightOf(ws, we){ // 編集のない短いセッションで、高いモデル（Opus 系・Fable 系）を使ったもの
+const pricey = s => /opus|fable|mythos/i.test(mainModel(s)); // 主なモデルが高いモデル（Opus 系・Fable 系・Mythos 系）か
+function lightOf(ws, we){ // 編集のない短いセッションで、高いモデル（Opus 系・Fable 系・Mythos 系）を使ったもの
   const xs = DATA.filter(s => inP(s, ws, we) && pricey(s) && s.nPrompts <= 3 && !s.nFiles && s.cost >= 0.3).sort((a,b) => b.cost - a.cost);
   return {xs, c: xs.reduce((t,s) => t + s.cost, 0)}; }
 /* 繰り返したプロンプト：期間中のプロンプトを、文字の 3 文字組の重なり（Jaccard 0.6 以上）でまとめ、3 つ以上のセッションで書いたものを拾う（AI は使わない） */
@@ -224,7 +224,7 @@ function findList(w, pw, unit){
   }
   const LT = lightOf(ws, we);
   if (u.cost >= 2 && LT.c >= Math.max(1, u.cost * 0.1))
-    add("modelfit", 24, tx("Short sessions with no edits spent {cost} ({pct}% of estimated cost) on Opus- or Fable-class models", {cost: usd(LT.c), pct: Math.round(LT.c*100/u.cost)}), tx("For research and questions, a lighter model is often enough"), tx("Sessions with ≤3 prompts, no edits and $0.3+ total 10%+ of all cost ($2+) and $1+"), LT.xs.map(s => s.id));
+    add("modelfit", 24, tx("Short sessions with no edits spent {cost} ({pct}% of estimated cost) on Opus-, Fable- or Mythos-class models", {cost: usd(LT.c), pct: Math.round(LT.c*100/u.cost)}), tx("For research and questions, a lighter model is often enough"), tx("Sessions with ≤3 prompts, no edits and $0.3+ total 10%+ of all cost ($2+) and $1+"), LT.xs.map(s => s.id));
   const {xs: idle, c: idleC} = idleOf(ws, we);
   if (u.cost >= 2 && idleC >= u.cost * 0.4)
     add("heavy", 30 + Math.round(idleC*50/u.cost), tx("{pct}% of estimated cost ({cost}) went to sessions with no commit or pull request", {pct: Math.round(idleC*100/u.cost), cost: usd(idleC)}), tx("Fine for research or discussion. If they stopped partway, it's worth finding out why"), tx("Sessions of $1+ total 40%+ of all cost ($2+)"), idle.map(s => s.id));
