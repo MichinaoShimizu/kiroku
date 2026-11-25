@@ -140,10 +140,17 @@ async function run(env) {
     check("内訳は初めはたたんであり、見出しの横に中のカードの名前が 1 行ある。押すと開き、開いたかは覚える。たたむ箱は 1 段だけで、消したカード（推移・使い方・ばらつき）はない", await p.evaluate(async () => {
       const wait = () => new Promise(r => setTimeout(r, 50));
       store.set("insBrk", false); summary(); const B = document.querySelector("#review details.insbrk"), sm = B && B.querySelector(":scope > summary"); if (!sm) return false;
-      const closed = !B.open && !B.querySelector(".insrow").checkVisibility() && /Output, Where it went/.test(sm.textContent) && !/other charts/.test(sm.textContent) && !document.querySelector("#review details.insmore");
+      const closed = !B.open && !B.querySelector(".insrow").checkVisibility() && /Output, Cost and output over time, Where it went/.test(sm.textContent) && !/other charts/.test(sm.textContent) && !document.querySelector("#review details.insmore");
       sm.click(); await wait(); const saved = store.get("insBrk", false) === true; summary();
       const B2 = document.querySelector("#review details.insbrk"), top = [...B2.querySelectorAll(":scope > .insg > .insrow h4")].map(h => h.textContent);
       return closed && saved && B2.open && top.some(x => /When you worked/.test(x)) && top.some(x => /Where it went/.test(x)) && top.some(x => /Most edited files/.test(x)) && !top.some(x => /^(Trend|Usage|Spread per session)/.test(x)); }));
+    check("内訳に、費用と産出の推移・同時に動いたセッション・プロンプトの長さと言い直しのカードがある。散布図の点を押すと、そのセッションを開く", await p.evaluate(async () => {
+      store.set("insBrk", true); summary(); const hs = [...document.querySelectorAll("#review .insbrk h4")].map(h => h.textContent);
+      const has = ["Cost and output over time", "Sessions running at once", "Prompt length and corrections"].every(n => hs.some(x => x.startsWith(n)));
+      const lines = document.querySelectorAll("#review .icum path.icl").length === 2 && !!document.querySelector("#review .icc path.iccl");
+      const dot = document.querySelector("#review .ilf circle[data-sid]"); if (!has || !lines || !dot) return false;
+      dot.dispatchEvent(new MouseEvent("click", {bubbles: true})); await new Promise(r => setTimeout(r, 50)); const ok = st.sel === dot.dataset.sid;
+      st.sel = null; render(); store.set("insBrk", false); summary(); return ok; }));
     check("サマリーの頭に見直す候補の行はない", await p.evaluate(() => !document.querySelector("#review .iworth") && !/Worth a look/.test(document.querySelector("#review .insight").textContent.slice(0, 400))));
     check("見直す候補（Worth a look）の指標のカードが、たたんだ内訳の中にあれば、その候補を開くと内訳が開く（開いたことも覚える）", await p.evaluate(async () => {
       store.set("insBrk", false); summary(); const B = document.querySelector("#review details.insbrk");
