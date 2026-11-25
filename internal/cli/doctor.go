@@ -160,10 +160,8 @@ func doctorReport(w io.Writer, rep []source.Report, total int, archiveDir string
 	} else {
 		fmt.Fprintf(w, "  %s git: not found, so commits and pushes are not shown\n", s.dim("·"))
 	}
-	if p, err := currentAutostart(nil); err == nil { // kiroku 4 の autostart で登録したログイン時の起動が残っていれば、外し方を言う
-		if _, ok := autostartAddr(p); ok {
-			fmt.Fprintf(w, "  %s autostart: a login item from kiroku 4 still starts kiroku serve; run %s to remove it\n", s.warn("!"), s.bold("\"kiroku autostart\""))
-		}
+	if hasAutostart() { // kiroku 4 の autostart で登録したログイン時の起動が残っていれば、外し方を言う
+		fmt.Fprintf(w, "  %s autostart: a login item from kiroku 4 still starts kiroku serve; run %s to remove it\n", s.warn("!"), s.bold("\"kiroku autostart\""))
 	}
 	cur := "v" + strings.TrimPrefix(version, "v")
 	newer := false
