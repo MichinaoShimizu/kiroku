@@ -7,13 +7,15 @@ function summary(){
   if (!w){ R.innerHTML = foot(); return; } // 記録がないことは、上の数字とカレンダーで言っている（3 度言わない）
   const F = insRank(findList(w, pw, unit)); // 見直す候補（「まず見直す」とダイアログで同じ並び）
   lastFlags = F; // 見直す候補（詳細の頭の印と「まず見直す」が使う）
+  const dsOpen = !!R.querySelector("details.dsrc[open]"); // 描き直しても「Data sources」を開いたままに（コピーを残したとき・kiroku serve の読み直し）
   R.innerHTML = `${head}${insightH(F)}<div class="rvgrid">
   <section class="panel metap">${measure(w)}${foot()}</section></div>`;
+  if (dsOpen){ const D = R.querySelector("details.dsrc"); if (D) D.open = true; }
   placeFlags(R, F);
   R.querySelectorAll(".card,.fses").forEach(c => c.onclick = () => select(c.dataset.id));
   R.querySelectorAll(".fmark").forEach(b => b.onclick = () => insOpenWorth(b.dataset.goto, b));
   R.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => openMetric(b.dataset.metric, b)); // 上の帯と同じ内訳
-  R.querySelectorAll(".keeparch").forEach(b => b.onclick = () => { R.querySelectorAll(".keeparch").forEach(x => x.disabled = true); keepArchive(); });
+  R.querySelectorAll(".keeparch").forEach(b => b.onclick = () => { R.querySelectorAll(".keeparch").forEach(x => x.disabled = true); keepArchive(b.closest("li").dataset.dsrc); });
   bindInsight(R); bindCopy(R); bindHelp(R);
   if (hpopFor && !hpopFor.isConnected) hideHint(); // 描き直しで、説明を開いた ? が消えた
 }

@@ -13,7 +13,7 @@
 import { chromium } from "playwright";
 import { execFileSync, spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -203,6 +203,29 @@ try {
     await pr.waitForFunction(() => /last checked/.test(document.querySelector("#live").title), null, { timeout: 15000 }).then(() => true, () => false)
       .then(ok => check("直れば、バッジは最終確認の時刻に戻る", ok));
     await pr.close();
+  }
+
+  // 「Data sources」の「Keep a copy in this folder」をキーボードで押すと、コピーを残し始め、パネルは開いたまま、
+  // フォーカスは描き直したその行（「kiroku keeps a copy」）に移る（ボタンが消えても、ページの頭へ飛ばない）
+  // gen.py の履歴は cleanupPeriodDays を 3650 にしてあるので、設定のファイルのない写しを読む serve を別に立てる（既定の 30 日で消える履歴）
+  {
+    const keepHome = path.join(work, "keephome", ".claude");
+    await cp(path.join(home, ".claude", "projects"), path.join(keepHome, "projects"), { recursive: true });
+    const kp = await startExtra(["serve", "127.0.0.1:0", "--no-open", "--sources", "claude", "--claude-root", path.join(keepHome, "projects"), "--archive-dir", path.join(work, "keeparchive")], {});
+    const pd = await ctx.newPage();
+    await openWithKey(pd, kp.url);
+    await pd.waitForSelector(".run[data-sid]", { timeout: 15000 });
+    await pd.locator("#review details.dsrc > summary").click();
+    const btn = pd.locator("#review details.dsrc .keeparch").first();
+    check("既定のままで消える履歴の行に「Keep a copy in this folder」がある", await btn.count() > 0);
+    const ag = await btn.evaluate(e => e.closest("li").dataset.dsrc);
+    await btn.focus(); await pd.keyboard.press("Enter");
+    await pd.waitForFunction(() => /Keeping a copy in/.test(document.querySelector("#toast").textContent), null, { timeout: 15000 });
+    const r = await pd.evaluate(() => { const D = document.querySelector("#review details.dsrc"), a = document.activeElement;
+      return {open: !!D && D.open, ag: a && a.dataset ? a.dataset.dsrc : null, inD: !!D && D.contains(a), text: a ? a.textContent : "", buttons: document.querySelectorAll("#review .keeparch").length,
+        arch: (document.querySelector("#review details.dsrc li.arch") || {}).textContent || ""}; });
+    check("コピーを残すと、Data sources は開いたまま、その行は残していると言い、フォーカスはその行にある", r.open && r.inD && r.ag === ag && /kiroku keeps a copy/.test(r.text) && r.buttons === 0 && /kiroku's copy: on/.test(r.arch), JSON.stringify(r));
+    await pd.close();
   }
 
   // 鍵のないブラウザ（同じコンピューターのほかのユーザーなど）は、案内だけを見る
