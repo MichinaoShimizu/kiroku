@@ -31,6 +31,8 @@ function insRange(k, cur, f, low, add, fmt){
   const better = pos === "typical" || low == null || INS_VOL.has(k) ? null : (pos === "low") === low; // 範囲の外で、よい側か（向きの決まっていない指標と、使った量・作業の量は null。量の増減に良し悪しは付けない）
   return {...r, q1, med, q3, pos, far, better, rank: Math.round(xs.filter(x => x < v).length * 100 / xs.length)};
 }
+// insMidT は、記録が途中から始まった週・月を数えない理由（グラフのツールチップ）
+const insMidT = () => st.mode === "month" ? t("Your history starts partway through this month, so it is left out") : t("Your history starts partway through this week, so it is left out");
 const insName = k => (H()[k] || H()[{gitLines: "lines"}[k]] || {}).n || k; // Git の行は、説明（HELP）の id が lines
 const insNoun = () => st.mode === "month" ? (JA ? "月" : "months") : (JA ? "週" : "weeks"); // 数を伴わない「過去の週・月」（日本語は「か月」にしない）
 const insUnit = n => n === 1 && !JA ? (st.mode === "month" ? "month" : "week") : st.mode === "month" ? t("months") : t("weeks"); // 日本語は数によらず「か月」「週」
@@ -165,7 +167,7 @@ function insSpark(b, label, W = 480, bar = false){
   const bv = q => q.v == null ? null : insBarS(k, q.cur && b.part ? b.cur : q.v), alt = bar && Math.max(0, ...ps.map(q => (bv(q) || "").length)) * 5.5 > step - 3;
   const pcl = !bar ? "" : ps.map((q, i) => { const hv = q.v == null ? 0 : q.cur && b.part ? b.cur : q.v, over = hv > top; /* 途中の期間の数字（今までの値）は、今までの値の棒のすぐ上に（推定の破線の箱の上に置くと、推定の値に見える） */ if (q.v == null || (!over && (n - 1 - i) % 2 && alt)) return ""; const yy = y(Math.min(hv, top)), up = yy > T + 12;
     return `<text class="spc${q.cur ? " cur" : ""}${over ? " over" : ""}${(n - 1 - i) % 2 && !over ? " k2" : ""}" x="${x(i).toFixed(1)}" y="${(over ? T + 28 : up ? yy - 4 : yy + 12).toFixed(1)}">${esc(bv(q))}</text>`; }).join(""); // 上端に近い棒は棒の中に。上を切った棒は、切れ目の下に
-  const hits = ps.map((q, i) => `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H - B}"${tipAttr(q.p.label, q.v == null ? (bar && q.p.S && q.p.ws >= hs ? fm(0) : t("No records")) : (q.cur && b.part ? insEndLabel(fm(q.v)) : fm(q.v)), q.cur && b.part ? kv(t("So far"), fm(b.cur)) : "", q.c == null ? "" : kv(cl, fm(q.c)), pcOf(i) == null ? "" : `${vsL} ${pcS(pcOf(i))}`, stk && stk[i] ? [...stk[i]].reverse().map(([a, v]) => kv(a, fs(v))) : "")}/>`).join("");
+  const hits = ps.map((q, i) => `<rect class="hit" x="${(x(i) - step / 2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H - B}"${tipAttr(q.p.label, q.v == null ? (bar && q.p.S && q.p.ws >= hs ? fm(0) : q.p.ws < hs && q.p.we > hs ? insMidT() : t("No records")) : (q.cur && b.part ? insEndLabel(fm(q.v)) : fm(q.v)), q.cur && b.part ? kv(t("So far"), fm(b.cur)) : "", q.c == null ? "" : kv(cl, fm(q.c)), pcOf(i) == null ? "" : `${vsL} ${pcS(pcOf(i))}`, stk && stk[i] ? [...stk[i]].reverse().map(([a, v]) => kv(a, fs(v))) : "")}/>`).join("");
   // 利用上限に当たった時刻：小さな赤い三角（縦線はグラフを隠すので引かない）。同じ期間の到達は 1 つにまとめ、回数を添える。
   // 棒のグラフでは x 軸のすぐ下の段に（棒の上に重ねると、棒の色に紛れる）、線のグラフでは x 軸の上に
   const lim = !use ? "" : ps.map((q, i) => ({i, q, h: lh[i]})).filter(z => z.h.length && z.q.v != null).map(({i, h}) => {
@@ -363,7 +365,7 @@ function insHeadlines(F){
       const f = by === "Edit" ? `${fu(e.used)} ÷ ${den} × 100 = ${v}` : `${fu(e.used)} ÷ ${den} = ${v}`, plain = by === "Edit" ? `${fu(e.used)} ÷ ${den} × 100` : by === "Hour" ? `${fu(e.used)} ÷ ${t("{d} of session time", {d: dur(e.min)})}` : `${fu(e.used)} ÷ ${den}`;
       tile(by === "Edit" ? "unit" : "uin", `${kind}:${by === "Edit" ? "edit" : by}`, insName(k), b, kind === "credits" ? crR(b.cur) : v, [{f, p: plain}, by === "Edit" ? "" : {fn: t("Each divides only by the sessions that record what it divides")}, vsk(k, b.cur)], k === "costPerAsk" ? "costPerAsk" : "", k); } } // プロンプトあたりの費用は、押すと内訳
   // 切り替え：前に選んだもの（記録がなければ、記録のある最初のもの）を見せる。記録のない選択肢は出さない
-  const NAME = {cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), active: t("Active time"), commit: t("Commits"), push: t("Pushes"), pr: t("PRs"), edit: t("100 AI lines"), Hour: t("Active hour"), Day: t("Active day"), Ses: t("Session"), Ask: t("Prompt")};
+  const NAME = {cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), active: t("Active time"), commit: t("Commits"), push: t("Pushes"), pr: t("PRs"), edit: t("100 AI lines"), Hour: t("Session hour"), Day: t("Active day"), Ses: t("Session"), Ask: t("Prompt")};
   const pick = (sw, ks) => ks.includes(store.get(INS_SW[sw], "")) ? store.get(INS_SW[sw], "") : ks[0];
   const swH = (sw, label, ks, cur, dim = "n", hid = () => false) => insSwH(sw, label, ks.map(k => [k, NAME[k]]), cur, dim, hid);
   const now = soFar() != null ? (M ? t("This month") : t("This week")) : (M ? t("Month shown") : t("Week shown"));
@@ -502,11 +504,17 @@ function insMinutes(ws, we){ // [ws, we) の作業時間を、曜日（月曜 0�
 }
 const insOffM = g => { let off = 0, all = 0; g.forEach((r, d) => r.forEach((v, h) => { all += v; if (d >= 5 || h < 9 || h >= 18) off += v; })); return {off, all}; };
 const insOff = g => { const {off, all} = insOffM(g); return all ? Math.round(off * 100 / all) : null; };
+// insOffRange は、時間外の割合 off を過去の期間と比べる。途中の期間は、過去の期間も同じところまで（週なら同じ曜日・時刻まで、月なら同じ日数まで）で比べる
+// （週の途中で土日がまだ来ていないのに、土日を含む過去の週まるごとと比べると、いつも少なく見えるため）
+function insOffRange(off){
+  const {ws} = period(), cut = soFar() == null ? null : nowMs() / 1000 - ws;
+  return insRange("offhours", off, p => p.S ? insOff(insMinutes(p.ws, cut == null ? p.we : Math.min(p.we, p.ws + cut))) : null, true, false, v => `${Math.round(v)}%`);
+}
 function insHeat(){
   const {ws, we} = period(), g = insMinutes(ws, we), max = Math.max(...g.flat()); if (!(max > 0)) return "";
   // 作業がいちばん集まった 3 時間（曜日ごと）
   let best = {v: -1}; g.forEach((r, d) => { for (let h = 0; h + 3 <= 24; h++){ const v = r[h] + r[h + 1] + r[h + 2]; if (v > best.v) best = {v, d, h}; } });
-  const off = insOff(g), b = off == null ? null : insRange("offhours", off, p => p.S ? insOff(insMinutes(p.ws, p.we)) : null, true, false, v => `${Math.round(v)}%`);
+  const off = insOff(g), b = off == null ? null : insOffRange(off);
   const days = [1, 2, 3, 4, 5, 6, 0];
   const cells = g.map((r, d) => `<span class="ihd">${esc(dow(days[d]))}</span>` + r.map((v, h) => `<span class="ihc${d >= 5 || h < 9 || h >= 18 ? " off" : ""}" style="--a:${v ? (0.12 + 0.88 * v / max).toFixed(2) : 0}"${tipAttr(`${dow(days[d])} ${h}:00–${h + 1}:00`, v ? dur(v) : t("None"))}></span>`).join("") + `<span class="iht">${(z => z ? esc(dur(z)) : "—")(r.reduce((a, v) => a + v, 0))}</span>`).join(""); // 行の右端に曜日の合計（触れなくても値が読めるように）
   const hrs = `<span></span>` + Array.from({length: 24}, (_, h) => `<span class="ihh">${h % 3 ? "" : h}</span>`).join("") + `<span class="ihh iht">${esc(t("Total"))}</span>`;
@@ -514,7 +522,7 @@ function insHeat(){
   const tot = insOffM(g).all, sy = t("Busiest {p}: {h} = {pc}% of the {all} in this chart; off-hours {off}%", {p: peak, h: dur(best.v), pc: tot ? Math.round(best.v * 100 / tot) : 0, all: dur(tot), off: off == null ? "—" : off});
   const th = b && b.q1 != null && b.pos === "high" ? t("Off-hours share {off}% is higher than in most of your past {unit} (usually up to {q3}%)", {off, q3: Math.round(b.q3), unit: insNoun()}) : "";
   return `${say(sy, th)}<div class="ihgrid" role="img" aria-label="${esc(t("Busiest: {p}", {p: peak}))}">${hrs}${cells}</div>
-    <p class="ifxs">${fx(`${t("peak 3h")} = ${peak} (${dur(best.v)})`)}${off != null ? fx(`${t("off-hours")} = ${dur(insOffM(g).off)} ÷ ${dur(insOffM(g).all)} ${t("(session time in the period)")} = ${off}%`) : ""}${off != null ? insChip(b) : ""}</p>
+    <p class="ifxs">${fx(`${t("peak 3h")} = ${peak} (${dur(best.v)})`)}${off != null ? fx(`${t("off-hours")} = ${dur(insOffM(g).off)} ÷ ${dur(insOffM(g).all)} ${t("(session time in the period)")} = ${off}%`) : ""}${off != null && soFar() != null ? fx(t("In a period in progress, past periods are compared up to the same point (the same weekday and time, or the same number of days)")) : ""}${off != null ? insChip(b) : ""}</p>
     <p class="note">${esc(t("Off-hours: Saturday, Sunday, and weekdays before 9:00 or from 18:00. The chart counts time while sessions were running; Active time also counts the short pauses inside a stretch of work, so it can be a little longer"))}</p>`;
 }
 
@@ -785,7 +793,7 @@ function insPace(w, pj){
   const pc = pj && (pj.cost != null || pj.credits != null) ? null : pacing(w, period().P); if (!pc) return []; // 月末の推定があれば、そちら（上）で足りる
   const M = st.mode === "month";
   return ["cost", "credits"].filter(k => pc[k]).map(k => { const x = pc[k], f = k === "credits" ? cr1 : usd, on = x.rest >= 0, C = k === "credits";
-    const lab = on ? (C ? (M ? t("Credits a day to match last month") : t("Credits a day to match last week")) : (M ? t("Daily spend to stay at last month's total") : t("Daily spend to stay at last week's total")))
+    const lab = on ? (C ? (M ? t("Credits a day to match last month") : t("Credits a day to match last week")) : (M ? t("A day to match last month") : t("A day to match last week")))
       : (C ? (M ? t("Over last month's credits") : t("Over last week's credits")) : (M ? t("Over last month's total") : t("Over last week's total")));
     return insStat(lab, esc(on ? `${f(x.per)}/${t("d")}` : `+${f(-x.rest)}`), fx(on ? `(${f(x.ref)} − ${f(x.so)}) ÷ ${pc.left}${t("d")} = ${f(x.per)}/${t("d")}` : `${f(x.so)} − ${f(x.ref)} = +${f(-x.rest)} ${t("over")}`), C ? "paceCr" : "pace", C ? "paceCr" : "pace"); });
 }

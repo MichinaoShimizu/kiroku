@@ -85,6 +85,8 @@ async function run(env) {
     check("絞り込んでいないときは、凡例に件数（20 / 20 sessions）を出さない", await p.locator("#legend .count").count() === 0);
     check("ロゴはこのファイルを開き直すリンク（/ ではディスクの一番上へ行く）", await p.evaluate(() => document.querySelector("#home").getAttribute("href") === location.href.split(/[?#]/)[0]));
     check("ロゴが検索欄に隠れない", await p.evaluate(() => document.querySelector(".brand .word").getBoundingClientRect().right <= document.querySelector(".search").getBoundingClientRect().left));
+    check("ロゴの下に kiroku が何かを 1 行で出し、検索欄に重ならない（とても狭い画面では出さない）", await p.evaluate(w => { const g = document.querySelector(".tagline"), r = g.getBoundingClientRect();
+      return w < 375 ? !g.checkVisibility() : g.checkVisibility() && r.height < 20 && r.right <= document.querySelector(".search").getBoundingClientRect().left; }, env.viewport.width));
     // カレンダーが主役：① から下のパネルは閉じていて、上の帯は使ったものだけ
     check("上の帯は使ったものだけ（残したもの：コミット・変えた行・PR は出さない）", await p.locator('#kpis .kpi.out, #kpis [data-metric="commits"], #kpis [data-metric="lines"], #kpis [data-metric="aiCommits"], #kpis [data-metric="prs"]').count() === 0);
     if (env.viewport.width > 820 && env.viewport.width < 1440) check("上の数字の帯は 1 行（折り返さない）", await p.evaluate(() => new Set([...document.querySelectorAll("#kpis .kpi")].map(k => Math.round(k.getBoundingClientRect().top))).size === 1));
@@ -954,6 +956,12 @@ async function run(env) {
     check("押すと、今月の日ごとの内訳（月末の推定）が開き、週の表示はそのまま", dlg.open && dlg.txt.includes(mp.v) && dlg.txt.includes(mp.so) && await p.evaluate(() => st.mode === "week"), dlg.txt.slice(0, 120));
     await p.keyboard.press("Escape"); await pause();
     await view("sum");
+    // 途中の週の時間外の割合は、過去の週の同じ曜日・時刻までと比べる（土日を含む週まるごととは比べない）
+    check("途中の週の時間外の割合は、過去の週の同じところまでと比べる", await p.evaluate(() => { if (soFar() == null) return true;
+      const {ws} = period(), cut = nowMs() / 1000 - ws, b = insOffRange(50), hs = historyStart(), want = [];
+      for (let i = 1; i <= INS_N; i++){ const q = periodBack(i); if (q.ws < hs || !q.S) continue; const x = insOff(insMinutes(q.ws, Math.min(q.we, q.ws + cut))); if (x != null) want.push(x); }
+      const whole = []; for (let i = 1; i <= INS_N; i++){ const q = periodBack(i); if (q.ws < hs || !q.S) continue; const x = insOff(insMinutes(q.ws, q.we)); if (x != null) whole.push(x); }
+      return JSON.stringify(b.xs) === JSON.stringify(want) && JSON.stringify(want) !== JSON.stringify(whole); }));
     // 途中の週の推移の読み上げは、推定を値として読まず、これまでの値と推定だと言う
     check("途中の週の推移の読み上げは「so far」と推定を言う", await p.evaluate(() => { const x = document.querySelector('#review .itile[data-ch="cost"] .tspk .sr'); return !x || /so far, estimated .+ by the end/.test(x.textContent); }));
     const cb = p.locator('#review .iksw[data-sw="cost"] [data-v="credits"]');

@@ -15,3 +15,5 @@
 - `kiroku serve --check` and Data sources list both `$KIRO_HOME` and `~/.kiro` for Kiro IDE / CLI (V3) and Kiro CLI (V2) when kiroku reads both
 - "Close to usual" says, in its tooltip and "ƒx", that the value is outside the usual range by less than 10% of its edge, and the "Expensive models for light work" threshold reads as a sentence
 - `kiroku help` points to `kiroku update --help`, which says that a build from your organization's repository updates through `gh` and checks the build provenance
+- In a week or month in progress, When you worked compares the off-hours share with the same part of past periods (up to the same weekday and time, or the same number of days) instead of whole periods with their weekends
+- The week or month in which your history starts is left out of the Worth a look and "?" trends as it is in the Summary charts, and the chart's tooltip says why

@@ -9,8 +9,8 @@ const BRK = {
   projection: {n: "Month-end cost (estimate)", h: "projection", v: x => x.cost, f: v => usd(v), proj: "cost"},
   credits: {n: "Kiro credits", h: "credits", v: x => x.credits, f: cr, ses: s => s.credits},
   projectionCr: {n: "Month-end credits (estimate)", h: "projectionCr", v: x => x.credits, f: cr, proj: "credits"},
-  pace: {n: "A day to match the last period", h: "pace", v: x => x.cost, f: v => usd(v)},
-  paceCr: {n: "Credits a day to match the last period", h: "paceCr", v: x => x.credits, f: cr},
+  pace: {n: "A day to match last week or month", h: "pace", v: x => x.cost, f: v => usd(v)},
+  paceCr: {n: "Credits a day to match last week or month", h: "paceCr", v: x => x.credits, f: cr},
   active: {n: "Active time", h: "active", v: x => x.minutes ?? x.active, f: v => dur(v), ses: s => sesMin(s)},
   sessions: {n: "Sessions / prompts", h: "prompts", v: x => x.prompts, f: v => `${Math.round(v)}`, ses: s => s.nPrompts},
   limits: {n: "Usage limit hits", h: "limits"},
@@ -102,7 +102,7 @@ function paceBody(w, k, m, brief){
   const same = a == null || n == null ? null : pw.days.slice(0, Math.min(n, pw.days.length)).reduce((s, d) => s + (d.commits || 0), 0);
   const out = a == null || b == null ? "" : `<p class="note">${esc(t(M ? "Left behind: {a} commits last month ({s} by the same day), {b} so far this month." : "Left behind: {a} commits last week ({s} by the same day), {b} so far this week.", {a, s: same ?? "—", b}))}</p>`;
   if (brief) return {title, body: calc + `<p class="note">${esc(note)}</p>`};
-  return {title, big, body: calc + `<p class="note">${esc(note)}</p>` + out + mDays(w, m, x.rest > 0 ? {avg: x.per, tip: "≈ {v} to match the last period", label: "Pace to match the last period"} : null)};
+  return {title, big, body: calc + `<p class="note">${esc(note)}</p>` + out + mDays(w, m, x.rest > 0 ? {avg: x.per, tip: M ? "≈ {v} to match last month" : "≈ {v} to match last week", label: title} : null)};
 }
 const MB = {
   pace(w){ const r = paceBody(w, "cost", BRK.pace), c = r && paceBody(w, "credits", BRK.paceCr, true); // 帯は 1 つの枠なので、クレジットもここに

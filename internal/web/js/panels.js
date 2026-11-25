@@ -233,8 +233,8 @@ async function keepArchive(){
   try {
     const r = await kfetch("archive", {method:"POST", headers:{"X-Kiroku":"1"}}); if (!r.ok) throw new Error(r.status);
     applyData(await r.json()); render();
-    toast(t("Backed up to {dir}. kiroku adds new history to it each time it reads your history.", {dir: (META.archive && META.archive.dir) || t("kiroku's folder")}), 6000);
-  } catch(e){ toast(t("Couldn't start the backup. Run kiroku serve --archive on instead."), 4500); }
+    toast(t("Keeping a copy in {dir}. kiroku adds new history to it each time it reads your history.", {dir: (META.archive && META.archive.dir) || t("kiroku's folder")}), 6000);
+  } catch(e){ toast(t("Couldn't start keeping a copy. Run kiroku serve --archive on instead."), 4500); }
 }
 function keepRow(r){ // 計測の状態に添える：どこまでさかのぼれるか、いつ消えるか
   const o = r.oldest ? dMDY(new Date(r.oldest*1000)) : "";
@@ -244,11 +244,11 @@ function keepRow(r){ // 計測の状態に添える：どこまでさかのぼ�
   const dir = META.archive && META.archive.dir, how = () => { const v = {snippet: {h: `<code>${esc(k.snippet || `"${k.setting}": 3650`)}</code>`},
       file: {h: `<code>${esc(k.file || "")}</code>`}, dir: dir ? {h: `<code>${esc(dir)}</code>`} : t("a folder on this computer"),
       on: {h: "<code>kiroku serve --archive on</code>"}, off: {h: "<code>kiroku serve --archive off</code>"}};
-    const s = LIVE ? (k.file ? "To keep them, set {snippet} in {file}, or let kiroku back them up to {dir} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and {off} stops it)"
-        : "To keep them, set {snippet}, or let kiroku back them up to {dir} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and {off} stops it)")
-      : (k.file ? "To keep them, set {snippet} in {file}, or run {on} to let kiroku back them up to {dir} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and {off} stops it)"
-        : "To keep them, set {snippet}, or run {on} to let kiroku back them up to {dir} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and {off} stops it)");
-    return `<br>${tph(s, v)}${LIVE ? ` <button class="pill keeparch">${esc(t("Back up to this folder"))}</button>` : ""}`; };
+    const s = LIVE ? (k.file ? "To keep them, set {snippet} in {file}, or let kiroku keep a copy of them in {dir} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and {off} stops it)"
+        : "To keep them, set {snippet}, or let kiroku keep a copy of them in {dir} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and {off} stops it)")
+      : (k.file ? "To keep them, set {snippet} in {file}, or run {on} to let kiroku keep a copy of them in {dir} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and {off} stops it)"
+        : "To keep them, set {snippet}, or run {on} to let kiroku keep a copy of them in {dir} each time you open it (the agent's own files are not changed, nothing is sent anywhere, and {off} stops it)");
+    return `<br>${tph(s, v)}${LIVE ? ` <button class="pill keeparch">${esc(t("Keep a copy in this folder"))}</button>` : ""}`; };
   return (o ? ` · ${esc(t("oldest record {date}", {date: o}))}` : "") +
     (r.archived ? ` · ${esc(t("{n} shown from kiroku's copy", {n: plural(r.archived, "deleted conversation")}))}` : "") +
     (!k ? "" : k.now && archOn() ? `<br>${by}${tph("Older records are deleted at the next cleanup ({setting} is 0), but kiroku keeps a copy", {setting: set})}`

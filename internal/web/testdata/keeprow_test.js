@@ -32,6 +32,6 @@ has(keepRow({name: "X", retention: {days: 30, set: false, setting: "<s>", docs: 
 META.archive = {on: false, dir: "/Users/me/<b>archive</b>"};
 row = keepRow({name: "Claude Code", retention: {days: 30, setting: "cleanupPeriodDays", file: "~/.claude/settings.json"}});
 has(row, "<code>&quot;cleanupPeriodDays&quot;: 3650</code> in <code>~/.claude/settings.json</code>", "設定とファイルを出す");
-has(row, "back them up to <code>/Users/me/&lt;b&gt;archive&lt;/b&gt;</code>", "バックアップ先を文字のまま出す");
-has(row, "run <code>kiroku serve --archive on</code> to let kiroku back them up", "HTML ではコマンドを出す");
+has(row, "keep a copy of them in <code>/Users/me/&lt;b&gt;archive&lt;/b&gt;</code>", "コピーを残す先を文字のまま出す");
+has(row, "run <code>kiroku serve --archive on</code> to let kiroku keep a copy of them", "HTML ではコマンドを出す");
 not(row, "<b>", "フォルダの名前を HTML にしない");
