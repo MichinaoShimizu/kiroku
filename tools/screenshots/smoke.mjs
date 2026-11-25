@@ -53,6 +53,55 @@ async function openContext(env, locale, csp) {
   return { ctx, p, errors };
 }
 
+// legendHint は、凡例のチップの並び（横にスクロールする）の「+N ›」を確かめる（英語と日本語の流れから、Project と Agent の色分けで呼ぶ）。
+// 数は名前の見えていないチップの数。札は並びに重ねず右に場所を取り、見えているチップの時間を隠さない。押すと次の隠れたチップを左端にそろえて送る。
+// Tab で来たチップ（一部だけ見えていたものも）は並びの中に全部見え、最後のチップなら並びの終わりまで送る
+async function legendHint(p, env, check, by) {
+  const pause = () => p.waitForTimeout(300), tag = `${by === "source" ? "Agent" : "Project"}: `;
+  await p.evaluate(v => { const s = document.querySelector("#cb2"); s.value = v; s.dispatchEvent(new Event("change")); }, by); await pause();
+  const hint = () => p.evaluate(() => { const r = document.querySelector("#legend .lrow"), m = document.querySelector("#legend .lmore"), rb = r.getBoundingClientRect(), mb = m.getBoundingClientRect(), shown = m.checkVisibility();
+    const chips = [...r.querySelectorAll(".chip")], vis = rb.right - 8, hidden = chips.filter(c => c.querySelector(".cn").getBoundingClientRect().right > vis);
+    // 札が、並びの中で見えている部分（rb の内側）のチップの時間に重なっていないか
+    const over = !shown ? [] : chips.filter(c => { const n = c.querySelector(".n").getBoundingClientRect(), l = Math.max(n.left, rb.left), rr = Math.min(n.right, rb.right); return rr > l && mb.left < rr && mb.right > l; }).map(c => c.dataset.k);
+    return {over: r.scrollWidth > r.clientWidth + 2, more: r.scrollLeft + r.clientWidth < r.scrollWidth - 2, shown, text: m.textContent, cut: hidden.length, first: hidden.map(c => c.dataset.k)[0], left: r.scrollLeft, covers: over,
+      inside: !shown || mb.right <= innerWidth, page: document.documentElement.scrollWidth <= innerWidth + 1}; });
+  await p.evaluate(() => { document.querySelector("#legend .lrow").scrollLeft = 0; }); await pause();
+  const h0 = await hint();
+  check(`${tag}凡例のチップがはみ出すときだけ、並びの右に名前の見えていないチップの数（+N ›）を出し、見えているチップの時間に重ならない`, h0.shown === h0.more && (!h0.shown || (h0.text === `+${Math.max(1, h0.cut)} ›` && h0.inside && h0.page && !h0.covers.length)), JSON.stringify(h0));
+  if (!env.isMobile) return;
+  check(`${tag}スマホ（ダミーデータ）では、凡例のチップが横にはみ出し、数を出す`, h0.over && h0.shown, JSON.stringify(h0));
+  if (h0.shown){
+    // 押すと、次の隠れたチップ（名前の見えていなかった最初のもの）を並びの左端にそろえて送る。チップの途中で止めない
+    await p.locator("#legend .lmore").click(); await p.waitForTimeout(700);
+    const al = await p.evaluate(k => { const r = document.querySelector("#legend .lrow"), c = [...r.querySelectorAll(".chip")].find(x => x.dataset.k === k), rb = r.getBoundingClientRect(), cb = c.getBoundingClientRect();
+      return {left: r.scrollLeft, end: r.scrollLeft + r.clientWidth >= r.scrollWidth - 2, dx: Math.round(cb.left - rb.left)}; }, h0.first);
+    check(`${tag}数を押すと、次の隠れたチップが並びの左端にそろう（並びの終わりに着いたときは、そのチップが見える）`, al.left > 0 && (Math.abs(al.dx) <= 1 || (al.end && al.dx >= 0)), JSON.stringify(al));
+    const h1a = await hint();
+    check(`${tag}送ったあとも、数は名前の見えていないチップの数で、札は時間に重ならない`, !h1a.shown || (h1a.text === `+${Math.max(1, h1a.cut)} ›` && !h1a.covers.length), JSON.stringify(h1a));
+    await p.evaluate(() => { const r = document.querySelector("#legend .lrow"); r.scrollLeft = r.scrollWidth; }); await pause();
+    const h1 = await hint();
+    check(`${tag}右端までスクロールすると、数が消える`, !h1.shown && !h1.more, JSON.stringify(h1));
+    await p.evaluate(() => { document.querySelector("#legend .lrow").scrollLeft = 0; }); await pause();
+    // キーボード：Tab で進むたびに、そのチップ（一部だけ見えていたものも）が並びの中に全部見え、ぼかしと数の札に隠れない。最後のチップでは並びの終わりまで
+    const n = await p.locator("#legend .chip").count(), bad = [];
+    await p.locator("#legend .chip").first().focus(); await pause();
+    for (let i = 0; i < n; i++) {
+      if (i) { await p.keyboard.press("Tab"); await pause(); }
+      const k = await p.evaluate(() => { const c = document.activeElement, r = document.querySelector("#legend .lrow"), m = document.querySelector("#legend .lmore");
+        const cb = c.getBoundingClientRect(), rb = r.getBoundingClientRect(), mb = m.checkVisibility() ? m.getBoundingClientRect() : null, last = c === [...r.querySelectorAll(".chip")].pop();
+        return {k: c.dataset.k, last, inRow: cb.left >= rb.left - 1 && cb.right <= rb.right + 1 - (last ? 0 : 16), covered: !!mb && mb.left < cb.right && mb.right > cb.left, end: r.scrollLeft + r.clientWidth >= r.scrollWidth - 2}; });
+      if (!k.k || !k.inRow || k.covered || (k.last && !k.end)) bad.push(k);
+    }
+    check(`${tag}Tab で進むと、どのチップも並びの中に全部見え、数の札に隠れない。最後のチップでは並びの終わりまで送る`, bad.length === 0, JSON.stringify(bad));
+    await p.evaluate(() => { document.activeElement.blur(); document.querySelector("#legend .lrow").scrollLeft = 0; }); await pause();
+  }
+  // チップが 1 つだけで並びに収まるときは、数を出さない（320 では見出しとチップ 1 つでもはみ出すので、見出しも外す。描き直して元に戻す）
+  await p.evaluate(() => { document.querySelectorAll("#legend .chip").forEach((c, i) => { if (i) c.remove(); }); document.querySelector("#legend .lab").remove(); lrowHint(); });
+  const h2 = await hint();
+  check(`${tag}チップが並びに収まるときは、数を出さない`, !h2.over && !h2.shown, JSON.stringify(h2));
+  await p.evaluate(() => { const s = document.querySelector("#cb2"); s.value = "project"; s.dispatchEvent(new Event("change")); }); await pause();
+}
+
 async function run(env) {
   const out = [`# ${env.name}`];
   let failed = 0;
@@ -208,41 +257,7 @@ async function run(env) {
     check("前の週では「次の週」を押せる", await p.locator("#next").isEnabled());
     check("先週なら、期間の見出しにそう書いてある", /last week$/i.test(await p.locator("#ry").innerText()), await p.locator("#ry").innerText());
     check("凡例の数は作業時間", /\d+(h|m)/.test(await p.locator("#legend .chip .n").first().innerText()), await p.locator("#legend .chip .n").first().innerText());
-    { // チップの並びが横にスクロールし、右に続きがあるあいだだけ、右端に隠れているチップの数（+3 ›）を出す
-      const hint = () => p.evaluate(() => { const r = document.querySelector("#legend .lrow"), m = document.querySelector("#legend .lmore"), rb = r.getBoundingClientRect();
-        const edge = rb.right - m.offsetWidth - 4, cut = [...r.querySelectorAll(".chip")].filter(c => c.getBoundingClientRect().right > edge).length;
-        return {over: r.scrollWidth > r.clientWidth + 2, more: r.scrollLeft + r.clientWidth < r.scrollWidth - 2, shown: m.checkVisibility(), text: m.textContent, cut, left: r.scrollLeft,
-          inside: !m.checkVisibility() || m.getBoundingClientRect().right <= innerWidth, page: document.documentElement.scrollWidth <= innerWidth + 1}; });
-      await p.evaluate(() => { document.querySelector("#legend .lrow").scrollLeft = 0; }); await pause();
-      const h0 = await hint();
-      check("凡例のチップがはみ出すときだけ、右端に隠れたチップの数（+N ›）を出す", h0.shown === h0.more && (!h0.shown || (h0.text === `+${Math.max(1, h0.cut)} ›` && h0.inside && h0.page)), JSON.stringify(h0));
-      if (env.isMobile){
-        check("スマホ（ダミーデータ）では、凡例のチップが横にはみ出し、数を出す", h0.over && h0.shown, JSON.stringify(h0));
-        if (h0.shown){
-          await p.locator("#legend .lmore").click(); await pause();
-          check("数を押すと、チップの並びが右へ進む", (await hint()).left > 0);
-          await p.evaluate(() => { const r = document.querySelector("#legend .lrow"); r.scrollLeft = r.scrollWidth; }); await pause();
-          const h1 = await hint();
-          check("右端までスクロールすると、数が消える", !h1.shown && !h1.more, JSON.stringify(h1));
-          await p.evaluate(() => { document.querySelector("#legend .lrow").scrollLeft = 0; }); await pause();
-          // キーボード：最後のチップへ Tab で進むと、チップは並びの中に全部見え、数の札に隠れない
-          const n = await p.locator("#legend .chip").count();
-          await p.locator("#legend .chip").first().focus();
-          for (let i = 1; i < n; i++) await p.keyboard.press("Tab");
-          await pause();
-          const k = await p.evaluate(() => { const c = document.activeElement, r = document.querySelector("#legend .lrow"), m = document.querySelector("#legend .lmore");
-            const cb = c.getBoundingClientRect(), rb = r.getBoundingClientRect(), mb = m.checkVisibility() ? m.getBoundingClientRect() : null;
-            return {last: c === [...r.querySelectorAll(".chip")].pop(), inRow: cb.left >= rb.left - 1 && cb.right <= rb.right + 1, covered: !!mb && mb.left < cb.right && mb.right > cb.left}; });
-          check("Tab で最後のチップへ進むと、そのチップが並びの中に見え、数の札に隠れない", k.last && k.inRow && !k.covered, JSON.stringify(k));
-          await p.evaluate(() => { document.activeElement.blur(); document.querySelector("#legend .lrow").scrollLeft = 0; }); await pause();
-        }
-        // チップが 1 つだけで並びに収まるときは、数を出さない（320 では見出しとチップ 1 つでもはみ出すので、見出しも外す。描き直して元に戻す）
-        await p.evaluate(() => { document.querySelectorAll("#legend .chip").forEach((c, i) => { if (i) c.remove(); }); document.querySelector("#legend .lab").remove(); lrowHint(); });
-        const h2 = await hint();
-        check("チップが並びに収まるときは、数を出さない", !h2.over && !h2.shown, JSON.stringify(h2));
-        await p.evaluate(() => render()); await pause();
-      }
-    }
+    for (const by of ["project", "source"]) await legendHint(p, env, check, by);
     await p.evaluate(() => scrollTo(0, 0)); await pause(); // ページを下にスクロールしたあとは、貼り付いた見出しの下をブロックが通るのが正しい。開いた位置（ページの先頭）で確かめる
     const cut = await p.evaluate(() => { const hd = document.querySelector("#tl .heads").getBoundingClientRect().bottom;
       return [...document.querySelectorAll("#tl .run")].filter(r => { const b = r.getBoundingClientRect(); return b.top < hd - 1 && b.bottom > hd + 1; }).length; });
@@ -1179,6 +1194,10 @@ async function runJa(env) {
     await noEnglish("セッションの詳細");
     await p.keyboard.press("Escape");
     await p.waitForFunction(() => document.querySelector("#drawer").getAttribute("aria-hidden") !== "false");
+  });
+
+  await step("凡例の数", async () => { // 先週のまま（日本語は見出しの「稼働時間 · 押すと非表示」が長く、チップがはみ出しやすい）
+    for (const by of ["project", "source"]) await legendHint(p, env, check, by);
   });
 
   await step("内訳", async () => {

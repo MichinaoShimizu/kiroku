@@ -401,15 +401,29 @@ function fitRuns(T){
     el.classList.add(tw(s, "00:00") <= w + 12 ? "nt" : "nn"); }); // 時刻は数字の幅がそろう（tabular-nums）ので 0 で測る。.st は左右の余白に 6px ずつはみ出せる
 }
 if (window.ResizeObserver) new ResizeObserver(() => { const T = $("#tl"); if (T.querySelector(".run")) fitRuns(T); edgeFade(T); }).observe($("#tl"));
-// lrowHint は、凡例のチップの並びが横にスクロールして右に続きがあるあいだだけ、右端に「+3 ›」（隠れているチップの数）を出す。
-// 押すと右へ送る。読み上げとキーボードでは出さない（チップはどれも Tab で届き、フォーカスしたチップは並びが見える所まで送る）
+// lrowHint は、凡例のチップの並びが横にスクロールして右に続きがあるあいだだけ、並びの右に「+3 ›」（名前が見えていないチップの数）を出す。
+// 札は並びの上に重ねず、並びの右に場所を取る（.lrw の右の余白。見えているチップの時間を隠さない）。押すと、次の隠れたチップを左端にそろえて送る。
+// 読み上げとキーボードでは出さない（チップはどれも Tab で届き、フォーカスしたチップは lrowFit で並びの中に全部見えるまで送る）
+const LFADE = 16; // 並びの右端のぼかし（style.css の .more .lrow の mask と scroll-padding と同じ）
+const lrowVis = r => r.getBoundingClientRect().right - LFADE / 2; // ここより右に名前の終わりがあるチップは「見えていない」（ぼかしの半分までは読める）
+const lrowHidden = r => [...r.querySelectorAll(".chip")].filter(c => (c.querySelector(".cn") || c).getBoundingClientRect().right > lrowVis(r));
 function lrowHint(){ const r = $("#legend .lrow"), m = $("#legend .lmore"); if (!r || !m) return;
-  const more = r.scrollLeft + r.clientWidth < r.scrollWidth - 2;
-  m.hidden = !more; r.parentElement.classList.toggle("more", more); if (!more) return;
+  const w = r.parentElement, more = r.scrollLeft + r.clientWidth < r.scrollWidth - 2;
+  m.hidden = !more; w.classList.toggle("more", more);
+  if (!more){ w.style.paddingRight = ""; return; }
+  const pad = () => { w.style.paddingRight = `${m.offsetWidth + 6}px`; };
   if (!m.textContent) m.textContent = "+0 ›"; // 幅を測るために仮の文字を入れる
-  const edge = r.getBoundingClientRect().right - m.offsetWidth - 4, n = [...r.querySelectorAll(".chip")].filter(c => c.getBoundingClientRect().right > edge).length;
-  m.textContent = `+${Math.max(1, n)} ›`; }
-document.addEventListener("click", e => { const m = e.target.closest && e.target.closest("#legend .lmore"); if (!m) return; const r = $("#legend .lrow"); if (r) r.scrollBy({left: r.clientWidth * .8, behavior: "smooth"}); });
+  pad(); m.textContent = `+${Math.max(1, lrowHidden(r).length)} ›`; pad(); }
+// lrowFit は、Tab で来たチップを並びの中に全部見えるところまで送る（一部が見えているチップは、ブラウザが送らないので、ぼかしと札の下に残っていた）。
+// 最後のチップなら並びの終わりまで
+function lrowFit(c){ const r = c.parentElement, rb = r.getBoundingClientRect(), cb = c.getBoundingClientRect();
+  if (c === [...r.querySelectorAll(".chip")].pop()){ r.scrollLeft = r.scrollWidth; return; }
+  if (cb.right > rb.right - LFADE) r.scrollLeft += cb.right - (rb.right - LFADE);
+  else if (cb.left < rb.left) r.scrollLeft -= rb.left - cb.left; }
+document.addEventListener("focusin", e => { const c = e.target.closest && e.target.closest("#legend .lrow .chip"); if (!c) return; lrowFit(c); requestAnimationFrame(() => { if (document.activeElement === c){ lrowFit(c); lrowHint(); } }); });
+document.addEventListener("click", e => { const m = e.target.closest && e.target.closest("#legend .lmore"); if (!m) return; const r = $("#legend .lrow"); if (!r) return;
+  const rb = r.getBoundingClientRect(), c = lrowHidden(r).find(x => x.getBoundingClientRect().left > rb.left + 1); // 次の隠れたチップを左端に（チップの境目で送る）
+  r.scrollTo({left: c ? r.scrollLeft + c.getBoundingClientRect().left - rb.left : r.scrollLeft + r.clientWidth * .8, behavior: "smooth"}); });
 if (window.ResizeObserver) new ResizeObserver(() => lrowHint()).observe($("#legend"));
 // edgeFade は、週のカレンダーが右へまだスクロールできるあいだだけ、右端をぼかす（.morer）。スクロールのたびと、描くたびに見直す
 function edgeFade(T){ const sc = T.querySelector(".calscroll"); T.classList.toggle("morer", !!sc && sc.scrollLeft + sc.clientWidth < sc.scrollWidth - 2); }
