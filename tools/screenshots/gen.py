@@ -11,6 +11,9 @@ extra = random.Random(11)  # 後から足したもの（コマンド・通知）
 more = random.Random(13)  # さらに後から足したもの（利用上限・サブエージェントの時間）も別の乱数で
 cmpr = random.Random(17)  # コンパクションも別の乱数で
 kedit = random.Random(23)  # Kiro の編集の中身（行の数を数えられるように）も別の乱数で、ほかのダミーデータを変えない
+ids = random.Random(29)  # セッション・メッセージ・呼び出しの ID も別の乱数で決める（毎回同じ ID になり、スクリーンショットを撮り直しても同じになる）
+def uid(): return str(uuid.UUID(int=ids.getrandbits(128), version=4))
+def hexid(n): return f"{ids.getrandbits(4 * n):0{n}x}"
 def ktext(n): return "\n".join(f"  line {i}" for i in range(n))
 def kargs(name, args):  # Kiro の編集ツールに、書いた中身を足す（Kiro IDE / CLI V3 は text・oldStr/newStr、V2 は fs_write の command）
     if name == "fsWrite": args["text"] = ktext(kedit.randint(8, 60))
@@ -55,7 +58,7 @@ def claude_day(d):
         p = random.choices(list(projects), weights=[5,3,2,1])[0]
         start = day + dt.timedelta(hours=random.choice([9,10,11,13,14,15,16,17,20,22]), minutes=random.randint(0,50))
         later = start > now - dt.timedelta(minutes=30)  # まだ始まっていない。乱数は同じだけ引いてから捨てる（乱数の並びが時刻で変わらないように）
-        sid = str(uuid.uuid4()); cwd = os.path.join(REPOS, p); br = random.choice(branches[p])
+        sid = uid(); cwd = os.path.join(REPOS, p); br = random.choice(branches[p])
         model = random.choice(models)
         t = start; lines = []; title = None
         nprompt = random.randint(2, 14)
@@ -77,7 +80,7 @@ def claude_day(d):
             lines.append({"type":"user","timestamp":t.isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"message":{"role":"user","content":txt}})
             for k in range(random.randint(1,5)):
                 t += dt.timedelta(seconds=random.randint(20,240))
-                mid = "msg_"+uuid.uuid4().hex[:10]
+                mid = "msg_"+hexid(10)
                 usage = {"input_tokens":random.randint(5,200),"output_tokens":random.randint(100,3000),"cache_creation_input_tokens":random.randint(500,8000),"cache_read_input_tokens":random.randint(15000,40000) + step * grow * 5000}; step += 1
                 tool = random.choice(tools); trying = False
                 if i == nprompt-1 and k == 0 and random.random() < 0.6: tool = "Commit"
@@ -106,14 +109,14 @@ def claude_day(d):
                 lines.append({"type":"user","timestamp":(t+took).isoformat(),"cwd":cwd,"sessionId":sid,"message":{"role":"user","content":[tr]}})
                 if task: t += took
             if extra.random() < 0.85:  # 人に返した文（ツール呼び出しのあと、次の依頼の前）
-                rid = "msg_"+uuid.uuid4().hex[:10]
+                rid = "msg_"+hexid(10)
                 text = extra.choice(replies)
                 if did: text = committed
                 lines.append({"type":"assistant","timestamp":(t+dt.timedelta(seconds=6)).isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"requestId":"req_"+rid,"message":{"id":rid,"model":model,"role":"assistant","content":[{"type":"text","text":text}]}})
             t += dt.timedelta(seconds=random.randint(30, 600))
         force = day == last_wed and not forced and t.hour >= 13 and not later; forced = forced or force
         if more.random() < 0.06 or force:  # ときどき利用上限に当たって止まる（Claude Code が作るエラーの発言。そこでセッションも終わる）
-            t += dt.timedelta(seconds=more.randint(20, 90)); rid = "msg_"+uuid.uuid4().hex[:10]
+            t += dt.timedelta(seconds=more.randint(20, 90)); rid = "msg_"+hexid(10)
             reset = (t + dt.timedelta(hours=more.randint(1, 4))).replace(minute=0, second=0, microsecond=0)
             lines.append({"type":"assistant","timestamp":t.isoformat(),"cwd":cwd,"gitBranch":br,"sessionId":sid,"isApiErrorMessage":True,"message":{"id":rid,"model":"<synthetic>","role":"assistant","content":[{"type":"text","text":f"5-hour limit reached ∙ resets {reset.strftime('%-I%p').lower()}"}]}})
         if later or t > now: continue
@@ -172,7 +175,7 @@ for d in range(35, -1, -1):
         p = oth.choice(list(others[agent])); cwd = os.path.join(REPOS, p)
         start = day + dt.timedelta(hours=oth.choice([9,10,11,13,14,15,16,17,19]), minutes=oth.randint(0,50))
         later = start > now - dt.timedelta(hours=2)  # まだ始まっていない。乱数は同じだけ引いてから捨てる
-        sid = str(uuid.uuid4()); title = oth.choice(others[agent][p]); t = start
+        sid = uid(); title = oth.choice(others[agent][p]); t = start
         asks = [title] + [oth.choice(follow) for _ in range(oth.randint(1, 6))]
         if agent == "codex":
             model = oth.choice(["gpt-6-sol", "gpt-6-sol", "gpt-5.5"]); tot = {"input_tokens":0,"cached_input_tokens":0,"output_tokens":0,"reasoning_output_tokens":0,"total_tokens":0}
@@ -186,15 +189,15 @@ for d in range(35, -1, -1):
                     t += dt.timedelta(seconds=oth.randint(15, 180))
                     if oth.random() < 0.5:
                         f = f"src/{oth.choice(['app','api','util','view'])}.ts"
-                        lines.append({"timestamp":iso(t),"type":"response_item","payload":{"type":"custom_tool_call","name":"apply_patch","input":f"*** Begin Patch\n*** Update File: {f}\n@@\n-old\n+new\n*** End Patch","call_id":"c"+uuid.uuid4().hex[:8]}})
+                        lines.append({"timestamp":iso(t),"type":"response_item","payload":{"type":"custom_tool_call","name":"apply_patch","input":f"*** Begin Patch\n*** Update File: {f}\n@@\n-old\n+new\n*** End Patch","call_id":"c"+hexid(8)}})
                     else:
-                        lines.append({"timestamp":iso(t),"type":"response_item","payload":{"type":"function_call","name":"shell","arguments":json.dumps({"command":["bash","-lc",oth.choice(["rg TODO","npm test","ls src"])]}),"call_id":"c"+uuid.uuid4().hex[:8]}})
+                        lines.append({"timestamp":iso(t),"type":"response_item","payload":{"type":"function_call","name":"shell","arguments":json.dumps({"command":["bash","-lc",oth.choice(["rg TODO","npm test","ls src"])]}),"call_id":"c"+hexid(8)}})
                     last = {"input_tokens":oth.randint(8000,40000),"output_tokens":oth.randint(200,3000),"reasoning_output_tokens":oth.randint(0,1500)}
                     last["cached_input_tokens"] = int(last["input_tokens"] * oth.uniform(0.5, 0.9)); last["total_tokens"] = last["input_tokens"] + last["output_tokens"]
                     for k in tot: tot[k] += last[k]
                     lines.append({"timestamp":iso(t),"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":dict(tot),"last_token_usage":last,"model_context_window":272000},"rate_limits":{"primary":{"used_percent":round(oth.uniform(5, 60), 1),"window_minutes":300},"secondary":{"used_percent":round(oth.uniform(10, 40), 1),"window_minutes":10080}}}})
                 if i == 0 and sub is None and oth.random() < 0.3:  # ときどきサブエージェントに調べさせる（親の詳細に入る）
-                    sub = (str(uuid.uuid4()), t)
+                    sub = (uid(), t)
                     t += dt.timedelta(seconds=oth.randint(60, 300))
                 t += dt.timedelta(seconds=4)
                 lines.append({"timestamp":iso(t),"type":"event_msg","payload":{"type":"agent_message","message":oth.choice(odone)}})
