@@ -401,17 +401,26 @@ func replaceExe(exe string, body []byte) error {
 	if err := os.Chmod(tmp.Name(), mode); err != nil {
 		return err
 	}
-	if runtime.GOOS == "windows" {
-		old := exe + ".old"
-		os.Remove(old)
-		if err := os.Rename(exe, old); err != nil {
-			return err
-		}
-		if err := os.Rename(tmp.Name(), exe); err != nil {
-			os.Rename(old, exe)
-			return err
-		}
-		return nil
+	return swapExe(runtime.GOOS, tmp.Name(), exe, os.Rename)
+}
+
+// swapExe は、新しい kiroku（tmp）を exe の場所に置く。rename はテストで差しかえる。
+// Windows は動いている exe を上書きできないので、いったん .old に名前を変えてから置き、置けなければ元に戻す。
+// 戻すのにも失敗したら（exe の場所に kiroku がない）、そのことも返す（.old から戻せるように場所を言う）。
+func swapExe(goos, tmp, exe string, rename func(from, to string) error) error {
+	if goos != "windows" {
+		return rename(tmp, exe)
 	}
-	return os.Rename(tmp.Name(), exe)
+	old := exe + ".old"
+	os.Remove(old)
+	if err := rename(exe, old); err != nil {
+		return err
+	}
+	if err := rename(tmp, exe); err != nil {
+		if rerr := rename(old, exe); rerr != nil {
+			return errors.Join(err, fmt.Errorf("could not put the previous kiroku back (it is at %s; rename it to %s): %w", old, exe, rerr))
+		}
+		return err
+	}
+	return nil
 }
