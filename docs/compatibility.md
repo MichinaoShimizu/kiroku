@@ -23,6 +23,7 @@ A new major version costs everyone who scripts kiroku or packages it a round of 
 - **Deprecate first.** Something on the list above is first marked under `### Deprecated` in a minor release and keeps working, with a one-line notice where it is used, so it can be moved away from before it goes. Its `BREAKING:` fragment waits in a branch or an issue, not in `changes/`, until it is due.
 - **Batch.** Removals that are due go out together in one major version.
 - **At least 30 days apart.** `tools/release.sh` stops when a new major version would come less than 30 days after the previous one (`tools/major-gap.sh`). A security fix doesn't wait: it may break compatibility in any release (see below), and `KIROKU_MAJOR_OK=1` lets such a release through, with the reason in its pull request.
+- **Recorded exceptions.** v5.0.0 came three days after v4.0.0, with no `### Deprecated` release before it: the maintainer asked for it, and it went out with `KIROKU_MAJOR_OK=1` ([#557](https://github.com/MichinaoShimizu/kiroku/pull/557)). It was a one-off, not a precedent: `KIROKU_MAJOR_OK=1` stays for security fixes.
 
 ## May change in any release
 
