@@ -33,6 +33,9 @@ function insRange(k, cur, f, low, add, fmt){
 }
 // insMidT は、記録が途中から始まった週・月を数えない理由（グラフのツールチップ）
 const insMidT = () => st.mode === "month" ? t("Your history starts partway through this month, so it is left out") : t("Your history starts partway through this week, so it is left out");
+// insMidS は、その期間を読み上げと端の名前で言う短い形（ツールチップだけに頼らない）。insMidL は、グラフの左端の名前に添える目印
+const insMidS = () => st.mode === "month" ? t("partial month: your history starts in it, so it is left out") : t("partial week: your history starts in it, so it is left out");
+const insMidL = () => t(" (partial)");
 const insName = k => (H()[k] || H()[{gitLines: "lines"}[k]] || {}).n || k; // Git の行は、説明（HELP）の id が lines
 const insNoun = () => st.mode === "month" ? (JA ? "月" : "months") : (JA ? "週" : "weeks"); // 数を伴わない「過去の週・月」（日本語は「か月」にしない）
 const insUnit = n => n === 1 && !JA ? (st.mode === "month" ? "month" : "week") : st.mode === "month" ? t("months") : t("weeks"); // 日本語は数によらず「か月」「週」
@@ -183,7 +186,7 @@ function insSpark(b, label, W = 480, bar = false){
     return `<path class="slim" d="M${lx.toFixed(1)} ${(ty - 7).toFixed(1)}l-4.5 7h9z"/>${h.length > 1 ? `<text class="slimn${bar ? " s" : ""}" x="${(bar ? lx + 5.5 : lx).toFixed(1)}" y="${(bar ? ty : ty - 10).toFixed(1)}">×${h.length}</text>` : ""}<rect class="hit slimhit" x="${(x(i) - 6 - (bar ? 4 : 0)).toFixed(1)}" y="${(ty - 10).toFixed(1)}" width="${bar ? 20 : 12}" height="12"${tipAttr(h.length === 1 ? t("Usage limit hits") : `${t("Usage limit hits")} ×${h.length}`, rows)}/>`; }).join("");
   const yt = (INS_SHORT()[k] || label || insName(k)), xt = st.mode === "month" ? t("Month") : t("Week");
   // 途中の期間の値は期間の終わりの推定なので、読み上げでもそう言い、今までの値を先に（積み上げの区分も今までの量）
-  const est = q => q.cur && b.part && q.v != null, valS = q => q.v == null ? "—" : est(q) ? t("{so} so far, estimated {v} by the end", {so: fm(b.cur), v: fm(q.v)}) : fm(q.v);
+  const est = q => q.cur && b.part && q.v != null, valS = q => q.v == null ? (q.p.ws < hs && q.p.we > hs ? "—" + paren(insMidS()) : "—") : est(q) ? t("{so} so far, estimated {v} by the end", {so: fm(b.cur), v: fm(q.v)}) : fm(q.v);
   const list = ps.map((q, i) => `${q.p.label} ${valS(q)}${q.c == null ? "" : paren(`${cl} ${fm(q.c)}`)}${stk && stk[i] ? paren((z => est(q) ? kv(t("So far"), z) : z)([...stk[i]].reverse().map(([a, v]) => `${a} ${fs(v)}`).join(LSEP()))) : ""}`).join(LSEP());
   // 積み上げの色の凡例（グラフのすぐ下。色だけに頼らないよう、名前を添える）
   const skey = stkA.length ? `<span class="tagk" aria-hidden="true">${stkA.map(a => `<span class="lg" style="--c:${agColor(a)}">${esc(a)}</span>`).join("")}</span>` : "";

@@ -108,6 +108,9 @@ async function run(env) {
       check("押すと広がり、画面に収まる", b1.w > 150 && b1.l >= 0 && b1.r <= env.viewport.width, JSON.stringify(b1));
       await p.locator("#q").blur(); await pause();
     }
+    if (env === envs[0]) check("記録の始まった週（途中から）は、「?」と見直す候補の推移の左端に (partial) と出し、読み上げでもわけを言う（ツールチップだけにしない）", await p.evaluate(() => {
+      const f = document.createRange().createContextualFragment(spark("cost", true)), e = f.querySelector(".ends span"), sr = f.querySelector(".sr");
+      return !!e && / \(partial\)$/.test(e.textContent) && /\(partial week: your history starts in it, so it is left out\)/.test(sr.textContent); }));
     check("週の見出しは「Week x of y」（その年の週の数は 52 か 53）", /Week \d{1,2} of 5[23]\b/i.test(await p.locator("#ry").innerText()), await p.locator("#ry").innerText());
     if (env === envs[0]) check("週の数：2026 年は 53 週、2025 年は 52 週（12 月 28 日の週）", await p.evaluate(() => isoWeek(new Date(2026, 11, 28)) === 53 && isoWeek(new Date(2025, 11, 28)) === 52));
     check("既定はカレンダー：サマリーは隠れ、カレンダーが見える", await p.locator("#review .rvhead").isHidden() && await p.locator("#review .insight").isHidden() && await p.locator("#tl").isVisible());

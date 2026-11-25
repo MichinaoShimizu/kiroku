@@ -19,3 +19,5 @@
 - The week or month in which your history starts is left out of the Worth a look and "?" trends as it is in the Summary charts, and the chart's tooltip says why
 - A usual range keeps the same decimals at both ends for every metric, including Project switches per day ("within your usual 3.0–7.1"), and so does its "ƒx" ("25th pct 3.0 ≤ 7 ≤ 75th pct 7.1")
 - What changed from the last period: Japanese names under the bars are shortened by their width, not their number of characters, so they no longer overlap (先週の同じ日数まで and the next project's name); the two total bars are named "Last week" / 先週 under the axis, with the full name ("Last week, same days") in their tooltip and the chart's screen-reader text
+- The week or month in which your history starts says why it has no value without hovering: the "?" and Worth a look trends end it with "Jul 20 (partial)", and screen readers hear "partial week: your history starts in it, so it is left out" in those trends and in the Summary charts
+- Japanese: the Worth a look and "?" trend captions write their range with 〜 ("0%〜18%") like other Japanese ranges
