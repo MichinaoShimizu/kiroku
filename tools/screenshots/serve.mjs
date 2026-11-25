@@ -208,24 +208,30 @@ try {
   // 「Data sources」の「Keep a copy in this folder」をキーボードで押すと、コピーを残し始め、パネルは開いたまま、
   // フォーカスは描き直したその行（「kiroku keeps a copy」）に移る（ボタンが消えても、ページの頭へ飛ばない）
   // gen.py の履歴は cleanupPeriodDays を 3650 にしてあるので、設定のファイルのない写しを読む serve を別に立てる（既定の 30 日で消える履歴）
-  {
-    const keepHome = path.join(work, "keephome", ".claude");
+  // 知らせ（「Keeping a copy in …」）は 6 秒出るので、フォーカスを移した行と「kiroku's copy: on」の行に重ならない（下に重なるなら上に出す）。広い画面とスマホで
+  for (const vp of [{ name: "1440", viewport: { width: 1440, height: 900 } }, { name: "320", viewport: { width: 320, height: 680 }, isMobile: true, hasTouch: true }]) {
+    const keepHome = path.join(work, `keephome${vp.name}`, ".claude");
     await cp(path.join(home, ".claude", "projects"), path.join(keepHome, "projects"), { recursive: true });
-    const kp = await startExtra(["serve", "127.0.0.1:0", "--no-open", "--sources", "claude", "--claude-root", path.join(keepHome, "projects"), "--archive-dir", path.join(work, "keeparchive")], {});
-    const pd = await ctx.newPage();
+    const kp = await startExtra(["serve", "127.0.0.1:0", "--no-open", "--sources", "claude", "--claude-root", path.join(keepHome, "projects"), "--archive-dir", path.join(work, `keeparchive${vp.name}`)], {});
+    const kctx = await b.newContext({ viewport: vp.viewport, isMobile: !!vp.isMobile, hasTouch: !!vp.hasTouch });
+    const pd = await kctx.newPage();
     await openWithKey(pd, kp.url);
     await pd.waitForSelector(".run[data-sid]", { timeout: 15000 });
     await pd.locator("#review details.dsrc > summary").click();
     const btn = pd.locator("#review details.dsrc .keeparch").first();
-    check("既定のままで消える履歴の行に「Keep a copy in this folder」がある", await btn.count() > 0);
+    check(`${vp.name}: 既定のままで消える履歴の行に「Keep a copy in this folder」がある`, await btn.count() > 0);
     const ag = await btn.evaluate(e => e.closest("li").dataset.dsrc);
-    await btn.focus(); await pd.keyboard.press("Enter");
+    await btn.evaluate(e => e.scrollIntoView({ block: "end" })); // 下へスクロールしてきて、画面の下の端にあるボタンを押す（知らせの出る場所）
+    await btn.focus({ preventScroll: true }); await pd.keyboard.press("Enter");
     await pd.waitForFunction(() => /Keeping a copy in/.test(document.querySelector("#toast").textContent), null, { timeout: 15000 });
-    const r = await pd.evaluate(() => { const D = document.querySelector("#review details.dsrc"), a = document.activeElement;
+    await pd.waitForTimeout(400); // 知らせが出きるまで
+    const r = await pd.evaluate(() => { const D = document.querySelector("#review details.dsrc"), a = document.activeElement, ar = D && D.querySelector("li.arch"), tb = document.querySelector("#toast").getBoundingClientRect();
+      const hit = e => { if (!e) return false; const x = e.getBoundingClientRect(); return x.bottom > tb.top && x.top < tb.bottom && x.right > tb.left && x.left < tb.right; };
       return {open: !!D && D.open, ag: a && a.dataset ? a.dataset.dsrc : null, inD: !!D && D.contains(a), text: a ? a.textContent : "", buttons: document.querySelectorAll("#review .keeparch").length,
-        arch: (document.querySelector("#review details.dsrc li.arch") || {}).textContent || ""}; });
-    check("コピーを残すと、Data sources は開いたまま、その行は残していると言い、フォーカスはその行にある", r.open && r.inD && r.ag === ag && /kiroku keeps a copy/.test(r.text) && r.buttons === 0 && /kiroku's copy: on/.test(r.arch), JSON.stringify(r));
-    await pd.close();
+        arch: ar ? ar.textContent : "", on: document.querySelector("#toast").classList.contains("on"), coversFocus: hit(a), coversArch: hit(ar), toast: [Math.round(tb.top), Math.round(tb.bottom)]}; });
+    check(`${vp.name}: コピーを残すと、Data sources は開いたまま、その行は残していると言い、フォーカスはその行にある`, r.open && r.inD && r.ag === ag && /kiroku keeps a copy/.test(r.text) && r.buttons === 0 && /kiroku's copy: on/.test(r.arch), JSON.stringify(r));
+    check(`${vp.name}: 「Keeping a copy in …」の知らせは、フォーカスした行にも「kiroku's copy: on」の行にも重ならない`, r.on && !r.coversFocus && !r.coversArch, JSON.stringify(r));
+    await kctx.close();
   }
 
   // 鍵のないブラウザ（同じコンピューターのほかのユーザーなど）は、案内だけを見る

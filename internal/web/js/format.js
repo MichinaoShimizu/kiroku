@@ -90,7 +90,11 @@ function searchText(s){
       ...commitsOf(s).flatMap(c => [c.hash, c.subject, ...(c.files || []).map(f => f.path)])].join("\n").toLowerCase(); SQ.set(s, t); }
   return t;
 }
-function toast(msg, ms){ const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(()=>t.classList.remove("on"), ms || 1600); }
+// toast は画面の下に短い知らせを出す。avoid（要素の並び）を渡すと、下に出すとそれに重なるときは画面の上に出す（フォーカスを移した行などを隠さない）
+function toast(msg, ms, avoid){ const t = $("#toast"); t.textContent = msg;
+  const h = t.offsetHeight, band = [innerHeight - 28 - h - 8, innerHeight]; // 下に出したときの場所（.toast の bottom:28px）
+  t.classList.toggle("top", !!avoid && avoid.some(e => { const r = e && e.getBoundingClientRect(); return !!r && r.height > 0 && r.bottom > band[0] && r.top < band[1]; }));
+  t.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(()=>t.classList.remove("on"), ms || 1600); }
 async function copy(text, msg, ms, btn){ try { await navigator.clipboard.writeText(text); toast(msg || t("Copied"), ms); copied(btn); } catch(e){ toast(t("Couldn't copy")); } }
 function copied(btn){ if (!btn) return; btn.classList.add("ok"); clearTimeout(btn._ok); btn._ok = setTimeout(() => btn.classList.remove("ok"), 1600); } // copyBtn の印を ✓ に
 const CB = () => ({project: t("Project"), source: t("Agent")}); // 色分けはプロジェクトとエージェントだけ

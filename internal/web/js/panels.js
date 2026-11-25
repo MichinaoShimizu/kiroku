@@ -237,7 +237,7 @@ async function keepArchive(name){
     applyData(await r.json()); render();
     const D = $("#review details.dsrc"), li = D && (name != null && D.querySelector(`li[data-dsrc="${CSS.escape(name)}"]`) || D.querySelector("li.arch"));
     if (li){ for (let d = li.closest("details"); d; d = d.parentElement.closest("details")) d.open = true; li.tabIndex = -1; li.focus({preventScroll: true}); li.scrollIntoView({block: "nearest"}); }
-    toast(t("Keeping a copy in {dir}. kiroku adds new history to it each time it reads your history.", {dir: (META.archive && META.archive.dir) || t("kiroku's folder")}), 6000);
+    toast(t("Keeping a copy in {dir}. kiroku adds new history to it each time it reads your history.", {dir: (META.archive && META.archive.dir) || t("kiroku's folder")}), 6000, [li, D && D.querySelector("li.arch")]); // フォーカスを移した行と「kiroku's copy: on」の行を隠さない
   } catch(e){ document.querySelectorAll("#review .keeparch").forEach(x => x.disabled = false); toast(t("Couldn't start keeping a copy. Run kiroku serve --archive on instead."), 4500); }
 }
 function keepRow(r){ // 計測の状態に添える：どこまでさかのぼれるか、いつ消えるか
