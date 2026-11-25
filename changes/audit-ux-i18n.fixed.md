@@ -1,7 +1,7 @@
 - "Expensive models for light work" gets its Worth a look mark again, on By model next to the Input value (or on Where it went)
 - On a past week, How you worked's lower-cost note says "Different in the week shown" instead of "Different this week"
 - The note after copying a prompt reads "kiroku didn't run or send anything"
-- Cost and output over time: axis and end labels stay about 12 px at any width (they grew to 25 px on a 1000 px window and shrank to 10 px on a phone); the output total has its unit ("695 lines"); the hint under a chart is no longer colored like a link
+- Estimated cost and output over time: axis and end labels stay about 12 px at any width (they grew to 25 px on a 1000 px window and shrank to 10 px on a phone); the output total has its unit ("695 lines"); the hint under a chart is no longer colored like a link
 - On a phone, From input to output's caption describes the list shown instead of the hidden diagram's band widths
 - The usage-limit mark in the week calendar sits at the right edge of its session so it no longer hides the start of the name
 - A screen reader reads an in-progress period in a trend chart as the amount so far and the end-of-period estimate, not the estimate alone
@@ -10,7 +10,7 @@
 - A usual range is no longer rounded across the value ("On pace for 11.7: above your usual 9–12"), and both ends have the same decimals ("50.8%–64.0%")
 - Durations keep "1h 24m" on one line, and What changed from the last period fits more of each project's name under its bar, with the full name in its tooltip and the chart's screen-reader text
 - Screen readers: the copy buttons and the calendar's 0–7h switch are named starting with their visible text, and a value's name no longer includes "Show the formula"
-- Japanese: month sparklines say "10月" instead of English month names, "push" is プッシュ, the calendar's day labels and the Cost and output over time tooltip use Japanese separators and brackets, and the week calendar's tooltips say "Kiro credits 8.4" and "Active time" instead of "Credits 8.4 credits" and "Active"
+- Japanese: month sparklines say "10月" instead of English month names, "push" is プッシュ, the calendar's day labels and the Estimated cost and output over time tooltip use Japanese separators and brackets, and the week calendar's tooltips say "Kiro credits 8.4" and "Active time" instead of "Credits 8.4 credits" and "Active"
 - The "?" text for Usage limit hits says Claude Code reset times are shown in 24-hour time, and Long conversations mentions that only sessions with 8 or more responses count
 - `kiroku serve --check` and Data sources list both `$KIRO_HOME` and `~/.kiro` for Kiro IDE / CLI (V3) and Kiro CLI (V2) when kiroku reads both
 - "Close to usual" says, in its tooltip and "ƒx", that the value is outside the usual range by less than 10% of its edge, and the "Expensive models for light work" threshold reads as a sentence
@@ -25,5 +25,5 @@
 - Japanese: the note that more history is needed to compare reads 記録のある過去の月が 4 か月分要ります（いまは 2 か月分） (and 週が 4 週分 for weeks) instead of 過去のか月が 4 要ります
 - A metric's name that wraps keeps its last word with its "ƒx" and "?" instead of leaving the "?" alone on the next line ("Claude Code sessions that reached a commit or PR" at 1440 px)
 - Japanese: session time has one name, セッション時間, in Unit cost per input's switch (セッション時間 1 時間), its formula, the From input to output switch and the notes (were セッションの 1 時間, セッションの作業時間 and セッションの時間)
-- Cost and output over time: on a phone the two totals at the end of the lines no longer overlap ("$6.87" and "299 lines")
+- Estimated cost and output over time: on a phone the two totals at the end of the lines no longer overlap ("$6.87" and "299 lines")
 - The week band says "Month-end credits (estimate)" (and "Month-end cost (estimate)" in the month view) like "Month-end (estimate)", instead of "Month-end credits"

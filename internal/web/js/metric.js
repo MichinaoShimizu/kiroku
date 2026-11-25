@@ -20,7 +20,7 @@ const BRK = {
   aiCommits: {n: "AI commits", h: "commits"},
   lines: {n: "Lines in Git commits", h: "lines"},
   prs: {n: "Pull requests", h: "prs"},
-  costPerCommit: {n: "Claude Code cost per AI commit", h: "costPerCommit"},
+  costPerCommit: {n: "Claude Code estimated cost per AI commit", h: "costPerCommit"},
   outSessions: {n: "Claude Code sessions that reached a commit or PR", h: "outSessions"},
   focus: {n: "Focus blocks (60+ min)", h: "focus"},
   fix: {n: "Prompts with corrections or interruptions", h: "fix"},
@@ -129,7 +129,7 @@ const MB = {
   costPerCommit(w, {inRange}){ const o = w.outputs || {}; if (w.costPerCommit == null || !o.commits) return null;
     const xs = inRange.filter(s => s.outputs && s.outputs.commits > 0 && s.cost > 0).map(s => [s, s.cost / s.outputs.commits]).sort((a,b) => b[1] - a[1]);
     return {big: usdH(w.costPerCommit), body: calcH([["Claude Code's estimated cost", `${esc(usd(w.outCost ?? w.costPerCommit * o.commits))}`], "÷", ["AI commits", `${o.commits}`], "=", ["Per commit", esc(usd(w.costPerCommit))]]) +
-      mSessions("Sessions with the highest cost per commit", xs.slice(0, 8), usd) + (xs.length ? WHOLE() : "")}; },
+      mSessions("Sessions with the highest estimated cost per commit", xs.slice(0, 8), usd) + (xs.length ? WHOLE() : "")}; },
   outSessions(w, {inRange}){ const base = w.outBase ?? w.sessions; if (!base) return null;
     const xs = inRange.filter(s => s.outputs && (s.outputs.commits || s.outputs.prs)).sort((a,b) => b.start - a.start);
     const what = s => [s.outputs.commits ? plural(s.outputs.commits, "commit") : "", s.outputs.prs ? plural(s.outputs.prs, "PR") : ""].filter(Boolean).join(" · ");
@@ -183,7 +183,7 @@ const MB = {
     return {big: usdH(w.costPerAsk), body: calcH([["Estimated cost", esc(usd(u.cost))], "÷", ["Prompts (sessions that record tokens)", `${w.costPrompts}`], "=", ["Per prompt", esc(usd(w.costPerAsk))]]) +
       mBars("By agent", agRows(rate(((w.shares || {}).source || []).map(x => [x.key, x.cost]), s => s.source)), um, false) +
       mBars("By project", pjRows(rate((w.projectStats || []).map(p => [p.project, p.cost]), s => s.project)), um, false) +
-      mSessions("Sessions with the highest cost per prompt", top, usd) + (top.length ? WHOLE() : "")}; },
+      mSessions("Sessions with the highest estimated cost per prompt", top, usd) + (top.length ? WHOLE() : "")}; },
 };
 /* トレンド線のまま進んだときの月末（終わった日の傾きを、残りの日に延ばして足す。マイナスにはしない） */
 function trendNote(w, pj, so, m){

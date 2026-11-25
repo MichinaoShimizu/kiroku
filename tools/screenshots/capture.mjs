@@ -42,7 +42,7 @@ await p.evaluate(() => { const e = document.querySelector("#review"), m = docume
 await p.waitForTimeout(500);
 await shotPair("#review .ik-cost", "#review .ik-out", "sum-io.png");
 await shotPair("#review .ik-uin", "#review .ik-unit", "sum-unit.png", 8);
-// サンキーの枠（「From input to output」）。同じ段の「Cost and output over time」も .iskw なので、最初の 1 つ
+// サンキーの枠（「From input to output」）。同じ段の「Estimated cost and output over time」も .iskw なので、最初の 1 つ
 await p.locator("#review .iskw").first().screenshot({ path: path.join(docs, "sum-sankey.png") });
 await p.setViewportSize({ width: 1440, height: 900 });
 await p.locator('#view button[data-v="cal"]').click(); // 以降の画像はカレンダーで

@@ -152,7 +152,7 @@ async function run(env) {
       sm.click(); await wait(); const saved = store.get("insBrk", false) === true; summary();
       const B2 = document.querySelector("#review details.insbrk"), top = [...B2.querySelectorAll(":scope > .insg > .insrow h4")].map(h => h.textContent);
       return closed && saved && B2.open && top.some(x => /When you worked/.test(x)) && top.some(x => /Where it went/.test(x)) && top.some(x => /Most edited files/.test(x)) && !top.some(x => /^(Trend|Usage|Spread per session)/.test(x)); }));
-    check("投入から産出の流れの右（狭い画面では下）に、費用と産出の推移のカード（2 本の線）があり、内訳の中にはない", await p.evaluate(() => {
+    check("投入から産出の流れの右（狭い画面では下）に、推定費用と産出の推移のカード（2 本の線）があり、内訳の中にはない", await p.evaluate(() => {
       const f = document.querySelector("#review .isflow"), cs = f ? [...f.children] : [], sk = cs.find(c => c.querySelector(".isk")), cu = cs.find(c => c.querySelector(".icum"));
       if (!sk || !cu || document.querySelector("#review .insbrk .icum") || cu.querySelectorAll("path.icl").length !== 2) return false;
       const a = sk.getBoundingClientRect(), b = cu.getBoundingClientRect();

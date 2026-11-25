@@ -19,3 +19,15 @@ if (missing.length) console.log(`MISSING ${missing.length}\n` + missing.join("\n
     ["To compare with your usual range, kiroku needs {min} past weeks with records (have {n}).", "いつもの範囲と比べるには、記録のある過去の週が 4 週分要ります（いまは 2 週分）。"]];
   for (const [k, v] of want) if (t(k, {min: 4, n: 2}) !== v){ console.error(`${k} → ${t(k, {min: 4, n: 2})} (want ${v})`); process.exitCode = 1; }
 }
+// 用語をそろえる（2026-11-25 のメンテナーの決定）：by hand は「手動」、pull request は「PR」、so far は「ここまで」、
+// range は「範囲」、spread は「ばらつき」。古い言い方（手作業・手で・プルリクエスト・これまで・（途中）・幅）を値に戻さない。
+// 「途中」は進行中（途中の週）と「途中から記録が始まる」（partial）の意味でだけ使う
+for (const [k, v] of Object.entries(JA_TEXT)) for (const w of ["手作業", "手で", "プルリクエスト", "これまで", "（途中）", "幅"])
+  if (v.includes(w)){ console.error(`old term ${w} in: ${k} → ${v}`); process.exitCode = 1; }
+{
+  const want = {"So far": "ここまで", " (so far)": "（ここまで）", "Range": "範囲", "spread": "ばらつき", "Pull requests": "PR", "By hand (or another tool)": "手動（またはほかのツール）"};
+  for (const [k, v] of Object.entries(want)) if (JA_TEXT[k] !== v){ console.error(`${k} → ${JA_TEXT[k]} (want ${v})`); process.exitCode = 1; }
+}
+// 見出し・図の名前は「推定費用」（Estimated cost）。「費用」（Cost）はスイッチだけ（ガイドの決まり）
+for (const k of ["Estimated cost and output over time", "Claude Code estimated cost per AI commit", "Sessions with the highest estimated cost per commit", "Sessions with the highest estimated cost per prompt", "Share of estimated cost with no commit or PR"])
+  if (!(k in JA_TEXT) || !JA_TEXT[k].includes("推定費用")){ console.error(`heading should say 推定費用: ${k} → ${JA_TEXT[k]}`); process.exitCode = 1; }
