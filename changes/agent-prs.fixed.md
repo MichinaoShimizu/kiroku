@@ -1,0 +1,1 @@
+- Claude Code: a `gh pr create` that only appears inside another command's arguments (such as `rg gh pr create` or a commit message), or with `--help`, is no longer counted as a pull request

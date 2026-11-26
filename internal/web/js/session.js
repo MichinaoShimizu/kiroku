@@ -126,6 +126,9 @@ function sessionOutputs(s){
   if (cs.length) G.push(tile(t("Git commits"), `${cs.length}`, esc(byAI ? t("{n} by AI", {n: cs.filter(c => c.ai).length}) : t("By you or AI: not recorded")), byAI ? "" : t("{agent} does not record which commits it ran", {agent: s.source})));
   else if (oc) G.push(tile(t("AI commits"), `${oc}`, esc(t("Commits AI ran, from history; none found in git during this session")))); // git に見つからないときは、AI が実行した回数
   if (op) G.push(tile(t("Pull requests created"), `${op}`, ""));
+  const om = num(o.merges), ov = num(o.reviews), oa = num(o.approvals);
+  if (om) G.push(tile(t("Pull requests merged"), `${om}`, ""));
+  if (ov) G.push(tile(t("Reviews submitted"), `${ov}`, oa ? esc(t("{n} approved", {n: oa})) : ""));
   const gitH = G.length ? `<div class="mini tight">${G.join("")}</div>` : noneH(esc(t("No commits found during this session")));
   // AI の編集：履歴の編集ツールから（行は編集の前後を比べた目安）。単価は、このまとまりの行で割る（Git のコミットでは割らない）。
   // 割る元は、サマリーの「AI が編集した 100 行あたり」と同じ（編集を記録するエージェントで、推定費用はトークンを記録したセッション）
@@ -139,9 +142,12 @@ function sessionOutputs(s){
   return `<h3>${esc(INS_OUT())}</h3>${grp("sog-git", "commit", t("Git"), t("from your repositories"), gitH)}${grp("sog-edit", "edit", t("AI edits"), t("from the agent's history, committed or not"), editH)}`;
 }
 function span(v){ return v < 3600 ? secs(v) : dur(v / 60); } // 秒数を、1 時間からは時間と分で
-function prName(url){ // GitHub の PR は「リポジトリ#番号」と短く（狭い画面でも番号が見えるように）
-  const m = /github\.com\/[^/]+\/([^/]+)\/pull\/(\d+)/.exec(url || "");
-  return m ? `${m[1]}#${m[2]}` : String(url || "").replace(/^https?:\/\//, "");
+// ghPull は GitHub の PR の URL を [, 持ち主, リポジトリ, 番号] に分ける（でなければ null）。ホストは github.com に固定する
+// （https://evil.example/github.com/o/r/pull/1 を o/r の PR の名前に見せて、別の行き先へ飛ばさないため）
+function ghPull(url){ return /^https:\/\/(?:www\.)?github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)(?:[/?#]|$)/.exec(url || ""); }
+function prName(url){ // GitHub の PR は「リポジトリ#番号」と短く（狭い画面でも番号が見えるように）。ほかは URL のまま
+  const m = ghPull(url);
+  return m ? `${m[2]}#${m[3]}` : String(url || "").replace(/^https?:\/\//, "");
 }
 const NOTE_LABEL = () => ({reminder: t("System note"), notice: t("Notification"), hook: t("Hook output"), output: t("Command output"),
   compact: t("Conversation summary"), agent: t("From another agent or schedule"), meta: t("Added by the agent"), other: t("Added automatically")});
@@ -152,6 +158,8 @@ function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面で�
   commitsOf(s).forEach(c => ev.push({t: c.t, k: c.ai ? "commit ai" : "commit", l: c.ai ? t("AI committed") : t("Committed by hand"), d: `<button class="evd" data-git="${esc(c.hash)}"><i class="gtag${c.ai ? " ai" : ""}">${GIT_ICON}${esc(c.hash.slice(0,7))}</i> ${esc(c.subject)}</button>`}));
   (META.push || []).filter(p => p.project === s.project && p.t >= s.start && p.t <= s.end + 600).forEach(p => ev.push({t: p.t, k: "push", l: t("Pushed"), d: `<button class="evd" data-push="${esc(pushKey(p))}"><span class="mono">${esc(p.ref)}</span>${p.commits ? ` · ${plural(p.commits, "commit")}` : ""}</button>`})); // この PC からの push（git reflog）
   (s.prAt || []).forEach(p => ev.push({t: p.t, k: "pr", l: t("Created a pull request"), d: `<button class="evd" data-pr="${esc(prKey(s, p))}">${esc(p.url ? prName(p.url) : t("Pull request"))}</button>`}));
+  const actL = {merge: t("Merged a pull request"), approve: t("Approved a pull request"), review: t("Reviewed a pull request")};
+  (s.prActs || []).forEach(a => { if (actL[a.k]) ev.push({t: a.t, k: "pr", l: actL[a.k]}); }); // AI がした PR のマージ・レビュー（どの PR かは履歴にない）
   (s.limits || []).forEach((at, i) => { const r = limitReset(s, i); ev.push({t: at, k: "warn", l: t("Hit a usage limit"), d: r ? `<span class="evd">${esc(t("resets {time}", {time: r}))}</span>` : ""}); }); // 解除の時刻はエラー文のまま（日付や時間帯がないこともある）
   (s.interruptsAt || []).forEach(at => ev.push({t: at, k: "int", l: t("Interrupted")}));
   (s.compactions || []).forEach((at, i) => { const k = compactKind(s, i); ev.push({t: at, k: "cmp", l: t("Conversation compacted"), d: k ? `<span class="evd">${esc(k)}</span>` : ""}); });
@@ -231,6 +239,8 @@ function reviewEvents(s){ // 流れの出来事のうち、振り返りに効く
   const ev = [];
   commitsOf(s).forEach(c => ev.push({t: c.t, l: c.ai ? "AI committed" : "Committed by hand", d: c.subject}));
   (s.prAt || []).forEach(p => ev.push({t: p.t, l: "Created a pull request", d: p.url})); // URL があれば添える（振り返りが PR を名指しできるように）
+  const actL = {merge: "Merged a pull request", approve: "Approved a pull request", review: "Reviewed a pull request"};
+  (s.prActs || []).forEach(a => { if (actL[a.k]) ev.push({t: a.t, l: actL[a.k]}); });
   (s.interruptsAt || []).forEach(t => ev.push({t, l: "Interrupted"}));
   (s.compactions || []).forEach(t => ev.push({t, l: "Conversation compacted"}));
   (s.limits || []).forEach(t => ev.push({t, l: "Hit a usage limit"}));

@@ -7,7 +7,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -537,7 +536,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		var lastInfo, lastLimits, lastLast string // lastLast: 前の token_count の last_token_usage
 		var prevTotal core.Tokens
 		records := map[string]bool{}
-		prs := prCalls{} // PR を作る呼び出し（gh pr create・create_pull_request）。結果（*_call_output）が成功なら数える
+		prs := newPRCalls() // PR の操作（作成・マージ・レビュー）の呼び出し（gh pr create・create_pull_request）。結果（*_call_output）が成功なら数える
 		var fromCounts, fromRecords []core.Event
 		var countMeas, recordMeas []core.Measure
 		// cutEvents・cutMeas は、最初の token_usage_record を読んだときの fromCounts・countMeas の長さ（-1 はまだ無い）。
@@ -724,9 +723,11 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					s.Measure("tool_calls", t, 1)
 					s.Agent(t)
 				case "function_call_output", "custom_tool_call_output":
-					// ツールの結果。PR を作る呼び出しなら、成功したか（終了コード）を見て、出力から PR の URL を探す
-					text, ok := codexCallOutput(p["output"])
-					prs.result(s, core.Str(p["call_id"]), ok, text, t)
+					// ツールの結果。PR の操作の呼び出しなら、成功したか（終了コード）を見て、出力から PR の URL を探す
+					if id := core.Str(p["call_id"]); prs.waiting(id) {
+						text, ok := codexCallOutput(p["output"])
+						prs.result(s, id, ok, text, t)
+					}
 					s.Agent(t)
 				case "message":
 					var parts []string
@@ -968,6 +969,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		}
 		parent := byID[cf.parent].b
 		parent.Measures = append(parent.Measures, cf.b.Measures...) // サブエージェントの分も親のセッションの数字に入れる
+		parent.Outputs = append(parent.Outputs, cf.b.Outputs...)    // サブエージェントが作った・マージした・レビューした PR も、親のセッションのアウトプット
 		parent.Limits = append(parent.Limits, cf.b.Limits...)       // サブエージェントが上限に当たっても、止まったのは親のセッションの作業
 		parent.LimitResets = append(parent.LimitResets, cf.b.LimitResets...)
 		parent.LimitResetAt = append(parent.LimitResetAt, cf.b.LimitResetAt...)
@@ -1428,13 +1430,9 @@ func codexPatchFiles(patch string) []string {
 	return files
 }
 
-// codexExitCode は、シェルの結果の文に書かれた終了コード（「Exit code: N」・「Process exited with code N」）。
-var codexExitCode = regexp.MustCompile(`(?m)^(?:Exit code:|Process exited with code) (-?\d+)`)
-
 // codexCallOutput は、ツールの結果（function_call_output・custom_tool_call_output の output）の文と、
-// 失敗でなかったかを返す。output は文か、内容の並び（{type, text}）。古い版のシェルは
-// {"output": …, "metadata": {"exit_code": N}} の JSON を文にして書く。終了コードが 0 でなければ失敗にする。
-// 失敗とわからないものは成功として扱う（Claude Code の is_error がない結果と同じ）。
+// 失敗でなかったかを返す。output は文か、内容の並び（{type, text}）か、{content, success}。
+// 古い版のシェルは {"output": …, "metadata": {"exit_code": N}} の JSON を文にして書く。失敗の見分けは core.ResultFailed。
 func codexCallOutput(output any) (string, bool) {
 	var text string
 	switch o := output.(type) {
@@ -1451,18 +1449,9 @@ func codexCallOutput(output any) (string, bool) {
 	default:
 		m := core.Map(output)
 		text = core.Str(m["content"])
-		if ok, isBool := m["success"].(bool); isBool && !ok {
+		if core.Falsy(m["success"]) {
 			return text, false
 		}
 	}
-	var wrapped map[string]any
-	if strings.HasPrefix(strings.TrimSpace(text), "{") && json.Unmarshal([]byte(text), &wrapped) == nil {
-		if code, ok := core.Num(core.Get(wrapped, "metadata", "exit_code")); ok {
-			return core.Str(wrapped["output"]), code == 0
-		}
-	}
-	if m := codexExitCode.FindStringSubmatch(text); m != nil && m[1] != "0" {
-		return text, false
-	}
-	return text, true
+	return text, !core.ResultFailed(text)
 }

@@ -757,3 +757,33 @@ func TestMidName(t *testing.T) {
 		t.Errorf("midName が違う:\n%s", out)
 	}
 }
+
+// PR の短い名前（prName・ghPull）は、行き先が https://github.com/ のときだけ。https://evil.example/github.com/o/r/pull/1 のような
+// URL を「r#1」と見せて別のホストへ飛ばさないこと。session.js から 2 つの関数だけを取り出して Node で動かす。
+func TestPRName(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/session.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := strings.ReplaceAll(string(src), "\r\n", "\n")
+	gh := regexp.MustCompile(`(?m)^function ghPull\(url\)\{.*\}$`).FindString(text)
+	name := regexp.MustCompile(`(?ms)^function prName\(url\)\{.*?^\}$`).FindString(text)
+	if gh == "" || name == "" {
+		t.Fatal("session.js に ghPull・prName が見つからない")
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "prname_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "prname.js")
+	if err := os.WriteFile(f, append([]byte(gh+"\n"+name+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("PR の名前が違う:\n%s", out)
+	}
+}

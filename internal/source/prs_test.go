@@ -143,11 +143,116 @@ func TestQStorePullRequests(t *testing.T) {
 
 // 結果を待つ呼び出しの数には上限がある（細工した履歴でメモリを使い切らない）。
 func TestPRCallsBounded(t *testing.T) {
-	p := prCalls{}
+	p := newPRCalls()
 	for i := 0; i < maxPRCalls+50; i++ {
 		p.call(strconv.Itoa(i), "shell", map[string]any{"command": "gh pr create"}, nil)
 	}
-	if len(p) != maxPRCalls {
-		t.Errorf("覚えた呼び出し = %d, want %d", len(p), maxPRCalls)
+	if len(p.calls) != maxPRCalls {
+		t.Errorf("覚えた呼び出し = %d, want %d", len(p.calls), maxPRCalls)
+	}
+}
+
+// PR の操作でない呼び出しは数えない: apply_patch の配列（パッチの本文）、--help、rg やコミットのメッセージの中の文、
+// シェルでないツールの command。終了コードの珍しい書き方（1e400・タブ・文の success）は失敗として扱う。
+// 同じ call_id を使い直して同じ URL が 2 回出ても、PR は 1 つ。サブエージェントの PR は親のセッションに入る。
+func TestCodexPullRequestFalsePositives(t *testing.T) {
+	home := t.TempDir()
+	n := 0
+	at := func() string { n++; return fmt.Sprintf("2026-10-06T00:%02d:%02d.000Z", n/60, n%60) }
+	call := func(id, name, args string) string {
+		return `{"timestamp":"` + at() + `","type":"response_item","payload":{"type":"function_call","name":"` + name + `","call_id":"` + id + `","arguments":` + args + `}}`
+	}
+	out := func(id, output string) string {
+		return `{"timestamp":"` + at() + `","type":"response_item","payload":{"type":"function_call_output","call_id":"` + id + `","output":` + output + `}}`
+	}
+	ok := `"https://github.com/o/r/pull/1"`
+	writeCodex(t, home, "thr-fp",
+		`{"timestamp":"2026-10-06T00:00:00.000Z","type":"session_meta","payload":{"id":"thr-fp","timestamp":"2026-10-06T00:00:00.000Z","cwd":"/Users/me/project"}}`,
+		call("a", "shell", `"{\"command\":[\"apply_patch\",\"*** Begin Patch\\n+ gh pr create\\n*** End Patch\"]}"`), out("a", ok),
+		call("b", "shell", `"{\"command\":[\"gh\",\"pr\",\"create\",\"--help\"]}"`), out("b", ok),
+		call("c", "shell", `"{\"command\":[\"bash\",\"-lc\",\"rg -n gh pr create docs\"]}"`), out("c", ok),
+		call("d", "shell", `"{\"command\":[\"bash\",\"-lc\",\"git commit -m \\\"docs: explain gh pr create\\\"\"]}"`), out("d", ok),
+		call("e", "notes__save", `"{\"command\":\"remember to gh pr create\"}"`), out("e", ok),
+		call("f", "shell", `"{\"command\":[\"gh\",\"pr\",\"create\"]}"`), out("f", `"{\"output\":\"x\",\"metadata\":{\"exit_code\":1e400}}"`),
+		call("g", "shell", `"{\"command\":[\"gh\",\"pr\",\"create\"]}"`), out("g", `"Exit code:\t1\nOutput:\nhttps://github.com/o/r/pull/9 already exists"`),
+		call("h", "shell", `"{\"command\":[\"gh\",\"pr\",\"create\"]}"`), out("h", `{"content":"https://github.com/o/r/pull/9","success":"false"}`),
+		call("i", "exec_command", `"{\"cmd\":\"gh pr create\"}"`), out("i", `"Process running with session ID 3\nOutput:\n? Title"`),
+		// 数えるもの: bash -lc の中・VAR=値 の前置き。同じ call_id を使い直して同じ URL でも 1 回
+		call("j", "shell", `"{\"command\":[\"bash\",\"-lc\",\"git push && GH_PROMPT_DISABLED=1 gh pr create --fill\"]}"`), out("j", `"https://github.com/o/r/pull/2"`),
+		call("j", "shell", `"{\"command\":[\"gh\",\"pr\",\"create\"]}"`), out("j", `"https://github.com/o/r/pull/2"`),
+		call("k", "shell", `"{\"command\":[\"gh\",\"pr\",\"merge\",\"2\",\"--squash\"]}"`), out("k", `"Exit code: 0\nOutput:\nMerged"`),
+	)
+	bs := load(t, &Codex{Home: home})
+	if len(bs) != 1 {
+		t.Fatalf("sessions = %d, want 1", len(bs))
+	}
+	var tot core.OutputTotal
+	for _, o := range bs[0].Outputs {
+		tot.Add(o)
+	}
+	if tot.PRs != 1 || tot.Merges != 1 {
+		t.Errorf("PR・マージ = %v %v, want 1 1（PR の操作でない呼び出し・失敗・同じ URL は数えない）", tot.PRs, tot.Merges)
+	}
+}
+
+// Kiro IDE / CLI (V3): success が文の "false" や、content の終了コードが 0 でないものは失敗。マージとアプルーブも数える。
+func TestKiroIDEPullRequestActions(t *testing.T) {
+	home := t.TempDir()
+	writeFiles(t, home, map[string]string{
+		"sessions/abc/sess_2/session.json": `{"id": "sess_2", "createdAt": "2026-09-29T01:00:00Z"}`,
+		"sessions/abc/sess_2/messages.jsonl": `{"timestamp": "2026-09-29T01:01:00Z", "payload": {"type": "user", "content": "レビューしてマージして"}}
+{"timestamp": "2026-09-29T01:02:00Z", "payload": {"type": "tool_call", "toolCallId": "a", "toolName": "executeBash", "args": {"command": "gh pr create"}}}
+{"timestamp": "2026-09-29T01:03:00Z", "payload": {"type": "tool_result", "toolCallId": "a", "content": "https://github.com/o/r/pull/7", "success": "false"}}
+{"timestamp": "2026-09-29T01:04:00Z", "payload": {"type": "tool_call", "toolCallId": "b", "toolName": "executeBash", "args": {"command": "gh pr create"}}}
+{"timestamp": "2026-09-29T01:05:00Z", "payload": {"type": "tool_result", "toolCallId": "b", "content": "{\"exitCode\":1,\"stdout\":\"https://github.com/o/r/pull/7 already exists\"}", "success": true}}
+{"timestamp": "2026-09-29T01:06:00Z", "payload": {"type": "tool_call", "toolCallId": "c", "toolName": "executeBash", "args": {"command": "gh pr review 7 --approve"}}}
+{"timestamp": "2026-09-29T01:07:00Z", "payload": {"type": "tool_result", "toolCallId": "c", "content": "Approved", "success": true}}
+{"timestamp": "2026-09-29T01:08:00Z", "payload": {"type": "tool_call", "toolCallId": "d", "toolName": "github___merge_pull_request", "args": {"pullNumber": 7}}}
+{"timestamp": "2026-09-29T01:09:00Z", "payload": {"type": "tool_result", "toolCallId": "d", "content": "merged", "success": true}}
+`,
+	})
+	b := find(load(t, &KiroIDE{Home: home}), "sess_2")
+	if b == nil {
+		t.Fatal("sess_2 がない")
+	}
+	var tot core.OutputTotal
+	for _, o := range b.Outputs {
+		tot.Add(o)
+	}
+	if tot.PRs != 0 || tot.Reviews != 1 || tot.Approvals != 1 || tot.Merges != 1 {
+		t.Errorf("合計 = %+v, want PR 0・レビュー 1（アプルーブ 1）・マージ 1", tot)
+	}
+	s := b.Finish(15)
+	if len(s.PRActs) != 2 || s.PRActs[0].K != "approve" || s.PRActs[1].K != "merge" {
+		t.Errorf("PRActs = %+v", s.PRActs)
+	}
+}
+
+// Codex のサブエージェントが作った PR は、親のセッションのアウトプットに入る（Claude Code と同じ）。
+// 親から写した行（session_meta より前の時刻）の PR は、子の分として重ねて数えない。
+func TestCodexSubagentPullRequest(t *testing.T) {
+	home := t.TempDir()
+	parentCall := `{"timestamp":"2026-10-06T01:00:05.000Z","type":"response_item","payload":{"type":"function_call","name":"shell","call_id":"p1","arguments":"{\"command\":[\"gh\",\"pr\",\"create\"]}"}}`
+	parentOut := `{"timestamp":"2026-10-06T01:00:06.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"p1","output":"https://github.com/o/r/pull/1"}}`
+	writeCodex(t, home, "thr-p",
+		`{"timestamp":"2026-10-06T01:00:00.000Z","type":"session_meta","payload":{"id":"thr-p","timestamp":"2026-10-06T01:00:00.000Z","cwd":"/Users/me/web"}}`,
+		`{"timestamp":"2026-10-06T01:00:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"親の依頼"}}`,
+		parentCall, parentOut,
+	)
+	writeCodex(t, home, "thr-c",
+		`{"timestamp":"2026-10-06T01:01:00.000Z","type":"session_meta","payload":{"id":"thr-c","timestamp":"2026-10-06T01:01:00.000Z","cwd":"/Users/me/web","source":{"subagent":{"thread_spawn":{"parent_thread_id":"thr-p","depth":1,"agent_role":"worker"}}}}}`,
+		`{"timestamp":"2026-10-06T01:00:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"親の依頼"}}`,
+		parentCall, parentOut,
+		`{"timestamp":"2026-10-06T01:01:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"子の依頼"}}`,
+		`{"timestamp":"2026-10-06T01:01:10.000Z","type":"response_item","payload":{"type":"function_call","name":"shell","call_id":"c1","arguments":"{\"command\":[\"gh\",\"pr\",\"merge\",\"1\"]}"}}`,
+		`{"timestamp":"2026-10-06T01:01:11.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"c1","output":"Exit code: 0\nOutput:\nMerged"}}`,
+	)
+	p := find(load(t, &Codex{Home: home}), "thr-p")
+	if p == nil {
+		t.Fatal("thr-p がない")
+	}
+	s := p.Finish(15)
+	if s.Outputs.PRs != 1 || s.Outputs.Merges != 1 || len(s.PRs) != 1 {
+		t.Errorf("親のアウトプット = %+v %v, want PR 1（写した行は重ねない）・マージ 1（子の分）", s.Outputs, s.PRs)
 	}
 }
