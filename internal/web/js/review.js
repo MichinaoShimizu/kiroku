@@ -48,16 +48,6 @@ const BIG_PROMPT = 4000, plen = p => p.len || String(p.text || "").length;
 function bigOf(ws, we){ const ps = [], ids = new Set();
   DATA.forEach(s => s.prompts.forEach(p => { if (p.t >= ws && p.t < we && plen(p) >= BIG_PROMPT){ ps.push(plen(p)); ids.add(s.id); } }));
   return {n: ps.length, max: Math.max(0, ...ps), ids: [...ids]}; }
-/* AI が編集した行あたりの単価の元（期間 [ws, we) に始まったセッション）。分子と分母は同じセッションから：
-   編集を記録するエージェント（RECORDS の files）のセッションのうち、その使用量（cost・credits・tokens）を記録したもの。
-   行は編集の前後を比べた目安で、コミットしたかどうかによらない（Git のコミットとは混ぜない） */
-const sesLines = s => (s.editAdded || 0) + (s.editRemoved || 0);
-function editsBasis(ws, we, k){ return memoBasis("edit", ws, we, k, () => editsBasis0(ws, we, k)); }
-function editsBasis0(ws, we, k){
-  const use = s => k === "cost" ? (sesTok(s) ? s.cost || 0 : 0) : k === "credits" ? s.credits || 0 : sesTok(s);
-  const xs = DATA.filter(s => s.start >= ws && s.start < we && records(s.source, "files") && use(s) > 0);
-  return {n: xs.length, used: xs.reduce((a, s) => a + use(s), 0), lines: xs.reduce((a, s) => a + sesLines(s), 0)};
-}
 /* 時間・セッション・プロンプトあたりの元（期間 [ws, we) に始まったセッションのうち、その使用量を記録したもの）。
    分子と分母は同じセッションから。時間は各セッションの作業時間（期間の中の分。重なったセッションはそれぞれ数える） */
 const minIn = (s, ws, we) => (s.segs || []).reduce((a, [x, y]) => a + Math.max(0, Math.min(y, we) - Math.max(x, ws)) / 60, 0);
@@ -73,7 +63,6 @@ function useBasis0(ws, we, k){
   return {n: xs.length, used: xs.reduce((a, s) => a + use(s), 0), min: xs.reduce((a, s) => a + minIn(s, ws, we), 0), prompts: xs.reduce((a, s) => a + (s.nPrompts || 0), 0), days};
 }
 const perUse = (ws, we, k, by) => { const b = useBasis(ws, we, k), d = by === "hour" ? b.min / 60 : by === "day" ? b.days : by === "ses" ? b.n : b.prompts; return d > 0 && b.used > 0 ? b.used / d : null; };
-function perEdit(ws, we, k){ const b = editsBasis(ws, we, k); return b.lines > 0 && b.used > 0 ? b.used * 100 / b.lines : null; }
 /* Git から読むコミットの扱い（どれも決まった規則。AI は使わない）
    reworkOf: 期間 [ws, we) に AI が実行したコミットのうち、3 日以内に同じリポジトリで同じファイルを変えた別のコミット（人でも AI でも）があったものの数。
      3 日たっていないコミット（今に近いもの）は、まだ決まらないので数えない。ファイルはコミットごとに先頭の一定数までしか持たないので、少なめに数えることがある
@@ -119,10 +108,6 @@ const MET = {
   costPerCommit: {f: w => w.costPerCommit, low: true, fmt: v => usd(v)},
   // コミットあたりのトークン：推定費用と同じく、Claude Code のセッション（期間に始まったもの）のトークン ÷ AI が実行したコミット
   tokensPerCommit: {f: (w, ws, we) => { const c = w.outputs && w.outputs.commits; if (!c) return null; const n = DATA.filter(s => s.source === "Claude Code" && s.start >= ws && s.start < we).reduce((a, s) => a + sesTok(s), 0); return n ? n / c : null; }, low: true, fmt: v => tok(v)},
-  // AI が編集した 100 行あたり（良し悪しの向きは付けない：行あたりが下がるのは、多く・冗長に書いただけのこともある）：Git のコミットではなく、エージェントの履歴の編集ツールから数えた行で割る（editsBasis）
-  costPerEdit: {f: (w, ws, we) => perEdit(ws, we, "cost"), fmt: v => usd(v)},
-  creditsPerEdit: {f: (w, ws, we) => perEdit(ws, we, "credits"), fmt: v => cr1(v)},
-  tokensPerEdit: {f: (w, ws, we) => perEdit(ws, we, "tokens"), fmt: v => tok(v)},
   // 時間・セッション・プロンプトあたり（良し悪しの向きは付けない：1 時間あたりが高いのは、集中して任せた結果のこともある）
   costPerHour: {f: (w, ws, we) => perUse(ws, we, "cost", "hour"), fmt: v => usd(v)},
   creditsPerHour: {f: (w, ws, we) => perUse(ws, we, "credits", "hour"), fmt: v => cr1(v)},

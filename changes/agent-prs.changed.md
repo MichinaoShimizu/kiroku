@@ -1,1 +1,2 @@
 - "Claude Code sessions that reached a commit or PR" counts only Claude Code sessions in its numerator as well as its denominator, so pull requests from other agents don't raise it
+- The Output panel's and unit cost's pull request choices are named "PRs opened" (PR 作成), "PR merges", "PR reviews" and "PR approvals", and the pull request tile is "Pull requests created", so it is clear that "PRs" counts pull requests AI opened

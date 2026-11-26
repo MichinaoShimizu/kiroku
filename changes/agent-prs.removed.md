@@ -1,0 +1,1 @@
+- Unit cost per output no longer divides by "100 AI lines" (estimated cost, Kiro credits or tokens per 100 AI-edited lines); the figure was hard to read next to the per-commit and per-PR ones. Session details still show it for a single session

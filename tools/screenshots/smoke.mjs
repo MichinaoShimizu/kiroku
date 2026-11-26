@@ -479,7 +479,7 @@ async function run(env) {
       }
       { // パネルの切り替え：押すと別の選択肢のタイル（とグラフ）になり、開き直しても覚えている
         const sws = await p.evaluate(() => [...document.querySelectorAll("#review .insh .iksw")].map(g => ({sw: g.dataset.sw, vs: [...g.querySelectorAll("[data-v]")].map(b => b.dataset.v), on: [...g.querySelectorAll('[data-v]:not([hidden])')].map(b => b.dataset.v), cur: g.querySelector('[aria-pressed="true"]').dataset.v})));
-        const want = {cost: ["cost", "credits", "tokens", "active"], out: ["commit", "push", "pr"], unitN: ["cost", "credits", "tokens"], unitD: ["commit", "push", "pr", "edit"], uinN: ["cost", "credits", "tokens"], uinD: ["Hour", "Day", "Ses", "Ask"]};
+        const want = {cost: ["cost", "credits", "tokens", "active"], out: ["commit", "push", "pr", "merge", "review", "approve"], unitN: ["cost", "credits", "tokens"], unitD: ["commit", "push", "pr", "merge", "review"], uinN: ["cost", "credits", "tokens"], uinD: ["Hour", "Day", "Ses", "Ask"]};
         check("どのパネルにも切り替えがあり（単価は量と割る数の 2 つ）、選択肢はいつも同じ並びで、数字のあるものだけ", Object.keys(want).every(k => { const x = sws.find(z => z.sw === k); return x && x.on.length > 0 && x.vs.join() === want[k].filter(v => x.vs.includes(v)).join() && x.on.includes(x.cur); }), JSON.stringify(sws));
         const shown = sw => p.evaluate(sw => { const g = document.querySelector(`#review .iksw[data-sw="${sw}"]`), sec = g.closest(".ikg"), v = [...sec.querySelectorAll(".ikrow > [data-ch]")].filter(x => x.checkVisibility());
           return {n: v.length, ch: v[0] && v[0].dataset.ch, svg: v[0] ? (v[0].querySelector(".tspk svg") || {}).innerHTML || "" : "", label: v[0] ? (v[0].querySelector(".il") || v[0]).textContent : ""}; }, sw);
@@ -641,9 +641,9 @@ async function run(env) {
     const rwk = await p.evaluate(() => { const {ws, we} = period(); return reworkOf(ws, we).n > 0; }); // やり直しは 3 日たった AI のコミットがある期間だけ
     for (const id of ["lines", ...(rwk ? ["rework"] : []), "kept", "aiLines", "aiFiles"])
       check(`パネルから外した ${id} は成果のカードにある`, await oc.locator(`.hb[data-help="${id}"]`).count() === 1 && await p.locator(`#review .insh .hb[data-help="${id}"]`).count() === 0);
-    { // 100 行あたりは産出単価、時間・日・セッション・プロンプトあたりは投入単価のパネルに（単価の表のカードはない）。HELP のある指標は、どれもサマリーのどこかに「?」がある
-      const miss = await p.evaluate(() => [...["costPerEdit", "tokensPerEdit"].map(k => ["unit", k]), ...["costPerHour", "costPerDay", "costPerSes", "costPerAsk", "tokensPerHour", "tokensPerDay", "tokensPerSes", "tokensPerAsk", "creditsPerHour", "creditsPerSes", "creditsPerAsk"].map(k => ["uin", k])].filter(([g, k]) => !document.querySelector(`#review .insh .ik-${g} .hb[data-help="${k}"]`)).map(x => x.join(":")));
-      check("産出単価のパネルに 100 行あたり、投入単価のパネルに時間・日・セッション・プロンプトあたりの単価がある", miss.length === 0, miss.join(","));
+    { // 時間・日・セッション・プロンプトあたりは投入単価のパネルに（単価の表のカードはない）。HELP のある指標は、どれもサマリーのどこかに「?」がある
+      const miss = await p.evaluate(() => [...["costPerHour", "costPerDay", "costPerSes", "costPerAsk", "tokensPerHour", "tokensPerDay", "tokensPerSes", "tokensPerAsk", "creditsPerHour", "creditsPerSes", "creditsPerAsk"].map(k => ["uin", k])].filter(([g, k]) => !document.querySelector(`#review .insh .ik-${g} .hb[data-help="${k}"]`)).map(x => x.join(":")));
+      check("投入単価のパネルに時間・日・セッション・プロンプトあたりの単価がある", miss.length === 0, miss.join(","));
       const none = await p.evaluate(rwk => ["cost", "credits", "tokens", "active", "gitCommits", "lines", "prs", "pushes", "aiLines", "aiFiles", ...(rwk ? ["rework"] : []), "kept", "outSessions", "costPerCommit", "tokensPerCommit", "perPush", "perPr", "prompts", "cache", "subagents", "fix", "limits", "focus", "switches", "wait", "bigPrompts", "repeats", "friction", "compactions"].filter(k => !document.querySelector(`#review .hb[data-help="${k}"]`)), rwk);
       check("HELP のある指標は、サマリーのどこかに「?」がある", none.length === 0, none.join(","));
     }
