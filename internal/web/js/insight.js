@@ -630,16 +630,16 @@ function insSankey(){
   const xs = ss.map(s => ({s, v: val[k](s)})).filter(x => x.v > 0); if (xs.length < 2) return "";
   const pt = new Map(); xs.forEach(x => pt.set(x.s.project, (pt.get(x.s.project) || 0) + x.v));
   const topP = [...pt].sort((a, b) => b[1] - a[1]).slice(0, 6).map(x => x[0]), OTH = t("Other"), pj = p => topP.includes(p) ? p : OTH;
-  // 産出の列は、そのセッションの作業がどこまで進んだか（いちばん先の段階）：PR のマージ ＞ PR の作成 ＞ push ＞ コミット。
-  // push は、依頼の流れと同じく、同じプロジェクトでセッションの間（終わってから 10 分まで）にこの PC からしたもの（git reflog）
-  // どれもなければ、PR のレビュー（自分の作業の段階ではないので別に）＞ ファイルの変更だけ ＞ なし。
-  // コミットは git から、PR の作成・マージ・レビューと編集したファイルはエージェントの履歴から。編集を記録しないエージェント（Kiro Crew の一部）だけ「記録なし」
-  const MRG = t("PR merged"), OPN = t("PR opened"), PSH = t("Pushed"), CMT = t("Committed"), RVW = t("PR reviewed"), FIL = t("Files changed only"), NO = t("None"), UNK = t("Not recorded");
-  const out = s => { const o = s.outputs || {}; return o.merges ? MRG : (s.prs || []).length || o.prs ? OPN : (META.push || []).some(p => p.project === s.project && p.t >= s.start && p.t <= s.end + 600) ? PSH : commitsOf(s).length ? CMT : o.reviews ? RVW : (s.nFiles || 0) > 0 ? FIL : records(s.source, "files") ? NO : UNK; };
+  // 産出の列は、そのセッションの作業がどこまで進んだか。細かい違い（PR の作成・マージ・レビュー、push の有無）は産出のパネルのタブに任せ、
+  // ここは大きな段階だけ：PR まで（AI が PR を作成・マージ・レビューした）＞ コミットまで（git のコミットか、この PC からの push）＞ ファイルの変更だけ ＞ なし。
+  // push は依頼の流れと同じく、同じプロジェクトでセッションの間（終わってから 10 分まで）のもの。編集を記録しないエージェント（Kiro Crew の一部）だけ「記録なし」
+  const PRS = t("Reached a PR"), CMT = t("Reached a commit"), FIL = t("Files changed only"), NO = t("None"), UNK = t("Not recorded");
+  const pushed = s => (META.push || []).some(p => p.project === s.project && p.t >= s.start && p.t <= s.end + 600);
+  const out = s => { const o = s.outputs || {}; return o.merges || o.reviews || o.prs || (s.prs || []).length ? PRS : commitsOf(s).length || pushed(s) ? CMT : (s.nFiles || 0) > 0 ? FIL : records(s.source, "files") ? NO : UNK; };
   const cols = [[], [], []], vals = [new Map(), new Map(), new Map()], links = new Map();
   const add = (m, key, v) => m.set(key, (m.get(key) || 0) + v);
   xs.forEach(({s, v}) => { const a = s.source, b = pj(s.project), c = out(s); add(vals[0], a, v); add(vals[1], b, v); add(vals[2], c, v); add(links, `0\u0000${a}\u0000${b}`, v); add(links, `1\u0000${b}\u0000${c}`, v); });
-  const STG = [MRG, OPN, PSH, CMT, RVW, FIL, NO, UNK], ord = Object.fromEntries(STG.map((x, i) => [x, i])); vals.forEach((m, i) => cols[i] = [...m].sort((a, b) => (i === 2 ? ord[a[0]] - ord[b[0]] : b[1] - a[1])));
+  const STG = [PRS, CMT, FIL, NO, UNK], ord = Object.fromEntries(STG.map((x, i) => [x, i])); vals.forEach((m, i) => cols[i] = [...m].sort((a, b) => (i === 2 ? ord[a[0]] - ord[b[0]] : b[1] - a[1])));
   const shr = cols.map(c => { const ps = insPct(c.map(x => x[1])); return new Map(c.map(([key], j) => [key, ps[j]])); }); // 列ごとの割合（足して 100）
   // 名前と量は、帯に重ねない：エージェントは左の外、成果は右の外、プロジェクトは節の右に帯を通さない余白（LW）を空けて、そこに置く。
   // プロジェクトから成果への帯は、余白の右の細い節から出る。狭い画面（600px 以下）では図の文字を消し、同じ名前と量を図の下の一覧で見せる
@@ -647,7 +647,7 @@ function insSankey(){
   const tot = xs.reduce((a, x) => a + x.v, 0), H = 300, T = 14, B = 10, nw = 10, gap = 10, LW = 200, X = [270, 540, 540 + nw + LW, 960], W = X[3] + nw + 270; // 左右の 270 は、名前・量・割合の札が入る幅（「ファイルの変更だけ 1,234.5 credits · 100%」「Kiro IDE / CLI (V3) $1,234.56 · 100%」まで）
   const pos = cols.map(c => { const g = (c.length - 1) * gap, sc = (H - T - B - g) / tot; let y = T; const m = new Map(); c.forEach(([key, v]) => { m.set(key, {y, h: Math.max(2, v * sc), o: 0, oi: 0}); y += v * sc + gap; }); return {m, sc}; });
   // 色：エージェントからの帯はエージェントの色、プロジェクトの節と、そこから出る帯はプロジェクトの色、成果はコミットの有無の色
-  const color = (i, key) => i === 0 ? agColor(key) : i === 1 ? (key === OTH ? "var(--other)" : `var(--c${(topP.indexOf(key) + 3) % 8})`) : ({[MRG]: "var(--go-ink)", [OPN]: "var(--go)", [PSH]: "var(--go-1)", [CMT]: "var(--go-2)", [RVW]: "var(--out)", [FIL]: "var(--go-3)", [NO]: "var(--ink-3)"})[key] || "var(--other)"; // 段階が進むほど明るい緑。レビューは産出の側の紫
+  const color = (i, key) => i === 0 ? agColor(key) : i === 1 ? (key === OTH ? "var(--other)" : `var(--c${(topP.indexOf(key) + 3) % 8})`) : ({[PRS]: "var(--go)", [CMT]: "var(--go-2)", [FIL]: "var(--go-3)", [NO]: "var(--ink-3)"})[key] || "var(--other)"; // 段階が進むほど明るい緑
   const XO = [X[0] + nw, X[2] + nw]; // 帯の出る x（プロジェクトは余白の右の節から）
   const paths = [...links].sort((a, b) => b[1] - a[1]).map(([key, v]) => { const [ci, a, b] = key.split("\u0000"), i = +ci, A = pos[i].m.get(a), Bn = pos[i + 1].m.get(b), h = v * pos[i].sc;
     const y0 = A.y + A.o, y1 = Bn.y + Bn.oi; A.o += h; Bn.oi += h; const x0 = XO[i], x1 = i ? X[3] : X[1], xm = (x0 + x1) / 2;
@@ -665,7 +665,7 @@ function insSankey(){
   // 1 文で、全体がどこへ行ったかを言い切る（産出の段階ごと。0 のものは言わない）。割合は全体に対して、足して 100 になるように丸める
   const mname = {cost: t("estimated cost"), credits: t("Kiro credits"), tokens: t("tokens"), minutes: t("session time")}[k];
   // 1 文：段階ごとに、0 でないものを全部、全体に対する割合で（足して 100）
-  const SAY = {[MRG]: "{v} ({pc}%) to sessions that merged a PR", [OPN]: "{v} ({pc}%) to sessions that opened a PR", [PSH]: "{v} ({pc}%) to sessions that pushed", [CMT]: "{v} ({pc}%) to sessions that committed", [RVW]: "{v} ({pc}%) to sessions that only reviewed a PR",
+  const SAY = {[PRS]: "{v} ({pc}%) to sessions that reached a PR (opened, merged or reviewed one)", [CMT]: "{v} ({pc}%) to sessions that reached a commit or push",
     [FIL]: "{v} ({pc}%) to sessions that changed files without a commit", [NO]: "{v} ({pc}%) to sessions that left nothing", [UNK]: "{v} ({pc}%) is from agents that don't record edits"};
   const sv = STG.map(x => vals[2].get(x) || 0), pcs = insPct(sv), parts = STG.map((x, i) => sv[i] > 0 ? t(SAY[x], {v: fv(sv[i]), pc: pcs[i]}) : "").filter(Boolean);
   const sy = sv.slice(0, -1).every(v => v <= 0) ? t("These agents don't record what their sessions changed, so it is not known what the amount led to")
