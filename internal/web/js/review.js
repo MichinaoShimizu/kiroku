@@ -153,6 +153,9 @@ const MET = {
   gitCommits: {f: w => w.git ? w.git.commits : null, u: "", int: true},
   gitLines: {f: w => w.git && w.git.commits ? w.git.added + w.git.removed : null, fmt: v => commas(Math.round(v)), int: true},
   prs: {f: w => w.outputs ? w.outputs.prs || 0 : null, u: "", int: true},
+  merges: {f: w => w.outputs ? w.outputs.merges || 0 : null, u: "", int: true}, // AI がマージした PR
+  reviews: {f: w => w.outputs ? w.outputs.reviews || 0 : null, u: "", int: true}, // AI が出したレビュー（承認も入る）
+  approvals: {f: w => w.outputs ? w.outputs.approvals || 0 : null, u: "", int: true}, // そのうち承認
   pushes: {f: (w, ws, we) => pushesIn(ws, we), u: "", int: true},
   // push・PR あたり（良し悪しの向きは付けない）：期間の合計 ÷ push・AI が作った PR の数
   costPerPush: {f: (w, ws, we) => perOut(w, "cost", pushesIn(ws, we)), fmt: v => usd(v)},

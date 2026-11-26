@@ -1,10 +1,10 @@
 // サマリーの頭：要点の文・推移のグラフ（自分のいつもの範囲つき）・改善のアドバイス。AI は使わず、決まった計算と規則だけで出す
 /* いつもの範囲：表示中の期間の前の INS_N 期間（記録が始まる前の期間と、記録が途中から始まる期間は除く）の分布。
    中央値と四分位（真ん中の 50%）で見る。平均と標準偏差は、外れた週 1 つで大きく動くので使わない */
-const INS_VOL = new Set(["cache", "offhours", "switches", "cost", "credits", "tokens", "active", "prompts", "gitCommits", "gitLines", "prs", "pushes", "aiLines"]); // 使った量・作業の量（色で良し悪しを付けない）
+const INS_VOL = new Set(["cache", "offhours", "switches", "cost", "credits", "tokens", "active", "prompts", "gitCommits", "gitLines", "prs", "merges", "reviews", "approvals", "pushes", "aiLines"]); // 使った量・作業の量（色で良し悪しを付けない）
 const INS_USE = new Set(["cost", "credits", "tokens", "active"]); // 使った量（累積の線と利用上限の印を重ねる）
 const INS_N = 12, INS_MIN = 4; // 比べる期間の数と、比べるのに要る最低の数（それより少なければ「まだ比べられない」と言う）
-const INS_ADD = new Set(["cost", "credits", "active", "prompts", "tokens", "gitCommits", "gitLines", "prs", "pushes", "aiLines", "limits", "longctx", "friction", "bigPrompts", "focus"]); // 期間の長さに比例して増える指標（途中の期間は、このペースで期間を終えたときの値で比べる）
+const INS_ADD = new Set(["cost", "credits", "active", "prompts", "tokens", "gitCommits", "gitLines", "prs", "merges", "reviews", "approvals", "pushes", "aiLines", "limits", "longctx", "friction", "bigPrompts", "focus"]); // 期間の長さに比例して増える指標（途中の期間は、このペースで期間を終えたときの値で比べる）
 const INS_SHORT = () => ({cost: t("Estimated cost"), credits: t("Credits"), tokens: t("Tokens"), active: t("Active time"), gitLines: t("Git lines"), costPerCommit: t("Estimated cost per AI commit"), tokensPerCommit: t("Tokens per AI commit"), costPerEdit: t("Estimated cost per 100 AI-edited lines"), creditsPerEdit: t("Credits per 100 AI lines"), tokensPerEdit: t("Tokens per 100 AI lines"), costPerHour: t("Estimated cost per session hour"), creditsPerHour: t("Credits per hour"), tokensPerHour: t("Tokens per hour"), costPerDay: t("Estimated cost per active day"), creditsPerDay: t("Credits per day"), tokensPerDay: t("Tokens per day"), costPerSes: t("Estimated cost per session"), creditsPerSes: t("Credits per session"), tokensPerSes: t("Tokens per session"), costPerAsk: t("Estimated cost per prompt"), creditsPerAsk: t("Credits per prompt"), tokensPerAsk: t("Tokens per prompt"), pushes: t("Pushes"), costPerPush: t("Estimated cost per push"), creditsPerPush: t("Credits per push"), tokensPerPush: t("Tokens per push"), costPerPr: t("Estimated cost per pull request"), creditsPerPr: t("Credits per PR"), tokensPerPr: t("Tokens per PR"), cache: t("Cache"), fix: t("Corrections"), wait: t("Wait")}); // グラフの縦軸の名前（短い名前。推定費用は見出しと同じく「推定費用」と書く）
 // 量の切り替えの名前（サマリーのどのカードでも同じ）。名前の決まり：見出し・数字の名前・文では正式な名前（推定費用・Kiro クレジット）、切り替えのボタンでは短い名前（費用・クレジット）。
 // 時間は 2 つを分ける：稼働時間（Active time。同時に動いていたセッションは 1 度だけ数える）と、セッション時間（Session time。セッションごとの稼働を足す。重なりもそれぞれ数える）
@@ -346,12 +346,10 @@ function insHeadlines(F){
   if (bpu && seen("pushes")){ const ps = (META.push || []).filter(x => x.t >= ws && x.t < we), sent = ps.reduce((a, x) => a + (x.commits || 0), 0), pb = periodBack(1);
     const prev = V.partial || !pb.S ? null : pushesIn(pb.ws, V.n == null ? pb.we : Math.min(pb.we, addDays(new Date(pb.ws * 1000), V.n).getTime() / 1000)); // 途中の期間は、前の期間の同じ日まで
     tile("out", "push", t("Pushes"), bpu, commas(ps.length), [sent ? {n: t("{c} sent, including commits made before the period", {c: plural(sent, "commit")})} : "", vsInt("pushes", ps.length, prev)], "", "pushes"); }
-  // PR：AI が作った数。その下に、AI がしたマージとレビュー（あった期間だけ。手やブラウザーでしたものは入らない）。
-  // 1 つのタブには 1 つのタイルしか並べられない（.ikrow の subgrid）ので、別のタイルにはしない
-  const bpr = insBase("prs"), om = o.merges || 0, ov = o.reviews || 0, oa = o.approvals || 0;
-  if ((bpr && (o.prs || seen("prs"))) || om || ov) tile("out", "pr", t("Pull requests"), bpr || false, `${o.prs || 0}`, [{n: t("Created by AI")},
-    om ? {n: t("{n} merged by AI", {n: om})} : "", ov ? {n: oa ? t("{n} reviews by AI, {a} approved", {n: ov, a: oa}) : t("{n} reviews by AI", {n: ov})} : "",
-    bpr ? vsk("prs", o.prs || 0) : ""], o.prs ? "prs" : "", "prs");
+  const bpr = insBase("prs"); if (bpr && (o.prs || seen("prs"))) tile("out", "pr", t("Pull requests"), bpr, `${o.prs || 0}`, [{n: t("Created by AI")}, vsk("prs", o.prs || 0)], o.prs ? "prs" : "", "prs");
+  // AI がした PR のマージ・レビュー・承認は、それぞれのタブに（作成と同じく、推移・いつもの範囲・前の期間との比べ。どれかの期間にあれば出す）
+  for (const [key, k, label, by] of [["merge", "merges", t("Pull requests merged"), t("Merged by AI")], ["review", "reviews", t("Reviews submitted"), t("Submitted by AI")], ["approve", "approvals", t("Approvals"), t("Approved by AI")]]){
+    const b = insBase(k), v = o[k] || 0; if (b && (v || seen(k))) tile("out", key, label, b, `${v}`, [{n: by}, vsk(k, v)], "", k); }
   // ── 単価：量（費用・クレジット・トークン）÷ 出力（コミット・push・PR）。割る範囲を名前に入れ、「分子 ÷ 分母」をいつも値の下に出す ──
   const UL = {cost: [t("Estimated cost per push"), t("Estimated cost per pull request"), usd, t("Estimated cost per Git commit")], credits: [t("Kiro credits per push"), t("Kiro credits per pull request"), cr1, t("Kiro credits per Git commit")], tokens: [t("Tokens per push"), t("Tokens per pull request"), tok, t("Tokens per Git commit")]};
   // コミットあたり：AI が実行したコミットがあれば、費用とトークンは Claude Code の分 ÷ AI のコミット（どのコミットを実行したかを記録するのは Claude Code だけで、こちらがより正確）。
@@ -380,7 +378,7 @@ function insHeadlines(F){
       const f = by === "Edit" ? `${fu(e.used)} ÷ ${den} × 100 = ${v}` : `${fu(e.used)} ÷ ${den} = ${v}`, plain = by === "Edit" ? `${fu(e.used)} ÷ ${den} × 100` : by === "Hour" ? `${fu(e.used)} ÷ ${t("{d} of session time", {d: dur(e.min)})}` : `${fu(e.used)} ÷ ${den}`;
       tile(by === "Edit" ? "unit" : "uin", `${kind}:${by === "Edit" ? "edit" : by}`, insName(k), b, kind === "credits" ? crR(b.cur) : v, [{f, p: plain}, by === "Edit" ? "" : {fn: t("Each divides only by the sessions that record what it divides")}, vsk(k, b.cur)], k === "costPerAsk" ? "costPerAsk" : "", k); } } // プロンプトあたりの費用は、押すと内訳
   // 切り替え：前に選んだもの（記録がなければ、記録のある最初のもの）を見せる。記録のない選択肢は出さない
-  const NAME = {cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), active: t("Active time"), commit: t("Commits"), push: t("Pushes"), pr: t("PRs"), edit: t("100 AI lines"), Hour: t("Session hour"), Day: t("Active day"), Ses: t("Session"), Ask: t("Prompt")};
+  const NAME = {cost: t("Cost"), credits: t("Credits"), tokens: t("Tokens"), active: t("Active time"), commit: t("Commits"), push: t("Pushes"), pr: t("PRs"), merge: t("Merges"), review: t("Reviews"), approve: t("Approvals"), edit: t("100 AI lines"), Hour: t("Session hour"), Day: t("Active day"), Ses: t("Session"), Ask: t("Prompt")};
   const pick = (sw, ks) => ks.includes(store.get(INS_SW[sw], "")) ? store.get(INS_SW[sw], "") : ks[0];
   const swH = (sw, label, ks, cur, dim = "n", hid = () => false) => insSwH(sw, label, ks.map(k => [k, NAME[k]]), cur, dim, hid);
   const now = soFar() != null ? (M ? t("This month") : t("This week")) : (M ? t("Month shown") : t("Week shown"));
@@ -394,7 +392,7 @@ function insHeadlines(F){
   // パネル：頭（見出し・切り替え・注）、タイル（値の段・グラフ・印）、凡例。投入（cost・uin）は左の列、出力（out・unit）は右の列（INS_SIDE）
   const card = (id, label, sws, data, cur, items, note = "") => `<section class="ikg ik-${id} side-${INS_SIDE[id]}"${data} aria-label="${esc(label)}"><div class="ikhd"><span class="ikio" aria-hidden="true">${INS_SIDE[id] === "in" ? "IN" : "OUT"}</span><h5 class="ikgh">${esc(label)}${sws}</h5>${note}</div><div class="ikrow">${items.map(x => x.key === cur ? x.h : x.h.replace(`data-ch="${x.key}"`, `data-ch="${x.key}" hidden`)).join("")}</div>${lgd(id)}</section>`;
   // 選択肢はいつも同じ並び。数字のないものは出さない（覚えている選択が使えなければ、最初の使えるものに）
-  const ORDER = {cost: ["cost", "credits", "tokens", "active"], out: ["commit", "push", "pr"]}, MS = ["cost", "credits", "tokens"];
+  const ORDER = {cost: ["cost", "credits", "tokens", "active"], out: ["commit", "push", "pr", "merge", "review", "approve"]}, MS = ["cost", "credits", "tokens"];
   const one = (id, label) => { const ks = P[id].map(x => x.key); if (!ks.length) return ""; const cur = pick(id, ks);
     return card(id, label, swH(id, id === "out" ? INS_OUT() : t("Measure"), ORDER[id].filter(k => ks.includes(k)), cur), ` data-n="${cur}"`, cur, P[id]); };
   // 単価のパネルは、量と割る数の 2 つの切り替え。数字のある組だけを選べる（Kiro は PR を記録しないので、クレジットを選ぶと PR は出ない、など）。
