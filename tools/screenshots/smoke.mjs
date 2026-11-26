@@ -959,6 +959,7 @@ async function run(env) {
       const hr = h.getBoundingClientRect(), fr = f.getBoundingClientRect(), kr = k.getBoundingClientRect(), between = [...document.querySelectorAll("#review .insg, #review .insrow")].every(x => x.getBoundingClientRect().top >= fr.bottom - 1);
       const side = f.classList.contains("two") && innerWidth >= 1300;
       return fr.top >= hr.bottom - 1 && Math.abs(fr.left - hr.left) < 2 && Math.abs(fr.right - hr.right) < 2 && Math.abs(kr.left - hr.left) < 2 && (side || Math.abs(kr.right - hr.right) < 2) && between && document.querySelectorAll("#review .isk").length === 1 && !k.closest(".insrow"); }));
+    if (await p.locator('#review [data-skv="proj"]').count()){ await p.locator('#review [data-skv="proj"]').click(); await pause(); } // 下の確かめは「プロジェクト」の形（既定は「工程」）
     { // サンキーの 1 文は、全体がどこへ行ったかを言い切る：産出の列の段階（PR 作成・コミット・ファイル変更・なし・記録なし）のうち
       // 0 でないものを全部、全体に対する割合で。割合は足して 100。段階は、作業が進んだ順に並ぶ
       const sk = await p.evaluate(() => { const c = document.querySelector("#review .isk"); if (!c) return null; const say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay"), out = [...c.querySelectorAll(".sklist .skcol:last-child .skn2")].map(x => x.textContent);
@@ -979,6 +980,9 @@ async function run(env) {
         return {n: cols.length, c1: cols[0] ? cols[0].length : 0, heads: [...c.querySelectorAll("text.skh")].map(x => x.textContent), txt: say ? say.textContent : "", paths: c.querySelectorAll("path.skl").length}; });
       check("投入から産出の流れを「工程」にすると、エージェント → 変更 → コミット → PR の 4 列の流れになり、1 文はどこまで進んだかを全体に対する割合で言う",
         !!fl && fl.n === 4 && fl.heads.length === 4 && fl.paths > 0 && /(\d+)%/.test(fl.txt) && /as far as|まで進んだ/.test(fl.txt) || /don't record|記録しない/.test(fl && fl.txt || ""), JSON.stringify(fl));
+      const fl2 = await p.evaluate(() => [...document.querySelectorAll("#review .isk.skflow .sklist .skcol:nth-child(2) .skn2")].map(x => x.textContent));
+      check("工程の「変更」の列は、ファイル変更と、ファイルを変えなかったセッションの中身（GitHub のコメント・操作・ファイル変更なし・チャットのみ・記録なし）だけ",
+        fl2.every(x => /^(Changed files|GitHub comments and actions|No file changes|Chat only|Not recorded|ファイル変更|GitHub のコメント・操作|ファイル変更なし|チャットのみ|記録なし)$/.test(x)), JSON.stringify(fl2));
       await p.locator('#review [data-skv="proj"]').click(); await pause();
       check("「プロジェクト」に戻すと、元のサンキー（3 列）になる", await p.evaluate(() => !document.querySelector("#review .isk.skflow") && document.querySelectorAll("#review .isk .sklist .skcol").length === 3));
     }

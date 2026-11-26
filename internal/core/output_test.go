@@ -74,7 +74,15 @@ func TestPRActions(t *testing.T) {
 		{"mcp__github__create_pull_request_review", map[string]any{"event": "approve", "pull_number": 2.0}, "review:#2 approve:#2"},
 		{"mcp__github__create_pull_request_review", map[string]any{}, ""},
 		{"mcp__github__submit_pending_pull_request_review", map[string]any{"event": "COMMENT"}, "review"},
-		{"mcp__github__update_pull_request", map[string]any{"state": "closed"}, ""},
+		{"mcp__github__update_pull_request", map[string]any{"state": "closed"}, "ghop"}, // PR の作成・マージ・レビューでない、GitHub への書き込み
+		{"mcp__github__add_issue_comment", map[string]any{"issue_number": 3.0}, "ghop"},
+		{"github__add_reply_to_pull_request_comment", nil, "ghop"},
+		{"mcp__github__issue_read", nil, ""}, // 読むだけ
+		{"mcp__github__list_pull_requests", nil, ""},
+		{"Bash", cmd("gh pr comment 12 -b 'thanks'"), "ghop"},
+		{"Bash", cmd("gh issue create --title x --body y && gh pr close 3"), "ghop ghop"},
+		{"Bash", cmd("gh issue view 3; gh issue list"), ""},
+		{"Bash", cmd("gh pr comment --help"), ""},
 	} {
 		var got []string
 		for _, a := range PRActions(c.name, c.input) {

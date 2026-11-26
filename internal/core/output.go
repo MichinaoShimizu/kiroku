@@ -25,6 +25,7 @@ type OutputTotal struct {
 	Merges    float64 `json:"merges,omitempty"`    // AI がマージした PR
 	Reviews   float64 `json:"reviews,omitempty"`   // AI が出したレビュー（アプルーブ・変更の依頼・コメント）
 	Approvals float64 `json:"approvals,omitempty"` // そのうちアプルーブ
+	GitHubOps float64 `json:"ghOps,omitempty"`     // そのほかの GitHub の書き込み（PR・issue のコメント、issue の作成、PR・issue を閉じる・編集するなど）
 	Added     float64 `json:"added"`               // 追加した行（編集の前後を比べた目安）
 	Removed   float64 `json:"removed"`             // 削除した行
 }
@@ -41,6 +42,8 @@ func (o *OutputTotal) Add(x Output) {
 		o.Reviews += x.V
 	case "approve":
 		o.Approvals += x.V
+	case "ghop":
+		o.GitHubOps += x.V
 	case "added":
 		o.Added += x.V
 	case "removed":
@@ -149,6 +152,8 @@ func PRActions(name string, input any) []PRAction {
 	case strings.HasSuffix(name, "submit_pending_pull_request_review"),
 		strings.HasSuffix(name, "create_pull_request_review") && event != "":
 		return review(event == "APPROVE", ref)
+	case ghWriteTool(name):
+		return []PRAction{{"ghop", ref}}
 	}
 	if !shellTool(name) {
 		return nil
@@ -171,18 +176,36 @@ func PRActions(name string, input any) []PRAction {
 			out = append(out, review(approveRe.MatchString(args), ghPRRef(m[2]))...)
 		}
 	}
+	for _, seg := range cmdSplit.Split(CommandText(input), -1) {
+		if m := ghWriteCmd.FindStringSubmatch(seg); m != nil && !helpRe.MatchString(" "+m[1]) {
+			out = append(out, PRAction{"ghop", ""})
+		}
+	}
 	return out
+}
+
+// ghWriteTool は、PR の作成・マージ・レビューのほかに GitHub へ書き込むツールの名前か（GitHub の MCP の
+// コメント・issue の作成と更新・PR の更新など）。読むだけのツール（get_・list_・search_）は入れない
+func ghWriteTool(name string) bool {
+	for _, suf := range []string{"add_issue_comment", "add_reply_to_pull_request_comment", "update_issue_comment", "create_issue", "update_issue", "issue_write", "sub_issue_write", "update_pull_request", "update_pull_request_branch"} {
+		if strings.HasSuffix(name, suf) {
+			return true
+		}
+	}
+	return false
 }
 
 var (
 	// cmdSplit は、シェルのコマンドを 1 つずつに分ける区切り（&&・||・;・|・&・改行・括弧）
 	cmdSplit = regexp.MustCompile(`&&|\|\||[;|&\n()]`)
 	// ghPRCmd は、1 つのコマンドの頭の gh pr create・merge・review（VAR=値 の前置きは可）と、その引数
-	ghPRCmd  = regexp.MustCompile(`^\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*gh\s+pr\s+(create|merge|review)\b(.*)$`)
-	prNumRe  = regexp.MustCompile(`^#?(\d{1,9})$`)
-	prURLRe  = regexp.MustCompile(`^https?://[^/\s]+/[^/\s]+/([A-Za-z0-9._-]{1,100})/pull/(\d{1,9})(?:[/?#].*)?$`)
-	repoArg  = regexp.MustCompile(`(?:^|\s)(?:-R|--repo)(?:\s+|=)['"]?[A-Za-z0-9._-]{1,100}/([A-Za-z0-9._-]{1,100})['"]?(?:\s|$)`)
-	repoName = regexp.MustCompile(`^[A-Za-z0-9._-]{1,100}$`)
+	// ghWriteCmd は、1 つのコマンドの頭の gh pr・gh issue のうち、GitHub に書き込むもの（作成・マージ・レビューは上で数える）
+	ghWriteCmd = regexp.MustCompile(`^\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*gh\s+(?:pr\s+(?:comment|close|reopen|edit|ready)|issue\s+(?:create|comment|close|reopen|edit))\b(.*)$`)
+	ghPRCmd    = regexp.MustCompile(`^\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*gh\s+pr\s+(create|merge|review)\b(.*)$`)
+	prNumRe    = regexp.MustCompile(`^#?(\d{1,9})$`)
+	prURLRe    = regexp.MustCompile(`^https?://[^/\s]+/[^/\s]+/([A-Za-z0-9._-]{1,100})/pull/(\d{1,9})(?:[/?#].*)?$`)
+	repoArg    = regexp.MustCompile(`(?:^|\s)(?:-R|--repo)(?:\s+|=)['"]?[A-Za-z0-9._-]{1,100}/([A-Za-z0-9._-]{1,100})['"]?(?:\s|$)`)
+	repoName   = regexp.MustCompile(`^[A-Za-z0-9._-]{1,100}$`)
 )
 
 // ghPRRef は gh pr merge・review の引数から相手の PR を「#11」か「repo#11」にする（番号か PR の URL のときだけ。
