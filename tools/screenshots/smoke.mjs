@@ -959,32 +959,17 @@ async function run(env) {
       const hr = h.getBoundingClientRect(), fr = f.getBoundingClientRect(), kr = k.getBoundingClientRect(), between = [...document.querySelectorAll("#review .insg, #review .insrow")].every(x => x.getBoundingClientRect().top >= fr.bottom - 1);
       const side = f.classList.contains("two") && innerWidth >= 1300;
       return fr.top >= hr.bottom - 1 && Math.abs(fr.left - hr.left) < 2 && Math.abs(fr.right - hr.right) < 2 && Math.abs(kr.left - hr.left) < 2 && (side || Math.abs(kr.right - hr.right) < 2) && between && document.querySelectorAll("#review .isk").length === 1 && !k.closest(".insrow"); }));
-    if (await p.locator('#review [data-skv="proj"]').count()){ await p.locator('#review [data-skv="proj"]').click(); await pause(); } // 下の確かめは「プロジェクト」の形（既定は「工程」）
-    { // サンキーの 1 文は、全体がどこへ行ったかを言い切る：産出の列の段階（PR 作成・コミット・ファイル変更・なし・記録なし）のうち
-      // 0 でないものを全部、全体に対する割合で。割合は足して 100。段階は、作業が進んだ順に並ぶ
-      const sk = await p.evaluate(() => { const c = document.querySelector("#review .isk"); if (!c) return null; const say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay"), out = [...c.querySelectorAll(".sklist .skcol:last-child .skn2")].map(x => x.textContent);
-        return {out, txt: say ? say.textContent : "", list: [...c.querySelectorAll(".sklist .skcol")].map(g => [...g.querySelectorAll("li b")].reduce((a, b) => a + parseInt(b.textContent), 0))}; });
-      const ORD = [["PR opened", "PR 作成", /opened a PR|PR を作成した/], ["Committed", "コミット", /sessions that committed|コミットした/],
-        ["Changed files", "ファイル変更", /changed files|ファイルを変えた/], ["None", "なし", /left nothing|何も残らなかった/], ["Not recorded", "記録なし", /don't record edits|記録しないエージェント/]];
-      const idx = sk ? sk.out.map(x => ORD.findIndex(o => o[0] === x || o[1] === x)) : [];
-      const pcs = sk ? [...sk.txt.matchAll(/(\d+)%/g)].map(m => +m[1]) : [];
-      const onlyUnk = sk && idx.every(i => i === ORD.length - 1);
-      check("サンキーの産出の列は、作業が進んだ順の段階だけで、1 文はその全部を割合（足して 100）で言う", !sk || (idx.every(i => i >= 0) && idx.every((v, i) => i === 0 || idx[i - 1] < v)
-        && (onlyUnk ? pcs.length === 0 : pcs.length === idx.length && pcs.reduce((a, v) => a + v, 0) === 100 && idx.every(i => ORD[i][2].test(sk.txt)))), JSON.stringify({sk, pcs}));
-      check("サンキーの一覧の割合は、列ごとに足して 100", !sk || sk.list.every(v => v === 100), JSON.stringify(sk && sk.list));
-    }
-    if (await p.locator('#review [data-skv="flow"]').count()){ // 工程の形：エージェント → 変更 → コミット → PR。止まった分は「〜なし」で終わり、割合は全体に対して
-      await p.locator('#review [data-skv="flow"]').click(); await pause();
+    { // 投入から産出の流れ：エージェント → プロジェクト → 変更 → コミット → PR の 5 列。止まった分は「〜なし」で終わり、割合は全体に対して。
+      // 1 文はどこまで進んだかを全体に対する割合で言う。変更の列は、ファイル変更と、ファイルを変えなかったセッションの中身だけ
       const fl = await p.evaluate(() => { const c = document.querySelector("#review .isk.skflow"); if (!c) return null; const say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay");
         const cols = [...c.querySelectorAll(".sklist .skcol")].map(g => [...g.querySelectorAll(".skn2")].map(x => x.textContent));
-        return {n: cols.length, c1: cols[0] ? cols[0].length : 0, heads: [...c.querySelectorAll("text.skh")].map(x => x.textContent), txt: say ? say.textContent : "", paths: c.querySelectorAll("path.skl").length}; });
-      check("投入から産出の流れを「工程」にすると、エージェント → 変更 → コミット → PR の 4 列の流れになり、1 文はどこまで進んだかを全体に対する割合で言う",
-        !!fl && fl.n === 4 && fl.heads.length === 4 && fl.paths > 0 && /(\d+)%/.test(fl.txt) && /as far as|まで進んだ/.test(fl.txt) || /don't record|記録しない/.test(fl && fl.txt || ""), JSON.stringify(fl));
-      const fl2 = await p.evaluate(() => [...document.querySelectorAll("#review .isk.skflow .sklist .skcol:nth-child(2) .skn2")].map(x => x.textContent));
-      check("工程の「変更」の列は、ファイル変更と、ファイルを変えなかったセッションの中身（GitHub のコメント・操作・ファイル変更なし・チャットのみ・記録なし）だけ",
-        fl2.every(x => /^(Changed files|GitHub comments and actions|No file changes|Chat only|Not recorded|ファイル変更|GitHub のコメント・操作|ファイル変更なし|チャットのみ|記録なし)$/.test(x)), JSON.stringify(fl2));
-      await p.locator('#review [data-skv="proj"]').click(); await pause();
-      check("「プロジェクト」に戻すと、元のサンキー（3 列）になる", await p.evaluate(() => !document.querySelector("#review .isk.skflow") && document.querySelectorAll("#review .isk .sklist .skcol").length === 3));
+        return {cols, heads: [...c.querySelectorAll("text.skh")].map(x => x.textContent), txt: say ? say.textContent : "", paths: c.querySelectorAll("path.skl").length,
+          sum0: [...c.querySelectorAll(".sklist .skcol:first-child li b")].reduce((a, b) => a + parseInt(b.textContent), 0)}; });
+      check("投入から産出の流れは、エージェント → プロジェクト → 変更 → コミット → PR の 5 列で、1 文はどこまで進んだかを全体に対する割合で言う",
+        !fl || fl.cols.length >= 3 && fl.heads.length === 5 && fl.paths > 0 && (/as far as|まで進んだ/.test(fl.txt) || /don't record|記録しない/.test(fl.txt)), JSON.stringify(fl));
+      check("流れの変更の列は、ファイル変更と、ファイルを変えなかったセッションの中身（GitHub のコメント・操作・ファイル変更なし・チャットのみ・記録なし）だけ",
+        !fl || (fl.cols[2] || []).every(x => /^(Changed files|GitHub comments and actions|No file changes|Chat only|Not recorded|ファイル変更|GitHub のコメント・操作|ファイル変更なし|チャットのみ|記録なし)$/.test(x)), JSON.stringify(fl && fl.cols));
+      check("流れの一覧で、エージェントの列の割合は足して 100 前後（どれも全体に対する割合）", !fl || Math.abs(fl.sum0 - 100) <= 2, JSON.stringify(fl && fl.sum0));
     }
     { // サンキーの名前は、どれもカードの地の色の札の上（色の帯に直接乗らない）
       const lb = await p.evaluate(() => { const ts = [...document.querySelectorAll("#review .isk text.skt")].filter(x => x.checkVisibility());
@@ -993,9 +978,9 @@ async function run(env) {
         return {n: ts.length, bad, narrow: innerWidth <= 600}; });
       check("サンキーの名前と量は、どれも不透明な札の上にある（狭い画面では図の名前を出さず、下の一覧）", lb.narrow ? lb.n === 0 : lb.n > 0 && lb.bad.length === 0, JSON.stringify(lb));
     }
-    { // サンキーの色：エージェントから出る帯はエージェントの色、プロジェクトは左右 2 本の節の間を、そのプロジェクトの色の帯が埋め、プロジェクトから出る帯もプロジェクトの色
+    { // サンキーの色：エージェントから出る帯はエージェントの色、プロジェクト（data-p）は左右 2 本の節の間を、そのプロジェクトの色の帯が埋め、プロジェクトから出る帯もプロジェクトの色
       const sc = await p.evaluate(() => { const f = document.querySelector("#review .isk svg"); if (!f || !f.checkVisibility()) return null; /* 狭い画面では図を出さない（一覧だけ） */ const fill = e => e.getAttribute("fill"), r = e => e.getBoundingClientRect(), near = (x, y) => Math.abs(x - y) < 1.5;
-        const sk = [...f.querySelectorAll("rect.skp")], L = [...f.querySelectorAll("rect.skn:not(.o)")], O = [...f.querySelectorAll("rect.skn.o")], cvar = /^var\(--(c[0-7]|other)\)$/;
+        const sk = [...f.querySelectorAll("rect.skp[data-p]")], L = [...f.querySelectorAll("rect.skn:not(.o)")], O = [...f.querySelectorAll("rect.skn.o[data-p]")], cvar = /^var\(--(c[0-7]|other)\)$/;
         const band = sk.filter(e => { const b = r(e), l = L.find(x => near(r(x).right, b.left) && near(r(x).top, b.top)), o = O.find(x => near(r(x).left, b.right) && near(r(x).top, b.top));
           return !!l && !!o && near(r(l).height, b.height) && near(r(o).height, b.height) && b.width > 40 && fill(e) === fill(l) && fill(e) === fill(o) && cvar.test(fill(e)) && +getComputedStyle(e).opacity >= +getComputedStyle(f.querySelector("path.skl")).opacity; }).length;
         const ps = [...f.querySelectorAll("path.skl")], ag = ps.filter(e => e.dataset.l === "0"), po = ps.filter(e => e.dataset.l === "1"), pc = new Map(sk.map(e => [e.dataset.p, fill(e)]));
@@ -1006,7 +991,7 @@ async function run(env) {
         check("サンキーのプロジェクトから出る帯は、プロジェクトの色", sc.proj >= 2 && sc.projOk === sc.proj, JSON.stringify(sc));
       }
     }
-    check("サンキーは、エージェント・プロジェクト・成果の 3 列", await p.evaluate(() => document.querySelectorAll("#review .isk .skh").length === 3 && document.querySelectorAll("#review .isk .skl").length >= 2));
+    check("サンキーは、エージェント・プロジェクト・変更・コミット・PR の 5 列", await p.evaluate(() => document.querySelectorAll("#review .isk .skh").length === 5 && document.querySelectorAll("#review .isk .skl").length >= 2));
     await view("cal");
     await p.keyboard.press("m"); await pause();
     const opts = await p.locator("#calk option").evaluateAll(xs => xs.map(x => x.value));

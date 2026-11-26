@@ -1,2 +1,2 @@
 - Claude Code: a `gh pr create` that only appears inside another command's arguments (such as `rg gh pr create` or a commit message), or with `--help`, is no longer counted as a pull request
-- From input to output: sessions of agents other than Claude Code that changed nothing are shown as "None" rather than "Not recorded"; commits come from git and edited files from history for those agents too, so only agents that don't record edits are "Not recorded"
+- From input to output: sessions of agents other than Claude Code that changed nothing are no longer shown as "Not recorded"; commits come from git and edited files from history for those agents too, so only agents that don't record edits are "Not recorded"
