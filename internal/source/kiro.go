@@ -179,6 +179,7 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 		// 直前の依頼の時刻を使う。Kiro CLI V2 から 3.0 へ移した会話の、切り替える前の応答には、使える時刻がない
 		var asked *float64     // 直前の依頼の時刻
 		var pending *kiroReply // その回の最後の応答（Builder.Reply も、その回の最後の応答だけを残す）
+		prs := prCalls{}       // PR を作るツールの呼び出し（tool_result が成功なら数える）
 		flush := func(next *float64) {
 			if pending == nil {
 				return
@@ -218,6 +219,12 @@ func (k *KiroIDE) Load(emit func(*core.Builder)) error {
 			case "tool_call":
 				s.Tool(core.Str(p["toolName"]), p["args"])
 				s.Measure("tool_calls", t, 1)
+				prs.call(core.Str(p["toolCallId"]), core.Str(p["toolName"]), p["args"], t)
+			case "tool_result":
+				// ツールの結果（toolCallId・content・success。参考実装 kiro-history の server/ide-v1.ts の形）。
+				// PR を作る呼び出しなら、success が false でなければ数え、content から PR の URL を探す
+				failed := p["success"] == false
+				prs.result(s, core.Str(p["toolCallId"]), !failed, core.TextOf(p["content"]), t)
 			case "usage_summary":
 				used := creditsOf(p["promptTurnSummaries"], "unit", "usage")
 				ci := -1

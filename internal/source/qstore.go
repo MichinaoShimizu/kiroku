@@ -171,6 +171,7 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 		window := qContextWindow(conv)
 		chars := qContextChars(conv) // 文脈（要約・コンテキストファイル）の分から数え始める
 		var lastT *float64           // 時刻のない行の観測に使う、直前の時刻
+		prs := prCalls{}             // PR を作るツールの呼び出し（次のターンの ToolUseResults が Success なら数える）
 		for _, h := range core.List(conv["history"]) {
 			user, asst, meta := historyEntry(h)
 			// ツールの結果を返したターン（ToolUseResults）には user の時刻がない（new_tool_use_results）。
@@ -253,6 +254,13 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 				}
 			default: // ToolUseResults は自動で返したもの
 				s.Agent(t)
+				// ツールの結果（message.rs の ToolUseResult: tool_use_id・content（Text か Json の並び）・status（Success・Error））。
+				// 時刻は記録にないので、呼び出しの時刻を使う
+				for _, r := range core.List(core.Get(content, "ToolUseResults", "tool_use_results")) {
+					rm := core.Map(r)
+					text, exitOK := qResultText(rm["content"])
+					prs.result(s, core.Str(rm["tool_use_id"]), core.Str(rm["status"]) != "Error" && exitOK, text, nil)
+				}
 			}
 			if meta == nil && core.Str(core.Get(asst, "Response", "content")) == qTimedOut {
 				reply = false // 応答のタイムアウトで CLI が入れた決まった文（モデルの応答ではない）
@@ -262,6 +270,7 @@ func (q *QStore) Load(emit func(*core.Builder)) error {
 					um := core.Map(u)
 					s.Tool(firstNonEmpty(core.Str(um["name"]), core.Str(um["orig_name"])), um["args"])
 					s.Measure("tool_calls", t, 1)
+					prs.call(core.Str(um["id"]), firstNonEmpty(core.Str(um["name"]), core.Str(um["orig_name"])), um["args"], t)
 				}
 			}
 			if meta != nil {
@@ -511,4 +520,26 @@ func qValueChars(v any, depth int) int {
 	default: // 数・真偽値・null
 		return 1
 	}
+}
+
+// qResultText は、ツールの結果の content（[{Text: "…"} | {Json: …}]）を 1 つの文にする（PR の URL を探すため）。
+// execute_bash は終了コードが 0 でなくても status を Success にし、終了コードを Json の exit_status（文）に入れる
+// （tools/execute/mod.rs）。exit_status が 0 でなければ、ok を false にする。
+func qResultText(content any) (text string, ok bool) {
+	var parts []string
+	ok = true
+	for _, b := range core.List(content) {
+		bm := core.Map(b)
+		if t := core.Str(bm["Text"]); t != "" {
+			parts = append(parts, t)
+		} else if j := bm["Json"]; j != nil {
+			if code := core.Str(core.Map(j)["exit_status"]); code != "" && code != "0" {
+				ok = false
+			}
+			if raw, err := json.Marshal(j); err == nil {
+				parts = append(parts, string(raw))
+			}
+		}
+	}
+	return strings.Join(parts, "\n"), ok
 }

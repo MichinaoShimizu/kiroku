@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -536,6 +537,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		var lastInfo, lastLimits, lastLast string // lastLast: 前の token_count の last_token_usage
 		var prevTotal core.Tokens
 		records := map[string]bool{}
+		prs := prCalls{} // PR を作る呼び出し（gh pr create・create_pull_request）。結果（*_call_output）が成功なら数える
 		var fromCounts, fromRecords []core.Event
 		var countMeas, recordMeas []core.Measure
 		// cutEvents・cutMeas は、最初の token_usage_record を読んだときの fromCounts・countMeas の長さ（-1 はまだ無い）。
@@ -698,11 +700,14 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					json.Unmarshal([]byte(core.Str(p["arguments"])), &args)
 					s.Tool(core.Str(p["name"]), args)
 					codexEdited(s, core.Str(p["name"]), args)
+					prs.call(core.Str(p["call_id"]), core.Str(p["name"]), args, t)
 					s.Measure("tool_calls", t, 1)
 					s.Agent(t)
 				case "custom_tool_call":
 					s.Tool(core.Str(p["name"]), nil)
 					codexEdited(s, core.Str(p["name"]), core.Str(p["input"]))
+					// 自由形式の入力（apply_patch のパッチなど）はコマンドとは限らないので、名前（create_pull_request）だけで見る
+					prs.call(core.Str(p["call_id"]), core.Str(p["name"]), nil, t)
 					s.Measure("tool_calls", t, 1)
 					s.Agent(t)
 				case "local_shell_call":
@@ -710,12 +715,18 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					action := core.Map(p["action"])
 					s.Tool("local_shell", nil)
 					codexEdited(s, "local_shell", action)
+					prs.call(core.Str(p["call_id"]), "local_shell", action, t)
 					s.Measure("tool_calls", t, 1)
 					s.Agent(t)
 				case "web_search_call", "tool_search_call", "image_generation_call":
 					// サーバーやクライアントで動くツール（ウェブ検索・ツールの検索・画像の生成）。function_call とは別の項目で残る
 					s.Tool(strings.TrimSuffix(core.Str(p["type"]), "_call"), nil)
 					s.Measure("tool_calls", t, 1)
+					s.Agent(t)
+				case "function_call_output", "custom_tool_call_output":
+					// ツールの結果。PR を作る呼び出しなら、成功したか（終了コード）を見て、出力から PR の URL を探す
+					text, ok := codexCallOutput(p["output"])
+					prs.result(s, core.Str(p["call_id"]), ok, text, t)
 					s.Agent(t)
 				case "message":
 					var parts []string
@@ -1050,9 +1061,9 @@ var (
 	// codexItems の 1 段めは読むもの、残りはわざと読まないもの
 	codexItems = map[string]bool{
 		"message": true, "function_call": true, "custom_tool_call": true, "local_shell_call": true, "web_search_call": true,
-		"tool_search_call": true, "image_generation_call": true,
+		"tool_search_call": true, "image_generation_call": true, "function_call_output": true, "custom_tool_call_output": true,
 
-		"reasoning": true, "function_call_output": true, "custom_tool_call_output": true, "tool_search_output": true,
+		"reasoning": true, "tool_search_output": true,
 		"ghost_snapshot": true, "compaction": true, "compaction_summary": true, "other": true,
 		// agent_message はエージェントどうしのメッセージ（author・recipient つき）で、あなたのプロンプトでも返事でもない
 		"agent_message": true, "additional_tools": true, "configuration_update": true, "context_compaction": true,
@@ -1415,4 +1426,43 @@ func codexPatchFiles(patch string) []string {
 		}
 	}
 	return files
+}
+
+// codexExitCode は、シェルの結果の文に書かれた終了コード（「Exit code: N」・「Process exited with code N」）。
+var codexExitCode = regexp.MustCompile(`(?m)^(?:Exit code:|Process exited with code) (-?\d+)`)
+
+// codexCallOutput は、ツールの結果（function_call_output・custom_tool_call_output の output）の文と、
+// 失敗でなかったかを返す。output は文か、内容の並び（{type, text}）。古い版のシェルは
+// {"output": …, "metadata": {"exit_code": N}} の JSON を文にして書く。終了コードが 0 でなければ失敗にする。
+// 失敗とわからないものは成功として扱う（Claude Code の is_error がない結果と同じ）。
+func codexCallOutput(output any) (string, bool) {
+	var text string
+	switch o := output.(type) {
+	case string:
+		text = o
+	case []any:
+		var parts []string
+		for _, b := range o {
+			if t := core.Str(core.Map(b)["text"]); t != "" {
+				parts = append(parts, t)
+			}
+		}
+		text = strings.Join(parts, "\n")
+	default:
+		m := core.Map(output)
+		text = core.Str(m["content"])
+		if ok, isBool := m["success"].(bool); isBool && !ok {
+			return text, false
+		}
+	}
+	var wrapped map[string]any
+	if strings.HasPrefix(strings.TrimSpace(text), "{") && json.Unmarshal([]byte(text), &wrapped) == nil {
+		if code, ok := core.Num(core.Get(wrapped, "metadata", "exit_code")); ok {
+			return core.Str(wrapped["output"]), code == 0
+		}
+	}
+	if m := codexExitCode.FindStringSubmatch(text); m != nil && m[1] != "0" {
+		return text, false
+	}
+	return text, true
 }

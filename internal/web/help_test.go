@@ -165,7 +165,8 @@ func TestGuideRecordsTable(t *testing.T) {
 		"Compactions":                          "compactions",
 		"Files edited by AI (session details)": "files",
 		"Subagents":                            "subagents",
-		"Outputs (AI commits, pull requests, sessions that reached a commit or PR, cost per commit)": "outputs",
+		"Outputs (AI commits, sessions that reached a commit or PR, cost per commit)": "outputs",
+		"Pull requests created by AI": "prs",
 	} {
 		row, ok := rows[label]
 		if !ok {

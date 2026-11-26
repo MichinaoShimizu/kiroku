@@ -1,0 +1,1 @@
+- "Claude Code sessions that reached a commit or PR" counts only Claude Code sessions in its numerator as well as its denominator, so pull requests from other agents don't raise it

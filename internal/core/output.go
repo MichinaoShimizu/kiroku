@@ -99,6 +99,32 @@ func lineDiff(before, after string) (added, removed float64) {
 	return float64(len(b)), float64(len(a))
 }
 
+// CreatesPR は、ツールの呼び出しが PR を作るものかを、エージェントによらず調べる（成功したかは呼び出し側が確かめる）。
+//   - 名前が create_pull_request で終わるツール（GitHub の MCP など。Codex の MCP は「サーバー__ツール」の名前になる）
+//   - シェルのコマンドに gh pr create がある（command は文か配列（Codex の shell・local_shell）、exec_command は cmd）
+func CreatesPR(name string, input any) bool {
+	if strings.HasSuffix(name, "create_pull_request") {
+		return true
+	}
+	return prRe.MatchString(CommandText(input))
+}
+
+// CommandText は、シェルのツールの引数からコマンドの文を取り出す（command の文・配列、cmd の文。なければ ""）。
+func CommandText(input any) string {
+	in := Map(input)
+	if cmd := Str(in["cmd"]); cmd != "" {
+		return cmd
+	}
+	if cmd := Str(in["command"]); cmd != "" {
+		return cmd
+	}
+	var argv []string
+	for _, a := range List(in["command"]) {
+		argv = append(argv, Str(a))
+	}
+	return strings.Join(argv, " ")
+}
+
 var prURL = regexp.MustCompile(`https?://[^\s"'<>()\[\]\\]+/(?:pull|pulls|-/merge_requests|merge_requests|pull-requests)/\d+`)
 
 // PRURL はツールの結果の文字列から、PR（マージリクエスト）の URL を探す。なければ ""。

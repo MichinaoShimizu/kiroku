@@ -525,7 +525,7 @@ const JA_TEXT = {
   "Pull request details": "PR の詳細",
   "Pull request {time}": "PR {time}",
   "Pull requests": "PR",
-  "Pull requests an agent created and whose result was recorded (gh pr create, or GitHub tools in Claude Code). Ones you opened in a browser, and ones created by agents that do not record outputs, are not counted": "エージェントが作成し、その結果が記録された PR（gh pr create か、Claude Code の GitHub ツール）。ブラウザーで開いたものや、産出を記録しないエージェントが作成したものは数えません",
+  "Pull requests an agent created and whose result was recorded (gh pr create, or GitHub tools, in Claude Code, Codex, Kiro IDE / CLI (V3) and Kiro CLI (SQLite)). Ones you opened in a browser, ones whose result shows a failure, and ones created in Kiro CLI (V2) or Kiro Crew are not counted": "エージェントが作成し、その結果が記録された PR（gh pr create か GitHub ツール。Claude Code・Codex・Kiro IDE / CLI (V3)・Kiro CLI (SQLite)）。ブラウザーで開いたもの、結果が失敗だったもの、Kiro CLI (V2)・Kiro Crew で作成したものは数えません",
   "Pull requests created": "作成した PR",
   "Push": "プッシュ",
   "Push details": "プッシュの詳細",
