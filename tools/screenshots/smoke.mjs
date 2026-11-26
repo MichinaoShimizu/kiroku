@@ -972,6 +972,16 @@ async function run(env) {
         && (onlyUnk ? pcs.length === 0 : pcs.length === idx.length && pcs.reduce((a, v) => a + v, 0) === 100 && idx.every(i => ORD[i][2].test(sk.txt)))), JSON.stringify({sk, pcs}));
       check("サンキーの一覧の割合は、列ごとに足して 100", !sk || sk.list.every(v => v === 100), JSON.stringify(sk && sk.list));
     }
+    if (await p.locator('#review [data-skv="flow"]').count()){ // 工程の形：エージェント → 変更 → コミット → PR。止まった分は「〜なし」で終わり、割合は全体に対して
+      await p.locator('#review [data-skv="flow"]').click(); await pause();
+      const fl = await p.evaluate(() => { const c = document.querySelector("#review .isk.skflow"); if (!c) return null; const say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay");
+        const cols = [...c.querySelectorAll(".sklist .skcol")].map(g => [...g.querySelectorAll(".skn2")].map(x => x.textContent));
+        return {n: cols.length, c1: cols[0] ? cols[0].length : 0, heads: [...c.querySelectorAll("text.skh")].map(x => x.textContent), txt: say ? say.textContent : "", paths: c.querySelectorAll("path.skl").length}; });
+      check("投入から産出の流れを「工程」にすると、エージェント → 変更 → コミット → PR の 4 列の流れになり、1 文はどこまで進んだかを全体に対する割合で言う",
+        !!fl && fl.n === 4 && fl.heads.length === 4 && fl.paths > 0 && /(\d+)%/.test(fl.txt) && /as far as|まで進んだ/.test(fl.txt) || /don't record|記録しない/.test(fl && fl.txt || ""), JSON.stringify(fl));
+      await p.locator('#review [data-skv="proj"]').click(); await pause();
+      check("「プロジェクト」に戻すと、元のサンキー（3 列）になる", await p.evaluate(() => !document.querySelector("#review .isk.skflow") && document.querySelectorAll("#review .isk .sklist .skcol").length === 3));
+    }
     { // サンキーの名前は、どれもカードの地の色の札の上（色の帯に直接乗らない）
       const lb = await p.evaluate(() => { const ts = [...document.querySelectorAll("#review .isk text.skt")].filter(x => x.checkVisibility());
         const bad = ts.filter(x => { const r = x.previousElementSibling; if (!r || !r.matches("rect.skbg")) return true; const a = x.getBoundingClientRect(), b = r.getBoundingClientRect(), f = getComputedStyle(r).fill;

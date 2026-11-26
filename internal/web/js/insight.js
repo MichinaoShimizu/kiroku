@@ -502,7 +502,7 @@ function bindInsight(R){
     if (el.matches(".stat, .mrow")){ const kt = lab.parentElement.querySelector(":scope > .kt"); if (kt) kt.querySelector(":scope > span").after(b); else lab.after(b); } else { if (/^H\d$/.test(lab.tagName)) lab.setAttribute("aria-label", name); (lab.querySelector(":scope > .kt") || lab).append(b); } });
   requestAnimationFrame(() => skBack(R));
   insPack(R);
-  for (const [attr, key] of [["skk", "insSk"]]) R.querySelectorAll(`[data-${attr}]`).forEach(b => b.onclick = () => { st[key] = b.dataset[attr]; store.set(key, st[key]); summary(); const nb = $("#review").querySelector(`[data-${attr}="${CSS.escape(b.dataset[attr])}"]`); if (nb) nb.focus(); });
+  for (const [attr, key] of [["skk", "insSk"], ["skv", "insSv"]]) R.querySelectorAll(`[data-${attr}]`).forEach(b => b.onclick = () => { st[key] = b.dataset[attr]; store.set(key, st[key]); summary(); const nb = $("#review").querySelector(`[data-${attr}="${CSS.escape(b.dataset[attr])}"]`); if (nb) nb.focus(); });
   R.querySelectorAll("[data-wfk]").forEach(b => b.onclick = () => { st.insWf = b.dataset.wfk; store.set("insWf", st.insWf); summary(); const nb = $("#review").querySelector(`[data-wfk="${CSS.escape(b.dataset.wfk)}"]`); if (nb) nb.focus(); });
   R.querySelectorAll("[data-wk]").forEach(b => b.onclick = () => { st.insWk = b.dataset.wk; store.set("insWk", st.insWk); summary(); const nb = $("#review").querySelector(`[data-wk="${CSS.escape(b.dataset.wk)}"]`); if (nb) nb.focus(); });
   R.querySelectorAll("[data-cok]").forEach(b => b.onclick = () => { st.insCo = b.dataset.cok; store.set("insCo", st.insCo); summary(); const nb = $("#review").querySelector(`[data-cok="${CSS.escape(b.dataset.cok)}"]`); if (nb) nb.focus(); });
@@ -636,6 +636,10 @@ function insSankey(){
   const PRS = t("PR opened"), CMT = t("Committed"), FIL = t("Changed files"), NO = t("None"), UNK = t("Not recorded");
   const pushed = s => (META.push || []).some(p => p.project === s.project && p.t >= s.start && p.t <= s.end + 600);
   const out = s => { const o = s.outputs || {}; return o.prs || (s.prs || []).length ? PRS : commitsOf(s).length || pushed(s) ? CMT : (s.nFiles || 0) > 0 ? FIL : records(s.source, "files") ? NO : UNK; };
+  const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-skk="${x}" aria-pressed="${x === k}">${esc(INS_SW_NAME()[x])}</button>`).join("")}</div>` : "";
+  // 真ん中の列の切り替え：プロジェクト（エージェント → プロジェクト → 産出）か、工程（エージェント → 変更 → コミット → PR と順に通る流れ）
+  const view = st.insSv === "flow" ? "flow" : "proj", vtabs = `<div class="segc insk" role="group" aria-label="${esc(t("Middle column"))}">${[["proj", t("Project")], ["flow", t("Steps")]].map(([v, l]) => `<button type="button" data-skv="${v}" aria-pressed="${v === view}">${esc(l)}</button>`).join("")}</div>`;
+  if (view === "flow") return insFlow(xs, s => ({[PRS]: 3, [CMT]: 2, [FIL]: 1, [NO]: 0})[out(s)] ?? -1, k, fv, vtabs + mtabs);
   const cols = [[], [], []], vals = [new Map(), new Map(), new Map()], links = new Map();
   const add = (m, key, v) => m.set(key, (m.get(key) || 0) + v);
   xs.forEach(({s, v}) => { const a = s.source, b = pj(s.project), c = out(s); add(vals[0], a, v); add(vals[1], b, v); add(vals[2], c, v); add(links, `0\u0000${a}\u0000${b}`, v); add(links, `1\u0000${b}\u0000${c}`, v); });
@@ -670,11 +674,52 @@ function insSankey(){
   const sv = STG.map(x => vals[2].get(x) || 0), pcs = insPct(sv), parts = STG.map((x, i) => sv[i] > 0 ? t(SAY[x], {v: fv(sv[i]), pc: pcs[i]}) : "").filter(Boolean);
   const sy = sv.slice(0, -1).every(v => v <= 0) ? t("These agents don't record what their sessions changed, so it is not known what the amount led to")
     : t("Of {tot} {metric}: {parts}", {tot: fv(tot), metric: mname, parts: JA ? parts.join("、") : parts.join(", ")});
-  const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-skk="${x}" aria-pressed="${x === k}">${esc(INS_SW_NAME()[x])}</button>`).join("")}</div>` : "";
   const heads = [t("Agent"), t("Project"), INS_OUT()], hx = [X[0] + nw / 2, X[1] + nw / 2 + (nw + LW) / 2, X[3] + nw / 2];
   // 狭い画面の一覧：列ごとに、色の印・名前・量・割合（図の文字の代わり。読み上げもこちらで）
   const list = `<div class="sklist">${cols.map((c, i) => `<div class="skcol" role="group" aria-label="${esc(heads[i])}"><h6 class="iksh">${esc(heads[i])}</h6><ul>${c.map(([key, v]) => `<li><i style="background:${color(i, key)}"></i><span class="skn2">${esc(key)}</span><span class="iwv">${esc(fv(v))}</span><b>${shr[i].get(key)}%</b></li>`).join("")}</ul></div>`).join("")}</div>`;
-  return `<div class="inshead"><h4 class="ikgh skgh">${esc(t("From input to output"))}<span data-flag="heavy"></span></h4>${mtabs}</div>${say(sy)}<figure class="insfig isk"><svg viewBox="-24 -18 ${W + 24} ${H + 18}" role="img" aria-label="${esc(t("From input to output"))}">${heads.map((h, i) => `<text class="skh" x="${hx[i]}" y="-2">${esc(h)}</text>`).join("")}${paths}${pband}${nodes}</svg>${list}<p class="ifxs">${fx(t("Band width = the amount. A session has a commit or PR when it made one, or when a commit was made in its project from its start to 10 minutes after its end. A session of an agent that doesn't record its commits, with no commit found that way, is \"Not recorded\". Sessions count in the period they started in, so the total can differ from the Input panel"), "", "", `<span class="skcd">${esc(t("Band width is the amount"))}</span><span class="skcl">${esc(t("Each list adds up to 100%"))}</span>`)}${k === "minutes" ? INS_STIME() : ""}</p></figure>`;
+  return `<div class="inshead"><h4 class="ikgh skgh">${esc(t("From input to output"))}<span data-flag="heavy"></span></h4>${vtabs}${mtabs}</div>${say(sy)}<figure class="insfig isk"><svg viewBox="-24 -18 ${W + 24} ${H + 18}" role="img" aria-label="${esc(t("From input to output"))}">${heads.map((h, i) => `<text class="skh" x="${hx[i]}" y="-2">${esc(h)}</text>`).join("")}${paths}${pband}${nodes}</svg>${list}<p class="ifxs">${fx(t("Band width = the amount. A session has a commit or PR when it made one, or when a commit was made in its project from its start to 10 minutes after its end. A session of an agent that doesn't record its commits, with no commit found that way, is \"Not recorded\". Sessions count in the period they started in, so the total can differ from the Input panel"), "", "", `<span class="skcd">${esc(t("Band width is the amount"))}</span><span class="skcl">${esc(t("Each list adds up to 100%"))}</span>`)}${k === "minutes" ? INS_STIME() : ""}</p></figure>`;
+}
+/* insFlow は、投入から産出の流れの「工程」の形：エージェント → 変更 → コミット → PR と、作業が進んだ工程を左から順に通る流れ。
+   各セッションの量は、そのセッションの作業がいちばん先まで進んだ工程（lv: 3 PR 作成・2 コミット・1 ファイル変更・0 なし・-1 記録なし）まで流れ、
+   その先へ進まなかった分は、その列の「〜なし」の節で止まる。割合はどれも全体に対して（列ごとには足して 100 にならない） */
+function insFlow(xs, lv, k, fv, tabs){
+  const tot = xs.reduce((a, x) => a + x.v, 0);
+  const CH = t("Changed files"), NOCH = t("No changes"), UNK = t("Not recorded"), CMT = t("Committed"), NOC = t("No commit"), PRS = t("PR opened"), NOPR = t("No PR");
+  // 列ごとの節（上が先へ進んだ分、下が止まった分）と、節から節への帯
+  const cols = [new Map(), new Map(), new Map(), new Map()], links = new Map(), add = (m, key, v) => m.set(key, (m.get(key) || 0) + v);
+  xs.forEach(({s, v}) => { const L = lv(s), a = s.source, c1 = L >= 1 ? CH : L === 0 ? NOCH : UNK;
+    add(cols[0], a, v); add(cols[1], c1, v); add(links, `0\u0000${a}\u0000${c1}`, v);
+    if (L >= 1){ const c2 = L >= 2 ? CMT : NOC; add(cols[2], c2, v); add(links, `1\u0000${CH}\u0000${c2}`, v);
+      if (L >= 2){ const c3 = L >= 3 ? PRS : NOPR; add(cols[3], c3, v); add(links, `2\u0000${CMT}\u0000${c3}`, v); } } });
+  const ORD = [[], [CH, NOCH, UNK], [CMT, NOC], [PRS, NOPR]];
+  const C = cols.map((m, i) => i === 0 ? [...m].sort((a, b) => b[1] - a[1]) : ORD[i].filter(x => m.has(x)).map(x => [x, m.get(x)]));
+  const H = 300, T = 14, B = 10, nw = 10, gap = 10, X = [270, 560, 850, 1140], W = X[3] + nw + 230, sc = (H - T - B - gap * Math.max(2, C[0].length - 1)) / tot;
+  // 列 0・1 は上から積む。列 2 は「ファイル変更」の節の高さから、列 3 は「コミット」の節の高さから積む（先へ進んだ分が、そのまま右へ続いて見えるように）
+  const pos = C.map(() => new Map()), place = (i, y0) => { let y = y0; C[i].forEach(([key, v]) => { pos[i].set(key, {y, h: Math.max(2, v * sc), o: 0, oi: 0}); y += v * sc + gap; }); };
+  { const g = gap * Math.max(0, C[0].length - 1), h1 = gap * Math.max(0, C[1].length - 1); place(0, T + Math.max(0, (h1 - g) / 2)); place(1, T); }
+  if (pos[1].has(CH)) place(2, pos[1].get(CH).y);
+  if (pos[2].has(CMT)) place(3, pos[2].get(CMT).y);
+  const color = (i, key) => i === 0 ? agColor(key) : ({[CH]: "var(--go-3)", [CMT]: "var(--go-2)", [PRS]: "var(--go)", [NOCH]: "var(--ink-3)", [NOC]: "var(--ink-3)", [NOPR]: "var(--ink-3)"})[key] || "var(--other)";
+  const pc = v => Math.round(v * 100 / tot);
+  // 帯は、出る節の上から順、同じ節からは入る節の上から順に積む（帯どうしが交差しないように）
+  const at = (i, key) => pos[i].get(key).y, lk = [...links].map(([key, v]) => [key.split("\u0000"), v]).sort(([[i1, a1, b1]], [[i2, a2, b2]]) => i1 - i2 || at(+i1, a1) - at(+i2, a2) || at(+i1 + 1, b1) - at(+i2 + 1, b2));
+  const paths = lk.map(([[ci, a, b], v]) => { const i = +ci, A = pos[i].get(a), Bn = pos[i + 1].get(b), h = v * sc;
+    const y0 = A.y + A.o, y1 = Bn.y + Bn.oi; A.o += h; Bn.oi += h; const x0 = X[i] + nw, x1 = X[i + 1], xm = (x0 + x1) / 2;
+    return `<path class="skl" data-l="${i}" data-a="${esc(a)}" data-b="${esc(b)}" d="M${x0} ${y0.toFixed(1)} C${xm} ${y0.toFixed(1)} ${xm} ${y1.toFixed(1)} ${x1} ${y1.toFixed(1)} L${x1} ${(y1 + h).toFixed(1)} C${xm} ${(y1 + h).toFixed(1)} ${xm} ${(y0 + h).toFixed(1)} ${x0} ${(y0 + h).toFixed(1)} Z" fill="${color(i, a)}"${tipAttr(`${a} → ${b}`, `${fv(v)} · ${pc(v)}%`)}/>`; }).join("");
+  const ly = ns => { let last = -Infinity; return ns.map(n => { const y = Math.max(n.y + n.h / 2 + 4, last + 13); last = y; return y; }); };
+  const nodes = C.map((c, i) => { const ns = c.map(([key]) => pos[i].get(key)), ys = ly(ns), lx = i === 0 ? X[0] - 6 : X[i] + nw + 6;
+    return c.map(([key, v], j) => { const n = ns[j], mid = n.y + n.h / 2, lead = Math.abs(ys[j] - 4 - mid) > 2 ? `<path class="sklead" d="M${i === 0 ? X[0] : X[i] + nw} ${mid.toFixed(1)} L${(i === 0 ? lx + 2 : lx - 2)} ${(ys[j] - 4).toFixed(1)}"/>` : "";
+      return `<rect class="skn" x="${X[i]}" y="${n.y.toFixed(1)}" width="${nw}" height="${n.h.toFixed(1)}" fill="${color(i, key)}"${tipAttr(key, `${fv(v)} · ${pc(v)}%`)}/>` + lead
+        + `<text class="skt${i ? " s" : ""}" x="${lx}" y="${ys[j].toFixed(1)}">${esc(key.length > 22 ? key.slice(0, 21) + "…" : key)} <tspan class="skv">${esc(`${fv(v)} · ${pc(v)}%`)}</tspan></text>`; }).join(""); }).join("");
+  // 1 文：全体のうち、どの工程まで進んだか（累積。ファイル変更以上・コミット以上・PR 作成）
+  const reach = n => xs.reduce((a, x) => a + (lv(x.s) >= n ? x.v : 0), 0), unk = cols[1].get(UNK) || 0;
+  const mname = {cost: t("estimated cost"), credits: t("Kiro credits"), tokens: t("tokens"), minutes: t("session time")}[k];
+  const sy = unk >= tot ? t("These agents don't record what their sessions changed, so it is not known what the amount led to")
+    : t("Of {tot} {metric}, {a}% went as far as changed files, {b}% as far as a commit and {c}% as far as a PR", {tot: fv(tot), metric: mname, a: pc(reach(1)), b: pc(reach(2)), c: pc(reach(3))})
+      + (unk > 0 ? (JA ? "（" : " (") + t("{u}% is from agents that don't record edits", {u: pc(unk)}) + (JA ? "）" : ")") : "");
+  const heads = [t("Agent"), t("Change"), t("Commit"), "PR"], hx = X.map(x => x + nw / 2);
+  const list = `<div class="sklist">${C.map((c, i) => `<div class="skcol" role="group" aria-label="${esc(heads[i])}"><h6 class="iksh">${esc(heads[i])}</h6><ul>${c.map(([key, v]) => `<li><i style="background:${color(i, key)}"></i><span class="skn2">${esc(key)}</span><span class="iwv">${esc(fv(v))}</span><b>${pc(v)}%</b></li>`).join("")}</ul></div>`).join("")}</div>`;
+  return `<div class="inshead"><h4 class="ikgh skgh">${esc(t("From input to output"))}<span data-flag="heavy"></span></h4>${tabs}</div>${say(sy)}<figure class="insfig isk skflow"><svg viewBox="-24 -18 ${W + 24} ${H + 18}" role="img" aria-label="${esc(t("From input to output"))}">${heads.map((h, i) => `<text class="skh" x="${hx[i]}" y="-2">${esc(h)}</text>`).join("")}${paths}${nodes}</svg>${list}<p class="ifxs">${fx(t("Band width = the amount. Each session's amount flows as far as its work went: changed files, then a commit (or a push), then a pull request AI opened. What went no further stops at that step (No changes, No commit, No PR). Every percentage is of the whole amount. Sessions count in the period they started in, so the total can differ from the Input panel"), "", "", `<span class="skcd">${esc(t("Band width is the amount"))}</span><span class="skcl">${esc(t("Percentages are of the whole"))}</span>`)}${k === "minutes" ? INS_STIME() : ""}</p></figure>`;
 }
 /* 数の枠（statH）に、いつもの範囲との不等式を添える。k は MET の指標名（なければ添えない） */
 // 大きく外れた量は、値を中立の色にして札を添える（insOdd）。verd は評価の文（insVerdict）の色が付く数字で、印を重ねない
