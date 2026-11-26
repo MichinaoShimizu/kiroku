@@ -644,7 +644,7 @@ function insSankey(){
   // 名前と量は、帯に重ねない：エージェントは左の外、成果は右の外、プロジェクトは節の右に帯を通さない余白（LW）を空けて、そこに置く。
   // プロジェクトから成果への帯は、余白の右の細い節から出る。狭い画面（600px 以下）では図の文字を消し、同じ名前と量を図の下の一覧で見せる
   // サマリーの先頭の、幅いっぱいのカード（サマリーで唯一の全幅。期間の全体がどこへ流れたかを先に見せ、いつもとの比べは下のパネルで）。見出しは投入・出力のパネルと同じ段（.ikgh）で、その下に一段小さく図の名前（サンキーダイアグラム）と量の切り替え。列の間を広くとり、名前も長めに出す
-  const tot = xs.reduce((a, x) => a + x.v, 0), H = 300, T = 14, B = 10, nw = 10, gap = 10, LW = 200, X = [170, 440, 440 + nw + LW, 860], W = X[3] + nw + 170;
+  const tot = xs.reduce((a, x) => a + x.v, 0), H = 300, T = 14, B = 10, nw = 10, gap = 10, LW = 200, X = [270, 540, 540 + nw + LW, 960], W = X[3] + nw + 270; // 左右の 270 は、名前・量・割合の札が入る幅（「ファイルの変更だけ 1,234.5 credits · 100%」「Kiro IDE / CLI (V3) $1,234.56 · 100%」まで）
   const pos = cols.map(c => { const g = (c.length - 1) * gap, sc = (H - T - B - g) / tot; let y = T; const m = new Map(); c.forEach(([key, v]) => { m.set(key, {y, h: Math.max(2, v * sc), o: 0, oi: 0}); y += v * sc + gap; }); return {m, sc}; });
   // 色：エージェントからの帯はエージェントの色、プロジェクトの節と、そこから出る帯はプロジェクトの色、成果はコミットの有無の色
   const color = (i, key) => i === 0 ? agColor(key) : i === 1 ? (key === OTH ? "var(--other)" : `var(--c${(topP.indexOf(key) + 3) % 8})`) : ({[MRG]: "var(--go-ink)", [OPN]: "var(--go)", [PSH]: "var(--go-1)", [CMT]: "var(--go-2)", [RVW]: "var(--out)", [FIL]: "var(--go-3)", [NO]: "var(--ink-3)"})[key] || "var(--other)"; // 段階が進むほど明るい緑。レビューは産出の側の紫
@@ -661,8 +661,8 @@ function insSankey(){
   const nodes = cols.map((c, i) => { const ns = c.map(([key]) => pos[i].m.get(key)), ys = ly(ns), lx = i === 0 ? X[0] - 6 : i === 1 ? X[1] + nw + 6 : X[3] + nw + 6;
     return c.map(([key, v], j) => { const n = ns[j], r = (x, cls = "") => `<rect class="skn${cls}" x="${x}" y="${n.y.toFixed(1)}" width="${nw}" height="${n.h.toFixed(1)}" fill="${color(i, key)}"${tipAttr(key, `${fv(v)} · ${shr[i].get(key)}%`)}/>`;
       const mid = n.y + n.h / 2, ex = i === 0 ? X[0] : NX[i] + nw, lead = Math.abs(ys[j] - 4 - mid) > 2 ? `<path class="sklead" d="M${ex} ${mid.toFixed(1)} L${(i === 0 ? lx + 2 : lx - 2)} ${(ys[j] - 4).toFixed(1)}"/>` : ""; // ずらした名前は、節まで短い線でつなぐ
-      return r(NX[i]) + (i === 1 ? r(X[2], " o") : "") + lead + `<text class="skt${i ? " s" : ""}" x="${lx}" y="${ys[j].toFixed(1)}">${esc(short(key))} <tspan class="skv">${esc(fv(v))}</tspan></text>`; }).join(""); }).join("");
-  // 1 文で、全体がどこへ行ったかを言い切る（コミットか PR あり・なし・記録しないエージェントの分。0 のものは言わない）。割合は全体に対して、足して 100 になるように丸める
+      return r(NX[i]) + (i === 1 ? r(X[2], " o") : "") + lead + `<text class="skt${i ? " s" : ""}" x="${lx}" y="${ys[j].toFixed(1)}">${esc(short(key))} <tspan class="skv">${esc(`${fv(v)} · ${shr[i].get(key)}%`)}</tspan></text>`; }).join(""); }).join(""); // 量と、その列の中の割合（下の一覧・1 文と同じ。足して 100）
+  // 1 文で、全体がどこへ行ったかを言い切る（産出の段階ごと。0 のものは言わない）。割合は全体に対して、足して 100 になるように丸める
   const mname = {cost: t("estimated cost"), credits: t("Kiro credits"), tokens: t("tokens"), minutes: t("session time")}[k];
   // 1 文：段階ごとに、0 でないものを全部、全体に対する割合で（足して 100）
   const SAY = {[MRG]: "{v} ({pc}%) to sessions that merged a PR", [OPN]: "{v} ({pc}%) to sessions that opened a PR", [PSH]: "{v} ({pc}%) to sessions that pushed", [CMT]: "{v} ({pc}%) to sessions that committed", [RVW]: "{v} ({pc}%) to sessions that only reviewed a PR",
