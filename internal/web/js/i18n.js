@@ -798,6 +798,7 @@ const JA_TEXT = {
   "Files changed only": "ファイルの変更だけ",
   "PR merged": "PR マージ",
   "PR opened": "PR 作成",
+  "{v} ({pc}%) to sessions that pushed": "プッシュしたセッションに {v}（{pc}%）",
   "Committed": "コミット",
   "PR reviewed": "PR レビュー",
   "{v} ({pc}%) to sessions that merged a PR": "PR をマージしたセッションに {v}（{pc}%）",

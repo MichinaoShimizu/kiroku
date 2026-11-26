@@ -959,15 +959,15 @@ async function run(env) {
       const hr = h.getBoundingClientRect(), fr = f.getBoundingClientRect(), kr = k.getBoundingClientRect(), between = [...document.querySelectorAll("#review .insg, #review .insrow")].every(x => x.getBoundingClientRect().top >= fr.bottom - 1);
       const side = f.classList.contains("two") && innerWidth >= 1300;
       return fr.top >= hr.bottom - 1 && Math.abs(fr.left - hr.left) < 2 && Math.abs(fr.right - hr.right) < 2 && Math.abs(kr.left - hr.left) < 2 && (side || Math.abs(kr.right - hr.right) < 2) && between && document.querySelectorAll("#review .isk").length === 1 && !k.closest(".insrow"); }));
-    { // サンキーの 1 文は、全体がどこへ行ったかを言い切る：産出の列の段階（PR のマージ・作成・コミット・レビュー・ファイルの変更だけ・なし・記録なし）のうち
+    { // サンキーの 1 文は、全体がどこへ行ったかを言い切る：産出の列の段階（PR のマージ・作成・push・コミット・レビュー・ファイルの変更だけ・なし・記録なし）のうち
       // 0 でないものを全部、全体に対する割合で。割合は足して 100。段階は、作業が進んだ順に並ぶ
       const sk = await p.evaluate(() => { const c = document.querySelector("#review .isk"); if (!c) return null; const say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay"), out = [...c.querySelectorAll(".sklist .skcol:last-child .skn2")].map(x => x.textContent);
         return {out, txt: say ? say.textContent : "", list: [...c.querySelectorAll(".sklist .skcol")].map(g => [...g.querySelectorAll("li b")].reduce((a, b) => a + parseInt(b.textContent), 0))}; });
-      const ORD = [["PR merged", "PR マージ", /merged a PR|マージしたセッション/], ["PR opened", "PR 作成", /opened a PR|作成したセッション/], ["Committed", "コミット", /sessions that committed|コミットしたセッション/],
+      const ORD = [["PR merged", "PR マージ", /merged a PR|マージしたセッション/], ["PR opened", "PR 作成", /opened a PR|作成したセッション/], ["Pushed", "プッシュ", /sessions that pushed|プッシュしたセッション/], ["Committed", "コミット", /sessions that committed|コミットしたセッション/],
         ["PR reviewed", "PR レビュー", /only reviewed|レビューだけ/], ["Files changed only", "ファイルの変更だけ", /changed files|ファイルを変えた/], ["None", "なし", /left nothing|何も残らなかった/], ["Not recorded", "記録なし", /don't record edits|記録しないエージェント/]];
       const idx = sk ? sk.out.map(x => ORD.findIndex(o => o[0] === x || o[1] === x)) : [];
       const pcs = sk ? [...sk.txt.matchAll(/(\d+)%/g)].map(m => +m[1]) : [];
-      const onlyUnk = sk && idx.every(i => i === 6);
+      const onlyUnk = sk && idx.every(i => i === ORD.length - 1);
       check("サンキーの産出の列は、作業が進んだ順の段階だけで、1 文はその全部を割合（足して 100）で言う", !sk || (idx.every(i => i >= 0) && idx.every((v, i) => i === 0 || idx[i - 1] < v)
         && (onlyUnk ? pcs.length === 0 : pcs.length === idx.length && pcs.reduce((a, v) => a + v, 0) === 100 && idx.every(i => ORD[i][2].test(sk.txt)))), JSON.stringify({sk, pcs}));
       check("サンキーの一覧の割合は、列ごとに足して 100", !sk || sk.list.every(v => v === 100), JSON.stringify(sk && sk.list));
