@@ -164,6 +164,13 @@ const MET = {
   costPerPr: {f: w => perOut(w, "cost", w.outputs && w.outputs.prs), fmt: v => usd(v)},
   creditsPerPr: {f: w => perOut(w, "credits", w.outputs && w.outputs.prs), fmt: v => cr1(v)},
   tokensPerPr: {f: w => perOut(w, "tokens", w.outputs && w.outputs.prs), fmt: v => tok(v)},
+  // マージ・レビューあたり（PR あたりと同じく、期間の合計 ÷ AI がしたマージ・出したレビューの数）
+  costPerMerge: {f: w => perOut(w, "cost", w.outputs && w.outputs.merges), fmt: v => usd(v)},
+  creditsPerMerge: {f: w => perOut(w, "credits", w.outputs && w.outputs.merges), fmt: v => cr1(v)},
+  tokensPerMerge: {f: w => perOut(w, "tokens", w.outputs && w.outputs.merges), fmt: v => tok(v)},
+  costPerReview: {f: w => perOut(w, "cost", w.outputs && w.outputs.reviews), fmt: v => usd(v)},
+  creditsPerReview: {f: w => perOut(w, "credits", w.outputs && w.outputs.reviews), fmt: v => cr1(v)},
+  tokensPerReview: {f: w => perOut(w, "tokens", w.outputs && w.outputs.reviews), fmt: v => tok(v)},
   // Git のコミットあたり（良し悪しの向きは付けない）：期間の合計 ÷ 期間の Git のコミット（出力のパネルと同じ数）。クレジットと、AI のコミットがない期間の費用・トークンに使う
   costPerGitCommit: {f: w => perOut(w, "cost", w.git && w.git.commits), fmt: v => usd(v)},
   creditsPerGitCommit: {f: w => perOut(w, "credits", w.git && w.git.commits), fmt: v => cr1(v)},

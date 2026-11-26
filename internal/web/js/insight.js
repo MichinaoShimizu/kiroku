@@ -5,7 +5,7 @@ const INS_VOL = new Set(["cache", "offhours", "switches", "cost", "credits", "to
 const INS_USE = new Set(["cost", "credits", "tokens", "active"]); // 使った量（累積の線と利用上限の印を重ねる）
 const INS_N = 12, INS_MIN = 4; // 比べる期間の数と、比べるのに要る最低の数（それより少なければ「まだ比べられない」と言う）
 const INS_ADD = new Set(["cost", "credits", "active", "prompts", "tokens", "gitCommits", "gitLines", "prs", "merges", "reviews", "approvals", "pushes", "aiLines", "limits", "longctx", "friction", "bigPrompts", "focus"]); // 期間の長さに比例して増える指標（途中の期間は、このペースで期間を終えたときの値で比べる）
-const INS_SHORT = () => ({cost: t("Estimated cost"), credits: t("Credits"), tokens: t("Tokens"), active: t("Active time"), gitLines: t("Git lines"), costPerCommit: t("Estimated cost per AI commit"), tokensPerCommit: t("Tokens per AI commit"), costPerEdit: t("Estimated cost per 100 AI-edited lines"), creditsPerEdit: t("Credits per 100 AI lines"), tokensPerEdit: t("Tokens per 100 AI lines"), costPerHour: t("Estimated cost per session hour"), creditsPerHour: t("Credits per hour"), tokensPerHour: t("Tokens per hour"), costPerDay: t("Estimated cost per active day"), creditsPerDay: t("Credits per day"), tokensPerDay: t("Tokens per day"), costPerSes: t("Estimated cost per session"), creditsPerSes: t("Credits per session"), tokensPerSes: t("Tokens per session"), costPerAsk: t("Estimated cost per prompt"), creditsPerAsk: t("Credits per prompt"), tokensPerAsk: t("Tokens per prompt"), pushes: t("Pushes"), costPerPush: t("Estimated cost per push"), creditsPerPush: t("Credits per push"), tokensPerPush: t("Tokens per push"), costPerPr: t("Estimated cost per pull request"), creditsPerPr: t("Credits per PR"), tokensPerPr: t("Tokens per PR"), cache: t("Cache"), fix: t("Corrections"), wait: t("Wait")}); // グラフの縦軸の名前（短い名前。推定費用は見出しと同じく「推定費用」と書く）
+const INS_SHORT = () => ({cost: t("Estimated cost"), credits: t("Credits"), tokens: t("Tokens"), active: t("Active time"), gitLines: t("Git lines"), costPerCommit: t("Estimated cost per AI commit"), tokensPerCommit: t("Tokens per AI commit"), costPerEdit: t("Estimated cost per 100 AI-edited lines"), creditsPerEdit: t("Credits per 100 AI lines"), tokensPerEdit: t("Tokens per 100 AI lines"), costPerHour: t("Estimated cost per session hour"), creditsPerHour: t("Credits per hour"), tokensPerHour: t("Tokens per hour"), costPerDay: t("Estimated cost per active day"), creditsPerDay: t("Credits per day"), tokensPerDay: t("Tokens per day"), costPerSes: t("Estimated cost per session"), creditsPerSes: t("Credits per session"), tokensPerSes: t("Tokens per session"), costPerAsk: t("Estimated cost per prompt"), creditsPerAsk: t("Credits per prompt"), tokensPerAsk: t("Tokens per prompt"), pushes: t("Pushes"), costPerPush: t("Estimated cost per push"), creditsPerPush: t("Credits per push"), tokensPerPush: t("Tokens per push"), costPerPr: t("Estimated cost per pull request"), creditsPerPr: t("Credits per PR"), tokensPerPr: t("Tokens per PR"), costPerMerge: t("Estimated cost per merge"), creditsPerMerge: t("Credits per merge"), tokensPerMerge: t("Tokens per merge"), costPerReview: t("Estimated cost per review"), creditsPerReview: t("Credits per review"), tokensPerReview: t("Tokens per review"), cache: t("Cache"), fix: t("Corrections"), wait: t("Wait")}); // グラフの縦軸の名前（短い名前。推定費用は見出しと同じく「推定費用」と書く）
 // 量の切り替えの名前（サマリーのどのカードでも同じ）。名前の決まり：見出し・数字の名前・文では正式な名前（推定費用・Kiro クレジット）、切り替えのボタンでは短い名前（費用・クレジット）。
 // 時間は 2 つを分ける：稼働時間（Active time。同時に動いていたセッションは 1 度だけ数える）と、セッション時間（Session time。セッションごとの稼働を足す。重なりもそれぞれ数える）
 const INS_STIME = () => fx(t("Session time adds up each session's own active time, so sessions that ran at once each count; Active time counts that time once"));
@@ -352,6 +352,7 @@ function insHeadlines(F){
     const b = insBase(k), v = o[k] || 0; if (b && (v || seen(k))) tile("out", key, label, b, `${v}`, [{n: by}, vsk(k, v)], "", k); }
   // ── 単価：量（費用・クレジット・トークン）÷ 出力（コミット・push・PR）。割る範囲を名前に入れ、「分子 ÷ 分母」をいつも値の下に出す ──
   const UL = {cost: [t("Estimated cost per push"), t("Estimated cost per pull request"), usd, t("Estimated cost per Git commit")], credits: [t("Kiro credits per push"), t("Kiro credits per pull request"), cr1, t("Kiro credits per Git commit")], tokens: [t("Tokens per push"), t("Tokens per pull request"), tok, t("Tokens per Git commit")]};
+  const ULX = {merge: {cost: t("Estimated cost per merge"), credits: t("Kiro credits per merge"), tokens: t("Tokens per merge")}, review: {cost: t("Estimated cost per review"), credits: t("Kiro credits per review"), tokens: t("Tokens per review")}};
   // コミットあたり：AI が実行したコミットがあれば、費用とトークンは Claude Code の分 ÷ AI のコミット（どのコミットを実行したかを記録するのは Claude Code だけで、こちらがより正確）。
   // それ以外（クレジットと、AI のコミットがない期間の費用・トークン）は、期間の合計 ÷ Git のコミット（出力のパネルと同じ数）。Git のコミットは AI の分だけを取り出せないので、そう書き添える
   const bp = insBase("costPerCommit"), oc = w && w.outCost, nc = o.commits, gc = g ? g.commits : 0;
@@ -365,10 +366,12 @@ function insHeadlines(F){
     else perGit("tokens"); }
   perGit("credits");
   // push・PR は AI の分だけを取り出せないので、期間の量の合計で割る（そう書き添える）
-  for (const [d, n, sfx, help, note] of [["push", nps, "PerPush", "perPush", t("Pushes can't be split into AI's share, so this divides the period's whole total")], ["pr", o.prs, "PerPr", "perPr", t("Pull requests can't be split into AI's share, so this divides the period's whole total")]])
+  const mrNote = t("Merges and reviews can't be split into AI's share, so this divides the period's whole total");
+  for (const [d, n, sfx, help, note] of [["push", nps, "PerPush", "perPush", t("Pushes can't be split into AI's share, so this divides the period's whole total")], ["pr", o.prs, "PerPr", "perPr", t("Pull requests can't be split into AI's share, so this divides the period's whole total")],
+    ["merge", o.merges, "PerMerge", "perMerge", mrNote], ["review", o.reviews, "PerReview", "perReview", mrNote]])
     for (const kind of ["cost", "credits", "tokens"]){
-      const k = kind + sfx, b = insBase(k); if (!b || !n) continue; const fu = UL[kind][2], used = usedOf(w, kind), den = d === "push" ? plural(n, "push", "pushes") : plural(n, "PR");
-      tile("unit", `${kind}:${d}`, UL[kind][d === "push" ? 0 : 1], b, kind === "credits" ? crR(b.cur) : fmtM(k, b.cur), [{f: `${t("total")} ${fu(used)} ÷ ${den} = ${fmtM(k, b.cur)}`, p: `${fu(used)} ÷ ${den}`}, {n: note}, vsk(k, b.cur)], "", help); }
+      const k = kind + sfx, b = insBase(k); if (!b || !n) continue; const fu = UL[kind][2], used = usedOf(w, kind), den = d === "push" ? plural(n, "push", "pushes") : d === "merge" ? plural(n, "merge") : d === "review" ? plural(n, "review") : plural(n, "PR");
+      tile("unit", `${kind}:${d}`, d === "push" ? UL[kind][0] : d === "pr" ? UL[kind][1] : ULX[d][kind], b, kind === "credits" ? crR(b.cur) : fmtM(k, b.cur), [{f: `${t("total")} ${fu(used)} ÷ ${den} = ${fmtM(k, b.cur)}`, p: `${fu(used)} ÷ ${den}`}, {n: note}, vsk(k, b.cur)], "", help); }
   // AI が編集した 100 行あたり（出力単価）と、稼働 1 時間・稼働 1 日・セッション・プロンプトあたり（投入単価）。どれも、割る量を記録したセッションだけで割る
   { const FU = {cost: usd, credits: cr1, tokens: tok};
     for (const by of ["Edit", "Hour", "Day", "Ses", "Ask"]) for (const kind of ["cost", "credits", "tokens"]){
@@ -402,7 +405,7 @@ function insHeadlines(F){
     const n = pick(id + "N", ns), d = insPickD(pairs, n, ds, store.get(INS_SW[id + "D"], ""));
     const br = `<span class="ikbr" aria-hidden="true"></span>`; // 量の切り替えは投入・産出のパネルと同じく見出しの行に、割る数は次の行に（選択肢の数で折り返す位置が変わり、横のパネルと頭の高さがずれないように）
     return card(id, label, swH(id + "N", t("Measure"), ns, n) + br + swH(id + "D", t("Divided by"), ds, d, "d", dd => !pairs.has(`${n}:${dd}`)), ` data-n="${n}" data-d="${d}" data-pairs="${[...pairs].join(" ")}"`, `${n}:${d}`, P[id], note); };
-  const unit = two("unit", t("Unit cost per output"), ["commit", "push", "pr", "edit"]);
+  const unit = two("unit", t("Unit cost per output"), ["commit", "push", "pr", "merge", "review", "edit"]);
   // 「割る量を記録したセッションだけで割る」の注は、各タイルの式（ƒx）の中に。頭に置くと、横の出力単価の頭が 1 行ぶん空く（subgrid で行の高さをそろえるため）。push あたりの注（pushNote）も同じ
   const uin = two("uin", t("Unit cost per input"), ["Hour", "Day", "Ses", "Ask"]);
   const nb = insBase("active"), few = nb && nb.q1 == null ? `<p class="note insfew">${esc(t(st.mode === "month" ? "To compare with your usual range, kiroku needs {min} past months with records (have {n})." : "To compare with your usual range, kiroku needs {min} past weeks with records (have {n}).", {min: INS_MIN, n: nb.n}))}</p>` : ""; // 週と月で文を分ける（日本語は「過去の月が 4 か月分」「過去の週が 4 週分」と、名詞と数え方が違う）。比べられないことは、数字ごとでなく 1 度だけ言う
@@ -629,12 +632,13 @@ function insSankey(){
   const topP = [...pt].sort((a, b) => b[1] - a[1]).slice(0, 6).map(x => x[0]), OTH = t("Other"), pj = p => topP.includes(p) ? p : OTH;
   // コミットか PR がなくても、ファイルを作ったり変えたりしたセッションは「ファイルの変更だけ」（Git には出ていないが、手が動いた分）。
   // どちらもなく、出力を記録しないエージェント（Claude Code 以外）のセッションは「記録なし」に（コミットがなかったとは言えない）
-  const YES = t("Commit or PR"), FIL = t("Files changed only"), NO = t("None"), UNK = t("Not recorded");
-  const out = s => commitsOf(s).length || (s.prs || []).length || (s.outputs || {}).prs ? YES : (s.nFiles || 0) > 0 ? FIL : records(s.source, "outputs") ? NO : UNK;
+  // コミットも PR の作成もないが、AI が PR をマージ・レビューしたセッションは「マージかレビュー」（レビューを任せたセッションを「なし」と読ませない）
+  const YES = t("Commit or PR"), REV = t("Merge or review"), FIL = t("Files changed only"), NO = t("None"), UNK = t("Not recorded");
+  const out = s => { const o = s.outputs || {}; return commitsOf(s).length || (s.prs || []).length || o.prs ? YES : o.merges || o.reviews ? REV : (s.nFiles || 0) > 0 ? FIL : records(s.source, "outputs") ? NO : UNK; };
   const cols = [[], [], []], vals = [new Map(), new Map(), new Map()], links = new Map();
   const add = (m, key, v) => m.set(key, (m.get(key) || 0) + v);
   xs.forEach(({s, v}) => { const a = s.source, b = pj(s.project), c = out(s); add(vals[0], a, v); add(vals[1], b, v); add(vals[2], c, v); add(links, `0\u0000${a}\u0000${b}`, v); add(links, `1\u0000${b}\u0000${c}`, v); });
-  const ord = {[YES]: 0, [FIL]: 1, [NO]: 2, [UNK]: 3}; vals.forEach((m, i) => cols[i] = [...m].sort((a, b) => (i === 2 ? ord[a[0]] - ord[b[0]] : b[1] - a[1])));
+  const ord = {[YES]: 0, [REV]: 1, [FIL]: 2, [NO]: 3, [UNK]: 4}; vals.forEach((m, i) => cols[i] = [...m].sort((a, b) => (i === 2 ? ord[a[0]] - ord[b[0]] : b[1] - a[1])));
   const shr = cols.map(c => { const ps = insPct(c.map(x => x[1])); return new Map(c.map(([key], j) => [key, ps[j]])); }); // 列ごとの割合（足して 100）
   // 名前と量は、帯に重ねない：エージェントは左の外、成果は右の外、プロジェクトは節の右に帯を通さない余白（LW）を空けて、そこに置く。
   // プロジェクトから成果への帯は、余白の右の細い節から出る。狭い画面（600px 以下）では図の文字を消し、同じ名前と量を図の下の一覧で見せる
@@ -642,7 +646,7 @@ function insSankey(){
   const tot = xs.reduce((a, x) => a + x.v, 0), H = 300, T = 14, B = 10, nw = 10, gap = 10, LW = 200, X = [170, 440, 440 + nw + LW, 860], W = X[3] + nw + 170;
   const pos = cols.map(c => { const g = (c.length - 1) * gap, sc = (H - T - B - g) / tot; let y = T; const m = new Map(); c.forEach(([key, v]) => { m.set(key, {y, h: Math.max(2, v * sc), o: 0, oi: 0}); y += v * sc + gap; }); return {m, sc}; });
   // 色：エージェントからの帯はエージェントの色、プロジェクトの節と、そこから出る帯はプロジェクトの色、成果はコミットの有無の色
-  const color = (i, key) => i === 0 ? agColor(key) : i === 1 ? (key === OTH ? "var(--other)" : `var(--c${(topP.indexOf(key) + 3) % 8})`) : key === YES ? "var(--go)" : key === FIL ? "var(--go-2)" : key === NO ? "var(--ink-3)" : "var(--other)";
+  const color = (i, key) => i === 0 ? agColor(key) : i === 1 ? (key === OTH ? "var(--other)" : `var(--c${(topP.indexOf(key) + 3) % 8})`) : key === YES ? "var(--go)" : key === REV ? "var(--go-ink)" : key === FIL ? "var(--go-2)" : key === NO ? "var(--ink-3)" : "var(--other)";
   const XO = [X[0] + nw, X[2] + nw]; // 帯の出る x（プロジェクトは余白の右の節から）
   const paths = [...links].sort((a, b) => b[1] - a[1]).map(([key, v]) => { const [ci, a, b] = key.split("\u0000"), i = +ci, A = pos[i].m.get(a), Bn = pos[i + 1].m.get(b), h = v * pos[i].sc;
     const y0 = A.y + A.o, y1 = Bn.y + Bn.oi; A.o += h; Bn.oi += h; const x0 = XO[i], x1 = i ? X[3] : X[1], xm = (x0 + x1) / 2;
@@ -658,13 +662,14 @@ function insSankey(){
       const mid = n.y + n.h / 2, ex = i === 0 ? X[0] : NX[i] + nw, lead = Math.abs(ys[j] - 4 - mid) > 2 ? `<path class="sklead" d="M${ex} ${mid.toFixed(1)} L${(i === 0 ? lx + 2 : lx - 2)} ${(ys[j] - 4).toFixed(1)}"/>` : ""; // ずらした名前は、節まで短い線でつなぐ
       return r(NX[i]) + (i === 1 ? r(X[2], " o") : "") + lead + `<text class="skt${i ? " s" : ""}" x="${lx}" y="${ys[j].toFixed(1)}">${esc(short(key))} <tspan class="skv">${esc(fv(v))}</tspan></text>`; }).join(""); }).join("");
   // 1 文で、全体がどこへ行ったかを言い切る（コミットか PR あり・なし・記録しないエージェントの分。0 のものは言わない）。割合は全体に対して、足して 100 になるように丸める
-  const yes = vals[2].get(YES) || 0, fil = vals[2].get(FIL) || 0, no = vals[2].get(NO) || 0, unk = vals[2].get(UNK) || 0, mname = {cost: t("estimated cost"), credits: t("Kiro credits"), tokens: t("tokens"), minutes: t("session time")}[k];
-  const pcs = insPct([yes, fil, no, unk]), parts = [];
+  const yes = vals[2].get(YES) || 0, rev = vals[2].get(REV) || 0, fil = vals[2].get(FIL) || 0, no = vals[2].get(NO) || 0, unk = vals[2].get(UNK) || 0, mname = {cost: t("estimated cost"), credits: t("Kiro credits"), tokens: t("tokens"), minutes: t("session time")}[k];
+  const pcs = insPct([yes, rev, fil, no, unk]), parts = [];
   if (yes > 0) parts.push(t("{v} ({pc}%) went to sessions with a commit or PR", {v: fv(yes), pc: pcs[0]}));
-  if (fil > 0) parts.push(t("{v} ({pc}%) to sessions that changed files without one", {v: fv(fil), pc: pcs[1]}));
-  if (no > 0) parts.push(fil > 0 ? t("{v} ({pc}%) to sessions that changed no files", {v: fv(no), pc: pcs[2]}) : yes > 0 ? t("{v} ({pc}%) to sessions without", {v: fv(no), pc: pcs[2]}) : t("{v} ({pc}%) went to sessions without a commit or PR", {v: fv(no), pc: pcs[2]}));
-  if (unk > 0) parts.push(t("{v} ({pc}%) is from agents that don't record commits", {v: fv(unk), pc: pcs[3]}));
-  const sy = yes + fil + no <= 0 ? t("These agents don't record their commits, so it is not known which sessions led to one")
+  if (rev > 0) parts.push(t("{v} ({pc}%) to sessions that merged or reviewed a PR", {v: fv(rev), pc: pcs[1]}));
+  if (fil > 0) parts.push(t("{v} ({pc}%) to sessions that changed files without one", {v: fv(fil), pc: pcs[2]}));
+  if (no > 0) parts.push(fil > 0 ? t("{v} ({pc}%) to sessions that changed no files", {v: fv(no), pc: pcs[3]}) : yes + rev > 0 ? t("{v} ({pc}%) to sessions without", {v: fv(no), pc: pcs[3]}) : t("{v} ({pc}%) went to sessions without a commit or PR", {v: fv(no), pc: pcs[3]}));
+  if (unk > 0) parts.push(t("{v} ({pc}%) is from agents that don't record commits", {v: fv(unk), pc: pcs[4]}));
+  const sy = yes + rev + fil + no <= 0 ? t("These agents don't record their commits, so it is not known which sessions led to one")
     : t("Of {tot} {metric}, {parts}", {tot: fv(tot), metric: mname, parts: JA ? parts.join("、") : parts.length < 3 ? parts.join(" and ") : `${parts.slice(0, -1).join(", ")}, and ${parts[parts.length - 1]}`});
   const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-skk="${x}" aria-pressed="${x === k}">${esc(INS_SW_NAME()[x])}</button>`).join("")}</div>` : "";
   const heads = [t("Agent"), t("Project"), INS_OUT()], hx = [X[0] + nw / 2, X[1] + nw / 2 + (nw + LW) / 2, X[3] + nw / 2];
