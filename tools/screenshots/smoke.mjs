@@ -959,12 +959,12 @@ async function run(env) {
       const hr = h.getBoundingClientRect(), fr = f.getBoundingClientRect(), kr = k.getBoundingClientRect(), between = [...document.querySelectorAll("#review .insg, #review .insrow")].every(x => x.getBoundingClientRect().top >= fr.bottom - 1);
       const side = f.classList.contains("two") && innerWidth >= 1300;
       return fr.top >= hr.bottom - 1 && Math.abs(fr.left - hr.left) < 2 && Math.abs(fr.right - hr.right) < 2 && Math.abs(kr.left - hr.left) < 2 && (side || Math.abs(kr.right - hr.right) < 2) && between && document.querySelectorAll("#review .isk").length === 1 && !k.closest(".insrow"); }));
-    { // サンキーの 1 文は、全体がどこへ行ったかを言い切る：産出の列の段階（PR まで・コミットまで・ファイルの変更だけ・なし・記録なし）のうち
+    { // サンキーの 1 文は、全体がどこへ行ったかを言い切る：産出の列の段階（PR 作成・コミット・ファイル変更・なし・記録なし）のうち
       // 0 でないものを全部、全体に対する割合で。割合は足して 100。段階は、作業が進んだ順に並ぶ
       const sk = await p.evaluate(() => { const c = document.querySelector("#review .isk"); if (!c) return null; const say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay"), out = [...c.querySelectorAll(".sklist .skcol:last-child .skn2")].map(x => x.textContent);
         return {out, txt: say ? say.textContent : "", list: [...c.querySelectorAll(".sklist .skcol")].map(g => [...g.querySelectorAll("li b")].reduce((a, b) => a + parseInt(b.textContent), 0))}; });
-      const ORD = [["Reached a PR", "PR まで", /reached a PR|PR まで進んだ/], ["Reached a commit", "コミットまで", /commit or push|コミットか push まで/],
-        ["Files changed only", "ファイルの変更だけ", /changed files|ファイルを変えた/], ["None", "なし", /left nothing|何も残らなかった/], ["Not recorded", "記録なし", /don't record edits|記録しないエージェント/]];
+      const ORD = [["PR opened", "PR 作成", /opened a PR|PR を作成した/], ["Committed", "コミット", /sessions that committed|コミットした/],
+        ["Changed files", "ファイル変更", /changed files|ファイルを変えた/], ["None", "なし", /left nothing|何も残らなかった/], ["Not recorded", "記録なし", /don't record edits|記録しないエージェント/]];
       const idx = sk ? sk.out.map(x => ORD.findIndex(o => o[0] === x || o[1] === x)) : [];
       const pcs = sk ? [...sk.txt.matchAll(/(\d+)%/g)].map(m => +m[1]) : [];
       const onlyUnk = sk && idx.every(i => i === ORD.length - 1);

@@ -630,12 +630,12 @@ function insSankey(){
   const xs = ss.map(s => ({s, v: val[k](s)})).filter(x => x.v > 0); if (xs.length < 2) return "";
   const pt = new Map(); xs.forEach(x => pt.set(x.s.project, (pt.get(x.s.project) || 0) + x.v));
   const topP = [...pt].sort((a, b) => b[1] - a[1]).slice(0, 6).map(x => x[0]), OTH = t("Other"), pj = p => topP.includes(p) ? p : OTH;
-  // 産出の列は、そのセッションの作業がどこまで進んだか。細かい違い（PR の作成・マージ・レビュー、push の有無）は産出のパネルのタブに任せ、
-  // ここは大きな段階だけ：PR まで（AI が PR を作成・マージ・レビューした）＞ コミットまで（git のコミットか、この PC からの push）＞ ファイルの変更だけ ＞ なし。
-  // push は依頼の流れと同じく、同じプロジェクトでセッションの間（終わってから 10 分まで）のもの。編集を記録しないエージェント（Kiro Crew の一部）だけ「記録なし」
-  const PRS = t("Reached a PR"), CMT = t("Reached a commit"), FIL = t("Files changed only"), NO = t("None"), UNK = t("Not recorded");
+  // 産出の列は、そのセッションの作業がどこまで進んだか：PR 作成（AI が PR を作った）＞ コミット（git のコミットか、この PC からの push）＞ ファイル変更 ＞ なし。
+  // PR のマージ・レビューは、自分の作業の段階ではないので入れない（数は産出のパネルのタブに）。push は依頼の流れと同じく、同じプロジェクトでセッションの間（終わってから 10 分まで）のもの。
+  // 編集を記録しないエージェント（Kiro Crew の一部）だけ「記録なし」
+  const PRS = t("PR opened"), CMT = t("Committed"), FIL = t("Changed files"), NO = t("None"), UNK = t("Not recorded");
   const pushed = s => (META.push || []).some(p => p.project === s.project && p.t >= s.start && p.t <= s.end + 600);
-  const out = s => { const o = s.outputs || {}; return o.merges || o.reviews || o.prs || (s.prs || []).length ? PRS : commitsOf(s).length || pushed(s) ? CMT : (s.nFiles || 0) > 0 ? FIL : records(s.source, "files") ? NO : UNK; };
+  const out = s => { const o = s.outputs || {}; return o.prs || (s.prs || []).length ? PRS : commitsOf(s).length || pushed(s) ? CMT : (s.nFiles || 0) > 0 ? FIL : records(s.source, "files") ? NO : UNK; };
   const cols = [[], [], []], vals = [new Map(), new Map(), new Map()], links = new Map();
   const add = (m, key, v) => m.set(key, (m.get(key) || 0) + v);
   xs.forEach(({s, v}) => { const a = s.source, b = pj(s.project), c = out(s); add(vals[0], a, v); add(vals[1], b, v); add(vals[2], c, v); add(links, `0\u0000${a}\u0000${b}`, v); add(links, `1\u0000${b}\u0000${c}`, v); });
@@ -665,7 +665,7 @@ function insSankey(){
   // 1 文で、全体がどこへ行ったかを言い切る（産出の段階ごと。0 のものは言わない）。割合は全体に対して、足して 100 になるように丸める
   const mname = {cost: t("estimated cost"), credits: t("Kiro credits"), tokens: t("tokens"), minutes: t("session time")}[k];
   // 1 文：段階ごとに、0 でないものを全部、全体に対する割合で（足して 100）
-  const SAY = {[PRS]: "{v} ({pc}%) to sessions that reached a PR (opened, merged or reviewed one)", [CMT]: "{v} ({pc}%) to sessions that reached a commit or push",
+  const SAY = {[PRS]: "{v} ({pc}%) to sessions that opened a PR", [CMT]: "{v} ({pc}%) to sessions that committed",
     [FIL]: "{v} ({pc}%) to sessions that changed files without a commit", [NO]: "{v} ({pc}%) to sessions that left nothing", [UNK]: "{v} ({pc}%) is from agents that don't record edits"};
   const sv = STG.map(x => vals[2].get(x) || 0), pcs = insPct(sv), parts = STG.map((x, i) => sv[i] > 0 ? t(SAY[x], {v: fv(sv[i]), pc: pcs[i]}) : "").filter(Boolean);
   const sy = sv.slice(0, -1).every(v => v <= 0) ? t("These agents don't record what their sessions changed, so it is not known what the amount led to")
