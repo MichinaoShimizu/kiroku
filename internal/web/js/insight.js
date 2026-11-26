@@ -630,15 +630,15 @@ function insSankey(){
   const xs = ss.map(s => ({s, v: val[k](s)})).filter(x => x.v > 0); if (xs.length < 2) return "";
   const pt = new Map(); xs.forEach(x => pt.set(x.s.project, (pt.get(x.s.project) || 0) + x.v));
   const topP = [...pt].sort((a, b) => b[1] - a[1]).slice(0, 6).map(x => x[0]), OTH = t("Other"), pj = p => topP.includes(p) ? p : OTH;
-  // コミットか PR がなくても、ファイルを作ったり変えたりしたセッションは「ファイルの変更だけ」（Git には出ていないが、手が動いた分）。
-  // どちらもなく、出力を記録しないエージェント（Claude Code 以外）のセッションは「記録なし」に（コミットがなかったとは言えない）
-  // コミットも PR の作成もないが、AI が PR をマージ・レビューしたセッションは「マージかレビュー」（レビューを任せたセッションを「なし」と読ませない）
-  const YES = t("Commit or PR"), REV = t("Merge or review"), FIL = t("Files changed only"), NO = t("None"), UNK = t("Not recorded");
-  const out = s => { const o = s.outputs || {}; return commitsOf(s).length || (s.prs || []).length || o.prs ? YES : o.merges || o.reviews ? REV : (s.nFiles || 0) > 0 ? FIL : records(s.source, "outputs") ? NO : UNK; };
+  // 産出の列は、そのセッションの作業がどこまで進んだか（いちばん先の段階）：PR のマージ ＞ PR の作成 ＞ コミット。
+  // どれもなければ、PR のレビュー（自分の作業の段階ではないので別に）＞ ファイルの変更だけ ＞ なし。
+  // コミットは git から、PR の作成・マージ・レビューと編集したファイルはエージェントの履歴から。編集を記録しないエージェント（Kiro Crew の一部）だけ「記録なし」
+  const MRG = t("PR merged"), OPN = t("PR opened"), CMT = t("Committed"), RVW = t("PR reviewed"), FIL = t("Files changed only"), NO = t("None"), UNK = t("Not recorded");
+  const out = s => { const o = s.outputs || {}; return o.merges ? MRG : (s.prs || []).length || o.prs ? OPN : commitsOf(s).length ? CMT : o.reviews ? RVW : (s.nFiles || 0) > 0 ? FIL : records(s.source, "files") ? NO : UNK; };
   const cols = [[], [], []], vals = [new Map(), new Map(), new Map()], links = new Map();
   const add = (m, key, v) => m.set(key, (m.get(key) || 0) + v);
   xs.forEach(({s, v}) => { const a = s.source, b = pj(s.project), c = out(s); add(vals[0], a, v); add(vals[1], b, v); add(vals[2], c, v); add(links, `0\u0000${a}\u0000${b}`, v); add(links, `1\u0000${b}\u0000${c}`, v); });
-  const ord = {[YES]: 0, [REV]: 1, [FIL]: 2, [NO]: 3, [UNK]: 4}; vals.forEach((m, i) => cols[i] = [...m].sort((a, b) => (i === 2 ? ord[a[0]] - ord[b[0]] : b[1] - a[1])));
+  const STG = [MRG, OPN, CMT, RVW, FIL, NO, UNK], ord = Object.fromEntries(STG.map((x, i) => [x, i])); vals.forEach((m, i) => cols[i] = [...m].sort((a, b) => (i === 2 ? ord[a[0]] - ord[b[0]] : b[1] - a[1])));
   const shr = cols.map(c => { const ps = insPct(c.map(x => x[1])); return new Map(c.map(([key], j) => [key, ps[j]])); }); // 列ごとの割合（足して 100）
   // 名前と量は、帯に重ねない：エージェントは左の外、成果は右の外、プロジェクトは節の右に帯を通さない余白（LW）を空けて、そこに置く。
   // プロジェクトから成果への帯は、余白の右の細い節から出る。狭い画面（600px 以下）では図の文字を消し、同じ名前と量を図の下の一覧で見せる
@@ -646,7 +646,7 @@ function insSankey(){
   const tot = xs.reduce((a, x) => a + x.v, 0), H = 300, T = 14, B = 10, nw = 10, gap = 10, LW = 200, X = [170, 440, 440 + nw + LW, 860], W = X[3] + nw + 170;
   const pos = cols.map(c => { const g = (c.length - 1) * gap, sc = (H - T - B - g) / tot; let y = T; const m = new Map(); c.forEach(([key, v]) => { m.set(key, {y, h: Math.max(2, v * sc), o: 0, oi: 0}); y += v * sc + gap; }); return {m, sc}; });
   // 色：エージェントからの帯はエージェントの色、プロジェクトの節と、そこから出る帯はプロジェクトの色、成果はコミットの有無の色
-  const color = (i, key) => i === 0 ? agColor(key) : i === 1 ? (key === OTH ? "var(--other)" : `var(--c${(topP.indexOf(key) + 3) % 8})`) : key === YES ? "var(--go)" : key === REV ? "var(--go-ink)" : key === FIL ? "var(--go-2)" : key === NO ? "var(--ink-3)" : "var(--other)";
+  const color = (i, key) => i === 0 ? agColor(key) : i === 1 ? (key === OTH ? "var(--other)" : `var(--c${(topP.indexOf(key) + 3) % 8})`) : ({[MRG]: "var(--go-ink)", [OPN]: "var(--go)", [CMT]: "var(--go-2)", [RVW]: "var(--out)", [FIL]: "var(--go-3)", [NO]: "var(--ink-3)"})[key] || "var(--other)"; // 段階が進むほど明るい緑。レビューは産出の側の紫
   const XO = [X[0] + nw, X[2] + nw]; // 帯の出る x（プロジェクトは余白の右の節から）
   const paths = [...links].sort((a, b) => b[1] - a[1]).map(([key, v]) => { const [ci, a, b] = key.split("\u0000"), i = +ci, A = pos[i].m.get(a), Bn = pos[i + 1].m.get(b), h = v * pos[i].sc;
     const y0 = A.y + A.o, y1 = Bn.y + Bn.oi; A.o += h; Bn.oi += h; const x0 = XO[i], x1 = i ? X[3] : X[1], xm = (x0 + x1) / 2;
@@ -662,15 +662,13 @@ function insSankey(){
       const mid = n.y + n.h / 2, ex = i === 0 ? X[0] : NX[i] + nw, lead = Math.abs(ys[j] - 4 - mid) > 2 ? `<path class="sklead" d="M${ex} ${mid.toFixed(1)} L${(i === 0 ? lx + 2 : lx - 2)} ${(ys[j] - 4).toFixed(1)}"/>` : ""; // ずらした名前は、節まで短い線でつなぐ
       return r(NX[i]) + (i === 1 ? r(X[2], " o") : "") + lead + `<text class="skt${i ? " s" : ""}" x="${lx}" y="${ys[j].toFixed(1)}">${esc(short(key))} <tspan class="skv">${esc(fv(v))}</tspan></text>`; }).join(""); }).join("");
   // 1 文で、全体がどこへ行ったかを言い切る（コミットか PR あり・なし・記録しないエージェントの分。0 のものは言わない）。割合は全体に対して、足して 100 になるように丸める
-  const yes = vals[2].get(YES) || 0, rev = vals[2].get(REV) || 0, fil = vals[2].get(FIL) || 0, no = vals[2].get(NO) || 0, unk = vals[2].get(UNK) || 0, mname = {cost: t("estimated cost"), credits: t("Kiro credits"), tokens: t("tokens"), minutes: t("session time")}[k];
-  const pcs = insPct([yes, rev, fil, no, unk]), parts = [];
-  if (yes > 0) parts.push(t("{v} ({pc}%) went to sessions with a commit or PR", {v: fv(yes), pc: pcs[0]}));
-  if (rev > 0) parts.push(t("{v} ({pc}%) to sessions that merged or reviewed a PR", {v: fv(rev), pc: pcs[1]}));
-  if (fil > 0) parts.push(t("{v} ({pc}%) to sessions that changed files without one", {v: fv(fil), pc: pcs[2]}));
-  if (no > 0) parts.push(fil > 0 ? t("{v} ({pc}%) to sessions that changed no files", {v: fv(no), pc: pcs[3]}) : yes + rev > 0 ? t("{v} ({pc}%) to sessions without", {v: fv(no), pc: pcs[3]}) : t("{v} ({pc}%) went to sessions without a commit or PR", {v: fv(no), pc: pcs[3]}));
-  if (unk > 0) parts.push(t("{v} ({pc}%) is from agents that don't record commits", {v: fv(unk), pc: pcs[4]}));
-  const sy = yes + rev + fil + no <= 0 ? t("These agents don't record their commits, so it is not known which sessions led to one")
-    : t("Of {tot} {metric}, {parts}", {tot: fv(tot), metric: mname, parts: JA ? parts.join("、") : parts.length < 3 ? parts.join(" and ") : `${parts.slice(0, -1).join(", ")}, and ${parts[parts.length - 1]}`});
+  const mname = {cost: t("estimated cost"), credits: t("Kiro credits"), tokens: t("tokens"), minutes: t("session time")}[k];
+  // 1 文：段階ごとに、0 でないものを全部、全体に対する割合で（足して 100）
+  const SAY = {[MRG]: "{v} ({pc}%) to sessions that merged a PR", [OPN]: "{v} ({pc}%) to sessions that opened a PR", [CMT]: "{v} ({pc}%) to sessions that committed", [RVW]: "{v} ({pc}%) to sessions that only reviewed a PR",
+    [FIL]: "{v} ({pc}%) to sessions that changed files without a commit", [NO]: "{v} ({pc}%) to sessions that left nothing", [UNK]: "{v} ({pc}%) is from agents that don't record edits"};
+  const sv = STG.map(x => vals[2].get(x) || 0), pcs = insPct(sv), parts = STG.map((x, i) => sv[i] > 0 ? t(SAY[x], {v: fv(sv[i]), pc: pcs[i]}) : "").filter(Boolean);
+  const sy = sv.slice(0, -1).every(v => v <= 0) ? t("These agents don't record what their sessions changed, so it is not known what the amount led to")
+    : t("Of {tot} {metric}: {parts}", {tot: fv(tot), metric: mname, parts: JA ? parts.join("、") : parts.join(", ")});
   const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-skk="${x}" aria-pressed="${x === k}">${esc(INS_SW_NAME()[x])}</button>`).join("")}</div>` : "";
   const heads = [t("Agent"), t("Project"), INS_OUT()], hx = [X[0] + nw / 2, X[1] + nw / 2 + (nw + LW) / 2, X[3] + nw / 2];
   // 狭い画面の一覧：列ごとに、色の印・名前・量・割合（図の文字の代わり。読み上げもこちらで）
