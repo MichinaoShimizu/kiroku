@@ -159,7 +159,7 @@ function flowEvents(s){ // l: 何が起きたか / d: 中身（狭い画面で�
   (META.push || []).filter(p => p.project === s.project && p.t >= s.start && p.t <= s.end + 600).forEach(p => ev.push({t: p.t, k: "push", l: t("Pushed"), d: `<button class="evd" data-push="${esc(pushKey(p))}"><span class="mono">${esc(p.ref)}</span>${p.commits ? ` · ${plural(p.commits, "commit")}` : ""}</button>`})); // この PC からの push（git reflog）
   (s.prAt || []).forEach(p => ev.push({t: p.t, k: "pr", l: t("Created a pull request"), d: `<button class="evd" data-pr="${esc(prKey(s, p))}">${esc(p.url ? prName(p.url) : t("Pull request"))}</button>`}));
   const actL = {merge: t("Merged a pull request"), approve: t("Approved a pull request"), review: t("Reviewed a pull request")};
-  (s.prActs || []).forEach(a => { if (actL[a.k]) ev.push({t: a.t, k: "pr", l: actL[a.k]}); }); // AI がした PR のマージ・レビュー（どの PR かは履歴にない）
+  (s.prActs || []).forEach(a => { if (actL[a.k]) ev.push({t: a.t, k: "pr", l: actL[a.k], d: a.ref ? `<span class="evd mono">${esc(a.ref)}</span>` : ""}); }); // AI がした PR のマージ・レビュー。どの PR かは、コマンドや MCP の引数に番号があるときだけ
   (s.limits || []).forEach((at, i) => { const r = limitReset(s, i); ev.push({t: at, k: "warn", l: t("Hit a usage limit"), d: r ? `<span class="evd">${esc(t("resets {time}", {time: r}))}</span>` : ""}); }); // 解除の時刻はエラー文のまま（日付や時間帯がないこともある）
   (s.interruptsAt || []).forEach(at => ev.push({t: at, k: "int", l: t("Interrupted")}));
   (s.compactions || []).forEach((at, i) => { const k = compactKind(s, i); ev.push({t: at, k: "cmp", l: t("Conversation compacted"), d: k ? `<span class="evd">${esc(k)}</span>` : ""}); });
@@ -240,7 +240,7 @@ function reviewEvents(s){ // 流れの出来事のうち、振り返りに効く
   commitsOf(s).forEach(c => ev.push({t: c.t, l: c.ai ? "AI committed" : "Committed by hand", d: c.subject}));
   (s.prAt || []).forEach(p => ev.push({t: p.t, l: "Created a pull request", d: p.url})); // URL があれば添える（振り返りが PR を名指しできるように）
   const actL = {merge: "Merged a pull request", approve: "Approved a pull request", review: "Reviewed a pull request"};
-  (s.prActs || []).forEach(a => { if (actL[a.k]) ev.push({t: a.t, l: actL[a.k]}); });
+  (s.prActs || []).forEach(a => { if (actL[a.k]) ev.push({t: a.t, l: actL[a.k], d: a.ref}); });
   (s.interruptsAt || []).forEach(t => ev.push({t, l: "Interrupted"}));
   (s.compactions || []).forEach(t => ev.push({t, l: "Conversation compacted"}));
   (s.limits || []).forEach(t => ev.push({t, l: "Hit a usage limit"}));

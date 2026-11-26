@@ -540,7 +540,7 @@ func (s *Builder) HideText(text string) {
 		s.LimitResets[i] = ""
 	}
 	for i := range s.Outputs {
-		s.Outputs[i].URL = ""
+		s.Outputs[i].URL, s.Outputs[i].Ref = "", ""
 	}
 	for i := range s.Subagents {
 		s.Subagents[i].Desc = ""
@@ -575,8 +575,14 @@ func (s *Session) Hidden(text, title string) *Session {
 	}
 	c.OEv = make([]Output, len(s.OEv))
 	for i, o := range s.OEv {
-		o.URL = ""
+		o.URL, o.Ref = "", ""
 		c.OEv[i] = o
+	}
+	if s.PRActs != nil {
+		c.PRActs = make([]PRAct, len(s.PRActs))
+		for i, a := range s.PRActs {
+			c.PRActs[i] = PRAct{T: a.T, K: a.K} // どの PR か（リポジトリの名前）は出さない
+		}
 	}
 	c.Subagents = make([]Subagent, len(s.Subagents))
 	for i, a := range s.Subagents {
@@ -783,10 +789,12 @@ type Session struct {
 	OutTracked   bool      `json:"-"` // アウトプットを記録できるエージェントのセッション（Records の outputs）
 }
 
-// PRAct は AI が PR にした操作（K: merge・review・approve）と時刻。アプルーブは approve だけ（review と重ねない）。
+// PRAct は AI が PR にした操作（K: merge・review・approve）と時刻、わかれば相手の PR（Ref: 「#11」か「repo#11」）。
+// 承認は approve だけ（review と重ねない）。
 type PRAct struct {
-	T float64 `json:"t"`
-	K string  `json:"k"`
+	T   float64 `json:"t"`
+	K   string  `json:"k"`
+	Ref string  `json:"ref,omitempty"`
 }
 
 // PRAt は AI が PR を作った時刻と、わかれば URL。
@@ -926,12 +934,12 @@ func (s *Builder) Finish(gapMin int) *Session {
 		if t := o.T; t != nil && *t != 0 {
 			switch o.Kind {
 			case "merge", "review":
-				prActs = append(prActs, PRAct{T: *t, K: o.Kind})
-			case "approve": // 同じ呼び出しの review を、アプルーブに置き換える
-				if n := len(prActs); n > 0 && prActs[n-1].K == "review" && prActs[n-1].T == *t {
+				prActs = append(prActs, PRAct{T: *t, K: o.Kind, Ref: o.Ref})
+			case "approve": // 同じ呼び出しの review を、承認に置き換える
+				if n := len(prActs); n > 0 && prActs[n-1].K == "review" && prActs[n-1].T == *t && prActs[n-1].Ref == o.Ref {
 					prActs[n-1].K = "approve"
 				} else {
-					prActs = append(prActs, PRAct{T: *t, K: "approve"})
+					prActs = append(prActs, PRAct{T: *t, K: "approve", Ref: o.Ref})
 				}
 			}
 		}

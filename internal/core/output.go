@@ -15,6 +15,7 @@ type Output struct {
 	Kind string // commit / pr / merge / review / approve / added / removed（approve は review の内訳で、両方に入る）
 	V    float64
 	URL  string // PR の URL（ツールの結果からわかったとき）
+	Ref  string // マージ・レビューした PR（「#11」か「repo#11」。わかったとき）
 }
 
 // OutputTotal はセッションや期間のアウトプットの合計。
@@ -48,13 +49,7 @@ func (o *OutputTotal) Add(x Output) {
 }
 
 var (
-	commitRe = regexp.MustCompile(`(^|[;&|(\s])git(\s+-[Cc]\s+\S+)*\s+commit\b`)
-	// gh pr …: コマンドの頭（文の始め・;・&・|・(・改行のあと。VAR=値 の前置きは可）にあるものだけ。
-	// rg や echo の引数、コミットのメッセージの中の文は数えない
-	ghPR      = `(?:^|[;&|(\n])\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*gh\s+pr\s+`
-	prRe      = regexp.MustCompile(ghPR + `create\b`)
-	mergeRe   = regexp.MustCompile(ghPR + `merge\b`)
-	reviewRe  = regexp.MustCompile(ghPR + `review\b`)
+	commitRe  = regexp.MustCompile(`(^|[;&|(\s])git(\s+-[Cc]\s+\S+)*\s+commit\b`)
 	autoRe    = regexp.MustCompile(`\s--(disable-)?auto\b`) // gh pr merge --auto は自動マージの予約で、マージではない
 	helpRe    = regexp.MustCompile(`\s(--help|-h)\b`)       // 使い方を見ただけ
 	approveRe = regexp.MustCompile(`\s(--approve|-a)\b`)
@@ -92,8 +87,8 @@ func Outputs(name string, input any, t *float64) []Output {
 	case name == "Write":
 		add("added", float64(len(lines(Str(in["content"])))))
 	}
-	for _, k := range PRActions(name, input) {
-		add(k, 1)
+	for _, a := range PRActions(name, input) {
+		out = append(out, Output{T: t, Kind: a.Kind, V: 1, Ref: a.Ref})
 	}
 	return out
 }
@@ -117,54 +112,112 @@ func lineDiff(before, after string) (added, removed float64) {
 	return float64(len(b)), float64(len(a))
 }
 
-// PRActions は、ツールの呼び出しが PR に何をするものかを、エージェントによらず返す（成功したかは呼び出し側が確かめる）。
-// 種類は pr（作成）・merge・review・approve（アプルーブ。review と一緒に返す）。PR の操作でなければ nil。
-//   - シェルのコマンド（command は文か配列（Codex の shell・local_shell）、exec_command は cmd）:
-//     gh pr create・gh pr merge（--auto・--disable-auto は自動マージの予約なので除く）・gh pr review（--approve・-a はアプルーブ）
+// PRAction は PR への操作 1 つ。Kind は pr（作成）・merge・review・approve（承認。review と一緒に返す）。
+// Ref は、わかれば相手の PR（「#11」か「repo#11」。コマンドの引数や MCP の pullNumber から。ブランチ名などは入れない）。
+type PRAction struct {
+	Kind, Ref string
+}
+
+// PRActions は、ツールの呼び出しが PR に何をするものかを、エージェントによらず書いた順に返す（成功したかは呼び出し側が確かめる）。
+// PR の操作でなければ nil。
+//   - シェルのコマンド（command は文か配列（Codex の shell・local_shell）、exec_command は cmd）を &&・||・;・|・改行で
+//     区切り、それぞれの頭の gh pr create・gh pr merge（--auto・--disable-auto は自動マージの予約なので除く）・
+//     gh pr review（--approve・-a は承認）を見る。--help・-h は使い方を見ただけなので除く
 //   - ツールの名前（GitHub の MCP など。Codex の MCP は「サーバー__ツール」の名前になる）:
 //     create_pull_request・merge_pull_request、レビューを出すもの（pull_request_review_write の create（event つき）と
-//     submit_pending、create_pull_request_review（event つき）、submit_pending_pull_request_review）。event が APPROVE ならアプルーブ
-func PRActions(name string, input any) []string {
+//     submit_pending、create_pull_request_review（event つき）、submit_pending_pull_request_review）。event が APPROVE なら承認
+func PRActions(name string, input any) []PRAction {
 	in := Map(input)
-	review := func(approve bool) []string {
+	review := func(approve bool, ref string) []PRAction {
 		if approve {
-			return []string{"review", "approve"}
+			return []PRAction{{"review", ref}, {"approve", ref}}
 		}
-		return []string{"review"}
+		return []PRAction{{"review", ref}}
 	}
 	event := strings.ToUpper(Str(in["event"]))
+	ref := mcpPRRef(in)
 	switch {
 	case strings.HasSuffix(name, "create_pull_request"):
-		return []string{"pr"}
+		return []PRAction{{"pr", ""}}
 	case strings.HasSuffix(name, "merge_pull_request"):
-		return []string{"merge"}
+		return []PRAction{{"merge", ref}}
 	case strings.HasSuffix(name, "pull_request_review_write"):
 		if m := Str(in["method"]); m == "submit_pending" || m == "create" && event != "" {
-			return review(event == "APPROVE")
+			return review(event == "APPROVE", ref)
 		}
 		return nil
 	case strings.HasSuffix(name, "submit_pending_pull_request_review"),
 		strings.HasSuffix(name, "create_pull_request_review") && event != "":
-		return review(event == "APPROVE")
+		return review(event == "APPROVE", ref)
 	}
 	if !shellTool(name) {
 		return nil
 	}
-	cmd := CommandText(input)
-	if helpRe.MatchString(cmd) {
-		return nil
-	}
-	var out []string
-	if prRe.MatchString(cmd) {
-		out = append(out, "pr")
-	}
-	if mergeRe.MatchString(cmd) && !autoRe.MatchString(cmd) {
-		out = append(out, "merge")
-	}
-	if reviewRe.MatchString(cmd) {
-		out = append(out, review(approveRe.MatchString(cmd))...)
+	var out []PRAction
+	for _, seg := range cmdSplit.Split(CommandText(input), -1) {
+		m := ghPRCmd.FindStringSubmatch(seg)
+		if m == nil || helpRe.MatchString(" "+m[2]) {
+			continue
+		}
+		args := " " + m[2]
+		switch m[1] {
+		case "create":
+			out = append(out, PRAction{"pr", ""})
+		case "merge":
+			if !autoRe.MatchString(args) {
+				out = append(out, PRAction{"merge", ghPRRef(m[2])})
+			}
+		case "review":
+			out = append(out, review(approveRe.MatchString(args), ghPRRef(m[2]))...)
+		}
 	}
 	return out
+}
+
+var (
+	// cmdSplit は、シェルのコマンドを 1 つずつに分ける区切り（&&・||・;・|・&・改行・括弧）
+	cmdSplit = regexp.MustCompile(`&&|\|\||[;|&\n()]`)
+	// ghPRCmd は、1 つのコマンドの頭の gh pr create・merge・review（VAR=値 の前置きは可）と、その引数
+	ghPRCmd  = regexp.MustCompile(`^\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*gh\s+pr\s+(create|merge|review)\b(.*)$`)
+	prNumRe  = regexp.MustCompile(`^#?(\d{1,9})$`)
+	prURLRe  = regexp.MustCompile(`^https?://[^/\s]+/[^/\s]+/([A-Za-z0-9._-]{1,100})/pull/(\d{1,9})(?:[/?#].*)?$`)
+	repoArg  = regexp.MustCompile(`(?:^|\s)(?:-R|--repo)(?:\s+|=)['"]?[A-Za-z0-9._-]{1,100}/([A-Za-z0-9._-]{1,100})['"]?(?:\s|$)`)
+	repoName = regexp.MustCompile(`^[A-Za-z0-9._-]{1,100}$`)
+)
+
+// ghPRRef は gh pr merge・review の引数から相手の PR を「#11」か「repo#11」にする（番号か PR の URL のときだけ。
+// ブランチ名や引数なし（今のブランチの PR）は ""）。
+func ghPRRef(args string) string {
+	repo := ""
+	if m := repoArg.FindStringSubmatch(args); m != nil {
+		repo = m[1]
+	}
+	for _, f := range strings.Fields(args) {
+		f = strings.Trim(f, `'"`)
+		if m := prURLRe.FindStringSubmatch(f); m != nil {
+			return m[1] + "#" + m[2]
+		}
+		if m := prNumRe.FindStringSubmatch(f); m != nil {
+			return repo + "#" + m[1]
+		}
+	}
+	return ""
+}
+
+// mcpPRRef は GitHub の MCP の引数（repo・pullNumber）から相手の PR を「repo#11」にする（わからなければ ""）。
+func mcpPRRef(in map[string]any) string {
+	n, ok := Num(in["pullNumber"])
+	if !ok {
+		n, ok = Num(in["pull_number"])
+	}
+	if !ok || n < 1 || n > 999999999 || n != float64(int64(n)) {
+		return ""
+	}
+	repo := Str(in["repo"])
+	if !repoName.MatchString(repo) {
+		repo = ""
+	}
+	return fmt.Sprintf("%s#%d", repo, int64(n))
 }
 
 // shellTool は、シェルのコマンドを動かすツールの名前か（Claude Code の Bash・PowerShell、Codex の shell・shell_command・

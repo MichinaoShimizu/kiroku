@@ -346,10 +346,12 @@ function insHeadlines(F){
   if (bpu && seen("pushes")){ const ps = (META.push || []).filter(x => x.t >= ws && x.t < we), sent = ps.reduce((a, x) => a + (x.commits || 0), 0), pb = periodBack(1);
     const prev = V.partial || !pb.S ? null : pushesIn(pb.ws, V.n == null ? pb.we : Math.min(pb.we, addDays(new Date(pb.ws * 1000), V.n).getTime() / 1000)); // 途中の期間は、前の期間の同じ日まで
     tile("out", "push", t("Pushes"), bpu, commas(ps.length), [sent ? {n: t("{c} sent, including commits made before the period", {c: plural(sent, "commit")})} : "", vsInt("pushes", ps.length, prev)], "", "pushes"); }
-  const bpr = insBase("prs"); if (bpr && (o.prs || seen("prs"))) tile("out", "pr", t("Pull requests"), bpr, `${o.prs || 0}`, [{n: t("Created by AI")}, vsk("prs", o.prs || 0)], o.prs ? "prs" : "", "prs");
-  // AI がした PR のマージ・レビュー（あった期間だけ。PR の数と同じく、手やブラウザーでしたものは入らない）
-  if (o.merges) tile("out", "pr", t("Pull requests merged"), false, `${o.merges}`, {n: t("Merged by AI")}, "", "merges");
-  if (o.reviews) tile("out", "pr", t("Reviews submitted"), false, `${o.reviews}`, {n: o.approvals ? t("By AI; {n} approved", {n: o.approvals}) : t("By AI")}, "", "reviews");
+  // PR：AI が作った数。その下に、AI がしたマージとレビュー（あった期間だけ。手やブラウザーでしたものは入らない）。
+  // 1 つのタブには 1 つのタイルしか並べられない（.ikrow の subgrid）ので、別のタイルにはしない
+  const bpr = insBase("prs"), om = o.merges || 0, ov = o.reviews || 0, oa = o.approvals || 0;
+  if ((bpr && (o.prs || seen("prs"))) || om || ov) tile("out", "pr", t("Pull requests"), bpr || false, `${o.prs || 0}`, [{n: t("Created by AI")},
+    om ? {n: t("{n} merged by AI", {n: om})} : "", ov ? {n: oa ? t("{n} reviews by AI, {a} approved", {n: ov, a: oa}) : t("{n} reviews by AI", {n: ov})} : "",
+    bpr ? vsk("prs", o.prs || 0) : ""], o.prs ? "prs" : "", "prs");
   // ── 単価：量（費用・クレジット・トークン）÷ 出力（コミット・push・PR）。割る範囲を名前に入れ、「分子 ÷ 分母」をいつも値の下に出す ──
   const UL = {cost: [t("Estimated cost per push"), t("Estimated cost per pull request"), usd, t("Estimated cost per Git commit")], credits: [t("Kiro credits per push"), t("Kiro credits per pull request"), cr1, t("Kiro credits per Git commit")], tokens: [t("Tokens per push"), t("Tokens per pull request"), tok, t("Tokens per Git commit")]};
   // コミットあたり：AI が実行したコミットがあれば、費用とトークンは Claude Code の分 ÷ AI のコミット（どのコミットを実行したかを記録するのは Claude Code だけで、こちらがより正確）。

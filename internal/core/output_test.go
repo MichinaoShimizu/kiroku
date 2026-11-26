@@ -37,6 +37,7 @@ func TestOutputs(t *testing.T) {
 }
 
 // PR の操作（作成・マージ・レビュー）は、シェルのコマンドとツールの名前から、エージェントによらず同じに決める。
+// 書いた順に返し、マージ・レビューした PR（番号・URL・-R・MCP の repo と pullNumber）がわかれば Ref に入れる。
 func TestPRActions(t *testing.T) {
 	cmd := func(c any) map[string]any { return map[string]any{"command": c} }
 	for _, c := range []struct {
@@ -45,29 +46,46 @@ func TestPRActions(t *testing.T) {
 		want  string
 	}{
 		{"Bash", cmd("gh pr create --fill"), "pr"},
-		{"Bash", cmd("gh pr merge 12 --squash --delete-branch"), "merge"},
+		{"Bash", cmd("gh pr merge 12 --squash --delete-branch"), "merge:#12"},
+		{"Bash", cmd("gh pr merge --squash"), "merge"}, // 今のブランチの PR（番号はわからない）
+		{"Bash", cmd("gh pr merge fix/login --squash"), "merge"},
+		{"Bash", cmd("gh pr merge https://github.com/o/web-app/pull/7 --rebase"), "merge:web-app#7"},
 		{"Bash", cmd("gh pr merge 12 --auto --squash"), ""}, // 自動マージの予約
 		{"Bash", cmd("gh pr merge --disable-auto"), ""},
-		{"shell", cmd([]any{"gh", "pr", "review", "12", "--approve"}), "review approve"},
-		{"exec_command", map[string]any{"cmd": "gh pr review 12 -a -b ok"}, "review approve"},
-		{"Bash", cmd("gh pr review 12 --request-changes -b fix"), "review"},
-		{"Bash", cmd("gh pr review 12 --comment -b hi"), "review"},
+		{"shell", cmd([]any{"gh", "pr", "review", "12", "--approve"}), "review:#12 approve:#12"},
+		{"exec_command", map[string]any{"cmd": "gh pr review 12 -a -b ok"}, "review:#12 approve:#12"},
+		{"Bash", cmd("gh pr review -R acme/api 3 --request-changes -b 'fix 9'"), "review:api#3"},
+		{"Bash", cmd("gh pr review 12 --comment -b hi"), "review:#12"},
 		{"Bash", cmd("gh pr view 12 && gh pr checks 12"), ""},
-		{"Bash", cmd("echo gh-pr-merge"), ""},
-		{"Bash", cmd("git push && gh pr create --fill && gh pr merge --squash"), "pr merge"},
+		{"Bash", cmd("echo gh-pr-merge; rg gh pr create docs"), ""},
+		{"Bash", cmd(`git commit -m "docs: explain gh pr create"`), ""},
+		{"Bash", cmd("gh pr create --help"), ""},
+		// 書いた順（承認してからマージ）。--auto は、そのコマンドだけに効く
+		{"Bash", cmd("gh pr review 55 --approve && gh pr merge 55 --squash"), "review:#55 approve:#55 merge:#55"},
+		{"Bash", cmd("git push && GH_PROMPT_DISABLED=1 gh pr create --fill && gh pr merge --auto --squash; gh pr merge 3"), "pr merge:#3"},
+		{"notes__save", cmd("gh pr create"), ""}, // シェルでないツール
 		{"mcp__github__create_pull_request", nil, "pr"},
-		{"github__merge_pull_request", map[string]any{"pullNumber": 1}, "merge"},
-		{"mcp__github__pull_request_review_write", map[string]any{"method": "create", "event": "APPROVE"}, "review approve"},
+		{"github__merge_pull_request", map[string]any{"owner": "o", "repo": "app", "pullNumber": 38.0}, "merge:app#38"},
+		{"github__merge_pull_request", map[string]any{"repo": "a b", "pullNumber": 1.5}, "merge"},
+		{"mcp__github__pull_request_review_write", map[string]any{"method": "create", "event": "APPROVE", "repo": "app", "pullNumber": 40.0}, "review:app#40 approve:app#40"},
 		{"mcp__github__pull_request_review_write", map[string]any{"method": "create"}, ""}, // 保留中のレビューを作っただけ
 		{"mcp__github__pull_request_review_write", map[string]any{"method": "submit_pending", "event": "REQUEST_CHANGES"}, "review"},
 		{"mcp__github__pull_request_review_write", map[string]any{"method": "delete_pending"}, ""},
-		{"mcp__github__create_pull_request_review", map[string]any{"event": "approve"}, "review approve"},
+		{"mcp__github__create_pull_request_review", map[string]any{"event": "approve", "pull_number": 2.0}, "review:#2 approve:#2"},
 		{"mcp__github__create_pull_request_review", map[string]any{}, ""},
 		{"mcp__github__submit_pending_pull_request_review", map[string]any{"event": "COMMENT"}, "review"},
 		{"mcp__github__update_pull_request", map[string]any{"state": "closed"}, ""},
 	} {
-		if got := strings.Join(PRActions(c.name, c.input), " "); got != c.want {
-			t.Errorf("PRActions(%s, %v) = %q, want %q", c.name, c.input, got, c.want)
+		var got []string
+		for _, a := range PRActions(c.name, c.input) {
+			if a.Ref != "" {
+				got = append(got, a.Kind+":"+a.Ref)
+			} else {
+				got = append(got, a.Kind)
+			}
+		}
+		if g := strings.Join(got, " "); g != c.want {
+			t.Errorf("PRActions(%s, %v) = %q, want %q", c.name, c.input, g, c.want)
 		}
 	}
 }
@@ -78,7 +96,7 @@ func TestPRActsInSession(t *testing.T) {
 	t1, t2, t3 := 100.0, 200.0, 300.0
 	b.Tick(&t1)
 	b.Tick(&t3)
-	b.Outputs = append(b.Outputs, Output{T: &t1, Kind: "review", V: 1}, Output{T: &t1, Kind: "approve", V: 1},
+	b.Outputs = append(b.Outputs, Output{T: &t1, Kind: "review", V: 1, Ref: "#4"}, Output{T: &t1, Kind: "approve", V: 1, Ref: "#4"},
 		Output{T: &t2, Kind: "review", V: 1}, Output{T: &t3, Kind: "merge", V: 1})
 	s := b.Finish(15)
 	if s.Outputs.Reviews != 2 || s.Outputs.Approvals != 1 || s.Outputs.Merges != 1 || s.Outputs.PRs != 0 {
@@ -88,8 +106,11 @@ func TestPRActsInSession(t *testing.T) {
 	for _, a := range s.PRActs {
 		got = append(got, a.K)
 	}
-	if strings.Join(got, " ") != "approve review merge" {
-		t.Errorf("PRActs = %v, want approve review merge", got)
+	if strings.Join(got, " ") != "approve review merge" || s.PRActs[0].Ref != "#4" {
+		t.Errorf("PRActs = %+v, want approve(#4) review merge", s.PRActs)
+	}
+	if h := s.Hidden("x", "x"); len(h.PRActs) != 3 || h.PRActs[0].Ref != "" {
+		t.Errorf("隠した会話の PRActs = %+v（どの PR かは出さない）", h.PRActs)
 	}
 }
 

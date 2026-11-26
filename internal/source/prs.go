@@ -17,16 +17,16 @@ type prCalls struct {
 func newPRCalls() *prCalls { return &prCalls{calls: map[string]prCall{}, urls: map[string]bool{}} }
 
 type prCall struct {
-	t     *float64
-	kinds []string
+	t    *float64
+	acts []core.PRAction
 }
 
 func (p *prCalls) call(id, name string, input any, t *float64) {
 	if id == "" || len(p.calls) >= maxPRCalls {
 		return
 	}
-	if kinds := core.PRActions(name, input); len(kinds) > 0 {
-		p.calls[id] = prCall{t, kinds}
+	if acts := core.PRActions(name, input); len(acts) > 0 {
+		p.calls[id] = prCall{t, acts}
 	}
 }
 
@@ -51,9 +51,9 @@ func (p *prCalls) result(s *core.Builder, id string, ok bool, text string, t *fl
 	if t == nil {
 		t = c.t
 	}
-	for _, k := range c.kinds {
-		o := core.Output{T: t, Kind: k, V: 1}
-		if k == "pr" {
+	for _, a := range c.acts {
+		o := core.Output{T: t, Kind: a.Kind, V: 1, Ref: a.Ref}
+		if a.Kind == "pr" {
 			if o.URL = core.PRURL(text); o.URL != "" {
 				if p.urls[o.URL] || len(p.urls) >= maxPRCalls {
 					continue // 同じ PR をもう数えた
