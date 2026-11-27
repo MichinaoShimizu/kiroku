@@ -781,7 +781,8 @@ dialog.mdlg h3{margin:20px 0 8px}
   .mgrid .mh{padding:8px 6px}
   .wrap{padding:0 16px}
   .bar{height:auto;min-height:54px;gap:8px;flex-wrap:wrap;padding-top:8px}
-  .brand{flex-shrink:0;margin-right:auto} /* ロゴは削らず、狭いときは検索欄のほうを縮める */
+  .brand{flex:1 1 0;min-width:0;margin-right:auto} /* 狭いときは、ロゴの下の一言を省いて、検索の虫めがねを同じ行に残す（行を増やすと、貼り付く見出しが高くなる） */
+  .tagline{overflow:hidden;text-overflow:ellipsis}
   .gnav{order:3;flex-basis:100%;margin:0 -8px;padding:0 0 4px;border-left:0;overflow-x:auto;scrollbar-width:none} /* 狭い画面では、メニューはロゴと検索の下の行に */
   .gnav a{height:38px;padding:0 12px}.gnav a[aria-current="page"]::after{left:12px;right:12px;bottom:2px}
   /* 検索欄は虫めがねだけにし、押すと（打っているあいだも）ロゴの場所まで広がる（狭い欄に「Sear」と切れた文字を出さない） */
@@ -1412,12 +1413,13 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .hmstats{display:flex;flex-wrap:wrap;gap:8px 28px}
 .hmstat .k{font-size:var(--fs-xs);color:var(--ink-3)}.hmstat .v{font:600 var(--fs-2xl)/1.25 var(--sans);font-variant-numeric:tabular-nums;color:var(--ink)}.hmstat .v small{font-size:.6em;font-weight:500;color:var(--ink-2)}
 .hmstat .v .hmfix{display:block;font-size:var(--fs-xs);font-weight:500;color:var(--warn)}
-.hmdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;height:76px;margin-top:12px}
+.hmdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;height:96px;margin-top:12px}
 .hmday{display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;gap:4px;min-width:0}
 .hmday i{display:block;align-self:center;width:min(100%,48px);border-radius:4px 4px 2px 2px;background:color-mix(in oklab,var(--acc) 45%,var(--surface-2));min-height:0}
 .hmday.today i{background:var(--acc)}
 .hmday b{font-size:var(--fs-2xs);font-weight:500;color:var(--ink-3);text-align:center;flex:none}.hmday.today b{color:var(--ink);font-weight:700}
 .hmday::before{content:"";flex:1 1 auto} /* 棒を下にそろえる */
+.hmv{font-size:var(--fs-2xs);color:var(--ink-2);text-align:center;white-space:nowrap;flex:none;font-variant-numeric:tabular-nums} /* 棒の上に時間（ホバーしなくても読めるように） */
 .hmrecent .card{margin-bottom:6px}
 .hmgo{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .hmcard.off .hmh{color:var(--ink-2)}.hmcard.off .hmh .ic{color:var(--ink-3)}

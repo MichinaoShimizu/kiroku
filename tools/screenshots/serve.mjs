@@ -162,6 +162,29 @@ try {
     const pt = await until("待ち受け（追加）", () => (lg.match(/serving http:\/\/localhost:(\d+)\//) || [])[1]);
     await until("読み込み（追加）", async () => (await fetch(`http://localhost:${pt}/stamp`, { headers: { "X-Kiroku-Key": key } }).catch(() => ({ ok: false }))).ok);
     return { url: `http://localhost:${pt}`, log: () => lg }; };
+  // PRトリアージ（--prs）：GitHub に問い合わせる（gh を動かす）のは、ページの中で PRトリアージへのリンクを押したときと「再取得」だけ。
+  // ホームを開いても、URL（/#/prs）で開いても（ほかのサイトのリンクから移ってきたときと同じ）問い合わせない。gh は呼ばれた回数を残す偽物
+  {
+    const fakeGh = path.join(work, "fakegh"), ghLog = path.join(work, "gh-calls"); await mkdir(fakeGh, { recursive: true });
+    await writeFile(path.join(fakeGh, "gh"), `#!/bin/sh
+echo x >> "${ghLog}"
+printf '%s' '{"data":{"viewer":{"login":"me-dev"},"author":{"nodes":[]},"review":{"nodes":[]},"mention":{"nodes":[]}}}'
+`); await chmod(path.join(fakeGh, "gh"), 0o755);
+    const calls = async () => (await readFile(ghLog, "utf8").catch(() => "")).split("\n").filter(Boolean).length;
+    const ps = await startExtra([...serveArgs, "--prs"], { PATH: `${fakeGh}${path.delimiter}${process.env.PATH}` });
+    const pp = await ctx.newPage(), asked = []; pp.on("request", r => { if (new URL(r.url()).pathname === "/prs") asked.push(r.method()); });
+    await pp.goto(`${ps.url}/`); await pp.evaluate(k => localStorage.setItem("kiroku:key", k), key);
+    await pp.goto(`${ps.url}/#/prs`); await pp.reload(); await pp.waitForSelector("#prsv .prpanel", { timeout: 15000 }); await pp.waitForTimeout(800);
+    check("--prs: URL（/#/prs）で開いても GitHub に問い合わせない（ほかのサイトから移らせても gh は動かない）", asked.length === 0 && await calls() === 0 && /Refresh/.test(await pp.locator("#prsv").innerText()), `${asked} ${await calls()}`);
+    await pp.locator("#home").click(); await pp.waitForFunction(() => document.body.dataset.page === "home"); await pp.waitForTimeout(500);
+    check("--prs: ホームは GitHub に問い合わせない", asked.length === 0 && await calls() === 0);
+    await pp.evaluate(() => { location.hash = "#/prs"; }); await pp.waitForFunction(() => document.body.dataset.page === "prs"); await pp.waitForTimeout(500);
+    check("--prs: スクリプトで # を変えても問い合わせない", asked.length === 0);
+    await pp.locator("#home").click(); await pp.waitForFunction(() => document.body.dataset.page === "home");
+    await pp.locator('#gnav a[data-page="prs"]').click(); await pp.waitForSelector("#prsv .prsec, #prsv .none", { timeout: 15000 });
+    check("--prs: メニューの PRトリアージを押すと問い合わせる", asked.join() === "GET" && await calls() === 1, `${asked} ${await calls()}`);
+    await pp.close();
+  }
   const old = await startExtra([...serveArgs, "--ai"], { KIROKU_AI: "1" });
   check("--ai を付けても起動し、外したことと「Copy prompt」を言う", /--ai \(\$KIROKU_AI\) was removed in 4\.0/.test(old.log()) && /Copy prompt/.test(old.log()), old.log());
   const po = await ctx.newPage();

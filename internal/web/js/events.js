@@ -43,14 +43,15 @@ function pageOfHash(){ let h = ""; try { h = decodeURIComponent(String(location.
   return Object.prototype.hasOwnProperty.call(PAGES, h) ? PAGES[h] : "home"; }
 // showPage は、いまのページを body の data-page と上のメニュー（aria-current）と題（タブの名前）に映す（render が呼ぶ）
 function showPage(){ const b = document.body; b.dataset.page = st.page;
-  document.querySelectorAll("#gnav a[data-page]").forEach(a => { if (a.dataset.page === st.page) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  document.querySelectorAll("#gnav a[data-page], #home").forEach(a => { if ((a.dataset.page || "home") === st.page) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); }); // ロゴはホーム
   document.title = st.page === "home" ? "kiroku" : `${pageName(st.page)} · kiroku`; }
 // setPage は、ページを移る（# が変わったとき）。移った先の頭から見せ、フォーカスはそのページの見出しへ（メニューから移ったとき、読み上げがどこにいるかわかるように）
-function setPage(p, focus){ if (p === st.page) return; st.page = p; tipOff(); closeHint();
+function setPage(p, focus){ const ask = PRS.ask; PRS.ask = false; // ページの中のリンクを押して移ったときだけ true（prsShow）。毎回ここで消す
+  if (p === st.page) return; st.page = p; tipOff(); closeHint();
   if (st.sel) select(null); // 詳細を開いたまま（ブラウザの「戻る」などで）ページが変わったら、閉じる
   render(); scrollTo(0, 0); const m = $("main"); if (m) m.scrollTop = 0;
   if (p === "sessions"){ if (st.view === "cal") scrollToWork(); else skBack($("#review")); }
-  else if (p === "prs") prsShow();
+  else if (p === "prs") prsShow(ask);
   if (focus){ const h = $(p === "home" ? "#homeh" : p === "prs" ? "#prsh" : "#sesh"); if (h){ h.tabIndex = -1; h.focus({preventScroll: true}); } } }
 addEventListener("hashchange", () => setPage(pageOfHash(), true));
 // ページの中から別のページへ移るリンク（ホームのカードのボタンなど）。data-go はページ、data-view はセッション履歴で開く表示

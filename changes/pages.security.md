@@ -1,0 +1,1 @@
+- PR triage (`kiroku serve --prs`) asks GitHub only when you open it from kiroku's menu or Home, or press Refresh. Opening its address (`/#/prs`) from a link, by Back and Forward, or by a script changing the address only shows the last answer, so another website can't make kiroku run `gh` by sending you there

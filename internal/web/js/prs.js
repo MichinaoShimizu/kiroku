@@ -1,10 +1,10 @@
 // PRトリアージのページ：自分に関係する、開いているプルリクエストの表（kiroku serve --prs のときだけ。なければ上のメニューにも出さない）。
 // kiroku serve が GitHub CLI（gh）で GitHub に問い合わせた結果を /prs から読む。問い合わせるのは、この表示を開いたときと「更新」を押したときだけ。
 // 題名・名前・URL は、ほかの人が書ける文字。どれも esc を通して出し、AI に渡すプロンプトには URL（形を確かめたもの）しか入れない
-const PRS = {data: null, busy: false, failed: false};
+const PRS = {data: null, busy: false, failed: false, ask: false};
 const prsOn = () => LIVE && !!META && META.prs === true;
 // prsSync は、上のメニューに「PRトリアージ」を出すかどうかと、開いていれば表の描き直し（render が呼ぶ。履歴が変わると、作ったセッションの欄が変わる）
-function prsSync(){ const b = $("#prtab"), on = prsOn(); if (b) b.hidden = !on;
+function prsSync(){ const b = $("#prtab"), on = prsOn(); if (b) b.hidden = !on && st.page !== "prs"; // --prs なしでも、#/prs を開いているあいだは、いまのページとして出す
   if (st.page === "prs") prsDraw(); else { const V = $("#prsv"); if (V && !V.hidden){ V.hidden = true; V.textContent = ""; } } } // ほかのページでは表を残さない（ホームと同じわけ）
 // prsOffH は、--prs なしで PRトリアージを開いたとき（以前の # のリンクなど）と、ホームのカードに出す使い方。GitHub には何も問い合わせない
 const prsOffH = () => `<p class="note">${esc(LIVE ? t("Start kiroku serve with --prs to use this page. It is off by default.") : t("This page works in kiroku serve started with --prs, not in a saved HTML file."))}</p>${codeH("kiroku serve --prs")}`;
@@ -131,7 +131,7 @@ function prsRow(it, i){
 }
 function prsBody(){
   const d = PRS.data;
-  if (!d) return PRS.failed ? noneH(esc(t("Couldn't get the list from kiroku serve. Is it still running?"))) : `<p class="note" role="status">${esc(t("Asking GitHub…"))}</p>`;
+  if (!d) return PRS.failed ? noneH(esc(t("Couldn't get the list from kiroku serve. Is it still running?"))) : `<p class="note" role="status">${esc(PRS.busy ? t("Asking GitHub…") : t("Press Refresh to ask GitHub."))}</p>`;
   if (d.error) return noneH(esc(d.error === "nogh" ? t("The GitHub CLI (gh) was not found. Install it from https://cli.github.com/ and run gh auth login, then press Refresh.")
     : d.error === "auth" ? t("The GitHub CLI (gh) is not logged in. Run gh auth login in a terminal, then press Refresh.")
     : t("Couldn't ask GitHub. See the terminal where kiroku serve runs for details, then press Refresh.")));
@@ -177,5 +177,9 @@ async function prsLoad(force){
   if (st.page === "prs") prsDraw();
   else if (st.page === "home") homeSync(); // ホームのカードの数（問い合わせはしない。PRトリアージで読んだ答えを使う）
 }
-// prsShow は、PRトリアージのページを開いたとき（setPage・boot）。kiroku serve は、新しい結果があるうちは GitHub に問い合わせ直さない
-function prsShow(){ prsDraw(); if (prsOn()) prsLoad(false); }
+// prsShow は、PRトリアージのページを開いたとき（setPage・boot）。kiroku serve は、新しい結果があるうちは GitHub に問い合わせ直さない。
+// 問い合わせるのは、このページの中で PRトリアージへのリンクを押して移ったとき（ask）だけ。URL（#/prs）で開いたとき・戻る・進むでは問い合わせず、
+// 前の答えか「再取得を押す」を出す。ほかのサイトが localhost:PORT/#/prs へ移らせても（リンク・window.open した窓の location）、gh を動かせないように
+function prsShow(ask){ prsDraw(); if (prsOn() && ask) prsLoad(false); }
+// PRS.ask は、このページの中で #/prs へのリンクが押されたこと（押した操作だけが立てる。スクリプトや外からの移動では立たない）
+document.addEventListener("click", e => { if (e.isTrusted && e.target.closest && e.target.closest('a[href="#/prs"]')){ PRS.ask = true; setTimeout(() => { PRS.ask = false; }, 1000); } }, true); // 新しいタブで開いたときなど、移らなかったら残さない
