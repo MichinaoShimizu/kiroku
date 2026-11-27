@@ -98,6 +98,17 @@ func runGH(ctx context.Context, show io.Writer, args ...string) ([]byte, error) 
 	if !repoPattern.MatchString(releaseRepo) {
 		return nil, errOddRepo
 	}
+	out, err := execGH(ctx, show, ghMaxStdout, args...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// execGH は gh を、シェルを通さずに args だけで起動する（runGH と、kiroku serve --prs の問い合わせが使う）。
+// limit は標準出力として読む上限。gh が失敗を返したときも、それまでに書いた標準出力を一緒に返す
+// （gh api graphql は、答えの一部が取れなかったとき、取れた分を書いてから失敗で終わる）。
+func execGH(ctx context.Context, show io.Writer, limit int, args ...string) ([]byte, error) {
 	// 今いるフォルダの gh は使わない（exec.ErrDot。GODEBUG=execerrdot=0 でゆるめられても、絶対パスでなければ使わない）
 	path, err := exec.LookPath(ghCommand)
 	if err != nil || !filepath.IsAbs(path) {
@@ -107,7 +118,7 @@ func runGH(ctx context.Context, show io.Writer, args ...string) ([]byte, error) 
 	cmd.WaitDelay = ghWaitDelay
 	// 聞き返さない・gh 自身の更新の案内や色を出さない
 	cmd.Env = append(os.Environ(), "GH_PROMPT_DISABLED=1", "GH_NO_UPDATE_NOTIFIER=1", "NO_COLOR=1", "GH_SPINNER_DISABLED=1")
-	out := &capWriter{limit: ghMaxStdout}
+	out := &capWriter{limit: limit}
 	var w io.Writer = out
 	if show != nil {
 		p := &progress{w: show}
@@ -119,7 +130,7 @@ func runGH(ctx context.Context, show io.Writer, args ...string) ([]byte, error) 
 	if err := cmd.Run(); err != nil && !(errors.Is(err, exec.ErrWaitDelay) && ctx.Err() == nil) {
 		// （ErrWaitDelay だけなら、gh は締め切りの前に成功して終わり、残った子が出力をつかんでいただけ）
 		if out.over {
-			return nil, fmt.Errorf("the download is larger than %d MiB", ghMaxStdout>>20)
+			return nil, fmt.Errorf("the download is larger than %d MiB", limit>>20)
 		}
 		if ctx.Err() != nil {
 			return nil, fmt.Errorf("gh did not finish in time: %w", ctx.Err())
@@ -138,7 +149,7 @@ func runGH(ctx context.Context, show io.Writer, args ...string) ([]byte, error) 
 		if errors.As(err, &ee) {
 			code = ee.ExitCode()
 		}
-		return nil, &ghError{msg: "gh: " + termSafe(line, 300), notFound: nf, detail: termSafe(strings.ReplaceAll(stderr.buf.String(), "\n", " "), 64<<10), code: code}
+		return out.buf.Bytes(), &ghError{msg: "gh: " + termSafe(line, 300), notFound: nf, detail: termSafe(strings.ReplaceAll(stderr.buf.String(), "\n", " "), 64<<10), code: code}
 	}
 	return out.buf.Bytes(), nil
 }

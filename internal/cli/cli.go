@@ -328,6 +328,7 @@ func cmdServe(args []string) error {
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
 	allow := fs.String("allow-host", "", "comma-separated extra host `names` the view may be opened by (e.g. a name in your hosts file); localhost, 127.0.0.1 and ::1 always work, and this computer's own IPs and host name too when ADDR is 0.0.0.0 or another all-interfaces address")
 	lang := langFlag(fs)
+	prs := fs.Bool("prs", false, "list open pull requests that involve you (opened by you, review requested, or mentioning you) with their status and a prompt to copy; asks GitHub through the GitHub CLI (gh) when you open or refresh that page, and sends nothing from your history")
 	ai := fs.Bool("ai", false, "removed in 4.0 (kiroku no longer runs AI agents); accepted and ignored")
 	_ = fs.Bool("no-ai", false, "removed in 4.0 (kiroku no longer runs AI agents); accepted and ignored")
 	pos, err := parse(fs, args, 1)
@@ -352,7 +353,7 @@ func cmdServe(args []string) error {
 	if n := aiRemovedNote(*ai); n != "" {
 		fmt.Fprintln(os.Stderr, n)
 	}
-	return serveLiveWith(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen, *lang, scanWatchPaths(all, want))
+	return serveLiveWith(addr, splitList(*allow), *interval, picked, load, c.keepFn(), !*noOpen, *lang, scanWatchPaths(all, want), *prs)
 }
 
 func cmdHTML(args []string) error {

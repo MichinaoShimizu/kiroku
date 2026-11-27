@@ -36,7 +36,7 @@ document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = e => 
 function showView(){ document.body.dataset.view = st.view;
   document.querySelectorAll("#view button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.view)); }
 function setView(v, focus){ if (v === st.view) return; st.view = v; showView();
-  const m = $("main"); if (m) m.scrollTop = 0; if (v === "cal") scrollToWork(); else skBack($("#review")); // サンキーの名前の札は、見えているときにしか測れない（隠れたまま描いたサマリーを開いたときに敷く）
+  const m = $("main"); if (m) m.scrollTop = 0; if (v === "cal") scrollToWork(); else if (v === "prs") prsShow(); else skBack($("#review")); // サンキーの名前の札は、見えているときにしか測れない（隠れたまま描いたサマリーを開いたときに敷く）
   if (focus && v === "sum"){ const r = $("#review"); r.tabIndex = -1; r.focus({preventScroll: true}); } }
 document.querySelectorAll("#view button[data-v]").forEach(b => b.onclick = e => { setView(b.dataset.v); if (e.detail) b.blur(); });
 $("#skipcal").onclick = e => { e.preventDefault(); setView("sum", true); };
@@ -95,7 +95,7 @@ document.addEventListener("keydown", e => {
   else if (k === "/"){ e.preventDefault(); $("#q").focus(); }
   else if (k === "Escape" && st.sel) select(null); else if (k === "?") $("#keys").showModal();
   else if (k === "w" || k === "W") setMode("week"); else if (k === "m" || k === "M") setMode("month");
-  else if ((k === "v" || k === "V") && !st.sel) setView(st.view === "cal" ? "sum" : "cal"); // 詳細を開いているあいだは、うしろの表示を変えない
+  else if ((k === "v" || k === "V") && !st.sel) setView(st.view === "cal" ? "sum" : "cal"); // プルリクエストの表からは、カレンダーへ // 詳細を開いているあいだは、うしろの表示を変えない
 });
 // workHours は、表示中の週の作業の時間帯 {first, last}（時。記録がなければ null）。
 // 朝 6 時より前の開始が 2 割に満たなければ、早い時刻の数本に引っぱられないよう、6 時以降でいちばん早い開始時刻から。

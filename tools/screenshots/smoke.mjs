@@ -1266,5 +1266,9 @@ const results = await Promise.all([...envs.map(run), ...envs.map(runJa)]);
 await b.close();
 for (const r of results) console.log(r.out.join("\n"));
 const failed = results.reduce((n, r) => n + r.failed, 0);
-if (failed) { console.log(`\n${failed} 件失敗`); process.exit(1); }
-console.log("\nすべて OK");
+// 失敗の行を先にまとめて出す（結果は長いので、CI のログで探さなくても見えるように）。
+// process.exit は使わない（パイプへの書き出しが終わる前に止まり、CI のログが途中で切れて FAIL の行が消える）
+if (failed) {
+  console.log(`\n${failed} 件失敗:\n${results.flatMap(r => r.out.filter(l => l.startsWith("  FAIL") || l.startsWith("#"))).join("\n")}`);
+  process.exitCode = 1;
+} else console.log("\nすべて OK");

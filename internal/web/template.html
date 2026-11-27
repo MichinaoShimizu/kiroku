@@ -31,7 +31,7 @@
         <button data-t class="iconbtn" id="prev" aria-label="Previous"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
         <button data-t class="iconbtn" id="next" aria-label="Next"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
         <button data-t class="pill" id="today">This week</button>
-        <div class="view-controls"><div class="control-group"><span data-t class="control-label">Period</span><div data-t class="segc mode" role="group" aria-label="Period" id="mode"><button data-t data-v="week">Week</button><button data-t data-v="month">Month</button></div></div><div class="control-group"><span data-t class="control-label">View</span><div data-t class="segc vsel" role="group" aria-label="View" id="view"><button data-t data-v="cal">Calendar</button><button data-t data-v="sum">Summary</button></div></div></div>
+        <div class="view-controls"><div class="control-group"><span data-t class="control-label">Period</span><div data-t class="segc mode" role="group" aria-label="Period" id="mode"><button data-t data-v="week">Week</button><button data-t data-v="month">Month</button></div></div><div class="control-group"><span data-t class="control-label">View</span><div data-t class="segc vsel" role="group" aria-label="View" id="view"><button data-t data-v="cal">Calendar</button><button data-t data-v="sum">Summary</button><button data-t data-v="prs" id="prtab" hidden title="Open pull requests that involve you, with a prompt for each">Pull requests</button></div></div></div>
       </div>
     </nav>
     <div class="kpis" id="kpis"></div>
@@ -42,6 +42,7 @@
   <p class="fnote" id="fnote" role="note" hidden></p>
   <section data-t class="tlbox" id="tl" aria-label="Calendar"></section>
   <section data-t id="review"></section>
+  <section data-t id="prsv" aria-label="Pull requests that involve you" hidden></section>
 </main>
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dkind dtitle" aria-hidden="true">

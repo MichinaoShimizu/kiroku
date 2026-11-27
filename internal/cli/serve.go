@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -46,6 +47,8 @@ type live struct {
 	prog  *loadProgress // 最初の読み込みの進み具合（読み込み中の画面が /progress で見る）
 	// stale は、最初の読み込みのあとの読み直しに失敗し、前の集計のまま答えているか（mu で守る）。/stamp のヘッダーで画面に知らせる
 	stale bool
+	// prs は kiroku serve --prs の一覧（nil ならオフ。/prs は 404 で、kiroku は GitHub に何も問い合わせない）
+	prs *prBoard
 
 	reload sync.Mutex // 読み直しは 1 本ずつ（load の中の loadCache は同時に使えない）
 }
@@ -54,6 +57,12 @@ func (l *live) refresh() error {
 	l.reload.Lock()
 	defer l.reload.Unlock()
 	snap := l.load()
+	if l.prs != nil { // 画面の表示の切り替えに「プルリクエスト」を出す（履歴ではない設定）
+		if snap.meta == nil {
+			snap.meta = map[string]any{}
+		}
+		snap.meta["prs"] = true
+	}
 	parts, err := web.Marshal(snap.data, snap.weeks, snap.months, snap.meta, snap.gen) // /data.json
 	if err != nil {
 		return err
@@ -378,6 +387,29 @@ func (l *live) handler() http.Handler {
 		l.mu.RUnlock()
 		send(w, "application/json", l.prog.json(ready, failed))
 	})
+	// /prs は、自分に関係する開いているプルリクエスト（kiroku serve --prs のときだけ。prs.go）。
+	// GET は、一覧を開いたとき（新しい結果があれば問い合わせない）。POST は「更新」で、/archive と同じく X-Kiroku ヘッダーと同じオリジンを求める。
+	mux.HandleFunc("/prs", func(w http.ResponseWriter, r *http.Request) {
+		if l.prs == nil {
+			http.NotFound(w, r)
+			return
+		}
+		force := false
+		switch r.Method {
+		case http.MethodGet:
+		case http.MethodPost:
+			if r.Header.Get("X-Kiroku") != "1" || r.Header.Get("Origin") != "http://"+r.Host {
+				http.Error(w, "forbidden", http.StatusForbidden)
+				return
+			}
+			force = true
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		// ブラウザが待つのをやめても問い合わせは止めない（止めると、失敗として覚えてしまう。gh には prsTimeout の締め切りがある）
+		send(w, "application/json", l.prs.get(context.Background(), force))
+	})
 	mux.HandleFunc("/stamp", func(w http.ResponseWriter, r *http.Request) {
 		if !l.loaded(w) { // 読み込み中の画面は、これが 200 になったら読み直す
 			return
@@ -609,10 +641,10 @@ func openRunning(addr string, open bool) (bool, error) {
 }
 
 // serveLiveWith は kiroku serve。allow は Host として受け付ける名前を足すもの、keep は画面から kiroku archive をオンにする関数、
-// lang は画面の言語（--lang）、watch は picked のほかに見張る場所（scanWatchPaths）。
+// lang は画面の言語（--lang）、watch は picked のほかに見張る場所（scanWatchPaths）、prs は --prs（自分に関係するプルリクエストを gh で GitHub に問い合わせる）。
 // 先に待ち受けてから読む（履歴が多いと最初の読み込みに時間がかかり、その間ポートが開いていないとブラウザが「つながらない」になるため）。
 // 読み終わるまでは、読み込み中の画面を出す。
-func serveLiveWith(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool, lang string, watch []string) error {
+func serveLiveWith(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool, lang string, watch []string, prs bool) error {
 	if every < time.Second {
 		every = time.Second
 	}
@@ -639,12 +671,18 @@ func serveLiveWith(addr string, allow []string, every time.Duration, picked []so
 		names = append(names, s.Name())
 	}
 	l := &live{load: load, paths: paths, roots: historyRoots(picked), print: logw, keep: keep, prog: newProgress(names), lang: lang}
+	if prs {
+		l.prs = newPRBoard(l.logf)
+	}
 	addr = ln.Addr().String()
 	url := viewURL(addr)
 	st := styleFor(l.print)
 	fmt.Fprintf(l.print, "serving %s %s\n", st.bold(url), st.dim("(reading history…; press Ctrl+C to stop)"))
 	startLive(l, every)
 	fmt.Fprintln(l.print, st.dim("only browsers with its key can open it (to protect it from other users of this computer); run \"kiroku serve\" again to open it in another browser"))
+	if prs {
+		fmt.Fprintln(l.print, st.dim("--prs: the view has a Pull requests page; kiroku asks GitHub through gh only when you open or refresh it, and sends nothing from your history"))
+	}
 	if open {
 		if err := openWithKey(url); err != nil {
 			fmt.Fprintf(l.print, "could not open a browser: %v\n", err)

@@ -787,3 +787,47 @@ func TestPRName(t *testing.T) {
 		t.Errorf("PR の名前が違う:\n%s", out)
 	}
 }
+
+// 自分に関係する PR（kiroku serve --prs）のプロンプト：何を頼むかは状況で決まり、入れるのは形を確かめた URL と状況だけ。
+// GitHub から来た題名・名前も、履歴から来たフォルダも入れず、形の合わない URL ではプロンプトを作らない。
+// 1 つのプロンプトで頼むのは 1 つの指示だけ。状況の図は、止まっている段と、そこで止まっている時間の起点を正しく選ぶ。
+func TestPRPrompt(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	read := func(name string) string {
+		b, err := jsFiles.ReadFile("js/" + name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return strings.ReplaceAll(string(b), "\r\n", "\n")
+	}
+	prs := read("prs.js")
+	var parts []string
+	for _, x := range []struct{ src, re string }{
+		{prs, `(?m)^const PR_URL = .*;$`},
+		{prs, `(?ms)^function prTasks\(it\)\{.*?^\}$`},
+		{prs, `(?ms)^function prPrompt\(it, at, task\)\{.*?^\}$`},
+		{prs, `(?m)^const PR_STAGES = .*;$`},
+		{prs, `(?ms)^function prFlow\(it\)\{.*?^\}$`},
+		{prs, `(?m)^function prAge\(since, now\)\{.*\n.*\}$`},
+	} {
+		m := regexp.MustCompile(x.re).FindString(x.src)
+		if m == "" {
+			t.Fatalf("%s が見つからない", x.re)
+		}
+		parts = append(parts, m)
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "prprompt_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "prprompt.js")
+	if err := os.WriteFile(f, append([]byte(strings.Join(parts, "\n")+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("PR のプロンプトが違う:\n%s", out)
+	}
+}
