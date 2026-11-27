@@ -1195,7 +1195,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 /* サンキー（どこへ流れたか） */
 .isk svg{overflow:visible}.isk .skl{opacity:.38}.isk .skl:hover{opacity:.6}.isk .skp{opacity:.46}.isk .skp:hover{opacity:.6} /* プロジェクトの列の、2 本の節の間の帯（ほかの帯より少し濃く） */
 .isk .skn{stroke:none}
-.isk .skt{font-size:11px;fill:var(--ink-2);text-anchor:end;font-family:var(--sans)}.isk .skt.s{text-anchor:start}.isk .skv{fill:var(--ink-3);font-variant-numeric:tabular-nums}
+.isk .skt{font-size:11px;fill:var(--ink-2);text-anchor:end;font-family:var(--sans)}.isk .skf{font-size:11px;fill:var(--ink-2);font-family:var(--sans);font-variant-numeric:tabular-nums;pointer-events:none} /* 帯の根元の量と割合（触れたときの吹き出しは帯の側に） */.isk .skt.s{text-anchor:start}.isk .skv{fill:var(--ink-3);font-variant-numeric:tabular-nums}
 .isk .skh{font-size:11px;fill:var(--ink-3);text-anchor:middle;font-weight:600;font-family:var(--sans)}
 .tspk .sxl.nodat{display:none} /* 記録のない最初の期間の名前は出さない（縦軸の 0 と重ならないように） */
 .isk .skbg{fill:var(--s-lowest);pointer-events:none}.isk .sklead{fill:none;stroke:var(--ink-3);stroke-width:1}
