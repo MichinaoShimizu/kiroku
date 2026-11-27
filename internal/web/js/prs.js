@@ -142,16 +142,19 @@ function prsBody(){
   const secs = G.map(([k, label]) => { const mine = k === "author";
     const xs = items.map((it, i) => { const F = prFlow(it); return {it, i, kind: F.kind, since: F.since, updated: it.updated}; })
       .filter(x => (first(x.it) || [])[0] === k).sort(prOrder(mine, now));
-    if (!xs.length) return "";
     const f = mine && PRS.filter && xs.some(x => x.kind === PRS.filter) ? PRS.filter : null, shown = f ? xs.filter(x => x.kind === f).length : xs.length;
-    if (mine && !f) PRS.filter = null; // 再取得でその種類がなくなったら、絞り込みをやめる（押されたままのボタンを残さない）
+    // 再取得でその種類（か自分の PR そのもの）がなくなったら、絞り込みをやめる（あとで戻ってきたときに、黙って絞り込まない）
+    if (mine && !f) PRS.filter = null;
+    if (!xs.length) return "";
     return `<section class="prsec"><h3>${esc(label)} · ${xs.length}</h3>${mine ? prSum(xs.map(x => x.kind)) : ""}
       ${f ? `<p class="prfil" role="status">${esc(t("Showing {n} of {total}", {n: shown, total: xs.length}))} · <button type="button" class="prall">${esc(t("Show all"))}</button></p>` : ""}
       <div class="prscroll"><table class="prtable"><thead><tr>${[t("Repository"), t("Pull request"), t("Sessions"), t("Status"), t("Updated"), t("Copy a prompt")].map(th).join("")}</tr></thead><tbody>${xs.map(x => prsRow(x.it, x.i, f && x.kind !== f)).join("")}</tbody></table></div>${d.more && d.more[k] ? `<p class="note">${esc(t("Only the 50 most recently updated are shown."))}</p>` : ""}</section>`; }).join("");
   return (secs || noneH(esc(t("No open pull requests involve you right now.")))) + (d.partial ? `<p class="note">${esc(t("GitHub answered only in part, so some pull requests or their status may be missing."))}</p>` : "");
 }
 function prsDraw(){
-  const V = $("#prsv"), d = PRS.data, hadRe = document.activeElement && document.activeElement.id === "prsre";
+  const V = $("#prsv"), d = PRS.data, A = document.activeElement, hadRe = A && A.id === "prsre";
+  // 絞り込みのボタンか「すべて表示」にフォーカスがあれば、描き直したあとも同じもの（なくなっていれば、押せる絞り込みのボタンか「再取得」）に戻す
+  const hadK = A && A.matches && A.matches("#prsv .prk[data-k]") ? A.dataset.k : null, hadAll = A && A.matches && A.matches("#prsv .prall");
   V.hidden = false;
   V.innerHTML = `<div class="panel prpanel"><div class="prhead"><div><h2 id="prsh">${ico("pr")}${esc(t("Pull requests that involve you"))}</h2>
       <p class="prwhen" role="status">${d && d.fetched ? esc(t("From GitHub (through gh) as of {time}", {time: hm(d.fetched)})) + (d.login ? ` · @${esc(d.login)}` : "") : ""}${d && PRS.busy ? ` · ${esc(t("Asking GitHub…"))}` : ""}</p>
@@ -161,8 +164,9 @@ function prsDraw(){
     <p class="note">${esc(t("kiroku asks GitHub only when you open or refresh this list, through the GitHub CLI on this computer. It sends the fixed question \"open pull requests that involve me\" and nothing from your history. Titles and names come from GitHub and can be written by other people."))}</p></div>`;
   $("#prsre").onclick = () => prsLoad(true);
   if (hadRe) $("#prsre").focus();
-  // 絞り込みを変えたら、押したボタン（描き直したもの）にフォーカスを戻す
-  V.querySelectorAll(".prk[data-k]").forEach(b => b.onclick = () => { const k = b.dataset.k; PRS.filter = PRS.filter === k ? null : k; prsDraw(); const n = $(`#prsv .prk[data-k="${k}"]`); if (n) n.focus(); });
+  else if (hadK || hadAll){ const n = (hadAll && V.querySelector(".prall")) || (hadK && V.querySelector(`.prk[data-k="${hadK}"]:not(:disabled)`)) || V.querySelector(".prk:not(:disabled)") || $("#prsre"); n.focus(); }
+  V.querySelectorAll(".prk[data-k]").forEach(b => b.onclick = () => { const k = b.dataset.k; PRS.filter = PRS.filter === k ? null : k; prsDraw(); });
+  // 「すべて表示」は押すと消えるので、絞り込んでいた種類のボタンにフォーカスを移す
   const all = V.querySelector(".prall"); if (all) all.onclick = () => { const k = PRS.filter; PRS.filter = null; prsDraw(); const n = $(`#prsv .prk[data-k="${k}"]`); if (n) n.focus(); };
   V.querySelectorAll(".prsl[data-id]").forEach(b => b.onclick = () => select(b.dataset.id));
   V.querySelectorAll(".prcp").forEach(b => b.onclick = () => { const it = d && (d.items || [])[+b.dataset.pr]; if (!it) return;
