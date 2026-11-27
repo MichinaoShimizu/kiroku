@@ -959,26 +959,26 @@ async function run(env) {
       const hr = h.getBoundingClientRect(), fr = f.getBoundingClientRect(), kr = k.getBoundingClientRect(), between = [...document.querySelectorAll("#review .insg, #review .insrow")].every(x => x.getBoundingClientRect().top >= fr.bottom - 1);
       const side = f.classList.contains("two") && innerWidth >= 1300;
       return fr.top >= hr.bottom - 1 && Math.abs(fr.left - hr.left) < 2 && Math.abs(fr.right - hr.right) < 2 && Math.abs(kr.left - hr.left) < 2 && (side || Math.abs(kr.right - hr.right) < 2) && between && document.querySelectorAll("#review .isk").length === 1 && !k.closest(".insrow"); }));
-    { // 投入から産出の流れ：エージェント → プロジェクト → AI がしたこと の 3 列。右の列は、そのセッションで AI が実行して成功したこと（いちばん先のもの）だけで、
-      // その順（PR 作成・push・コミット・ファイル変更・GitHub の操作・ツールのみ・チャットのみ・記録なし）に並ぶ。1 文は、そのどれも全体に対する割合で言い（足して 100）、一覧の割合は列ごとに足して 100
+    { // 投入から産出の流れ：エージェント → プロジェクト → GitHub に反映したか の 3 列。右の列は、そのセッションで AI が実行して成功したことだけで、
+      // その順（GitHub に反映・手元の変更だけ・変更なし・記録なし）に並ぶ。1 文は、そのどれも全体に対する割合で言い（足して 100）、一覧の割合は列ごとに足して 100
       const sk = await p.evaluate(() => { const c = document.querySelector("#review .isk"); if (!c) return null; const say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay");
         const out = [...c.querySelectorAll(".sklist .skcol:last-child .skn2")].map(x => x.textContent);
         return {out, txt: say ? say.textContent : "", list: [...c.querySelectorAll(".sklist .skcol")].map(g => [...g.querySelectorAll("li b")].reduce((a, b) => a + parseInt(b.textContent), 0))}; });
-      const ORD = [["PR opened", "PR 作成"], ["Pushed", "プッシュ"], ["Committed", "コミット"], ["Changed files", "ファイル変更"], ["GitHub comments and actions", "GitHub のコメント・操作"], ["Tools only", "ツールのみ"], ["Chat only", "チャットのみ"], ["Not recorded", "記録なし"]];
+      const ORD = [["Changed GitHub", "GitHub に反映"], ["Local changes only", "手元の変更だけ"], ["No changes", "変更なし"], ["Not recorded", "記録なし"]];
       const idx = sk ? sk.out.map(x => ORD.findIndex(o => o.includes(x))) : [];
       const pcs = sk ? [...sk.txt.matchAll(/(\d+)%/g)].map(m => +m[1]) : [];
       const onlyUnk = sk && idx.every(i => i === ORD.length - 1);
-      check("サンキーの右の列は「AI がしたこと」だけで、決まった順に並び、1 文はその全部を割合（足して 100）で言う", !sk || (idx.every(i => i >= 0) && idx.every((v, i) => i === 0 || idx[i - 1] < v)
+      check("サンキーの右の列は「GitHub に反映したか」の 4 つだけで、決まった順に並び、1 文はその全部を割合（足して 100）で言う", !sk || (idx.every(i => i >= 0) && idx.every((v, i) => i === 0 || idx[i - 1] < v)
         && (onlyUnk ? pcs.length === 0 : pcs.length === idx.length && pcs.reduce((a, v) => a + v, 0) === 100)), JSON.stringify({sk, pcs}));
       check("サンキーの一覧の割合は、列ごとに足して 100", !sk || sk.list.every(v => v === 100), JSON.stringify(sk && sk.list));
     }
     if (await p.locator('#review [data-skm]').count()){ // 「手動のコミット・push も含める」：押すと右の列の見出しと 1 文が変わり、もう一度押すと戻る。手動の分を足すので、コミット以上の割合は減らない
       const reach = () => p.evaluate(() => { const c = document.querySelector("#review .isk"), say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay");
         const li = [...c.querySelectorAll(".sklist .skcol:last-child li")].map(l => [l.querySelector(".skn2").textContent, parseInt(l.querySelector("b").textContent)]);
-        return {head: [...c.querySelectorAll("text.skh")].pop().textContent, txt: say.textContent, up: li.filter(([n]) => /^(PR opened|Pushed|Committed|PR 作成|プッシュ|コミット)$/.test(n)).reduce((a, x) => a + x[1], 0),
+        return {head: [...c.querySelectorAll("text.skh")].pop().textContent, txt: say.textContent, up: li.filter(([n]) => /^(Changed GitHub|Local changes only|GitHub に反映|手元の変更だけ)$/.test(n)).reduce((a, x) => a + x[1], 0),
           on: document.querySelector("#review [data-skm]").getAttribute("aria-pressed")}; });
       const off = await reach(); await p.locator('#review [data-skm]').click(); await pause(); const on = await reach();
-      check("「手動のコミット・push も含める」を押すと、見出しと 1 文が「セッションでしたこと」になり、コミット以上の割合は減らない", on.on === "true" && on.head !== off.head && /by hand|手動/.test(on.txt) && on.up >= off.up - 2, JSON.stringify({off, on}));
+      check("「手動のコミット・push も含める」を押すと、1 文がそう言い、変更を残した割合（GitHub に反映・手元の変更だけ）は減らない", on.on === "true" && /by hand|手動/.test(on.txt) && on.up >= off.up - 2, JSON.stringify({off, on}));
       await p.locator('#review [data-skm]').click(); await pause();
       check("もう一度押すと、AI がしたことだけに戻る", (await reach()).on === "false");
     }
@@ -1002,7 +1002,7 @@ async function run(env) {
         check("サンキーのプロジェクトから出る帯は、プロジェクトの色", sc.proj >= 2 && sc.projOk === sc.proj, JSON.stringify(sc));
       }
     }
-    check("サンキーは、エージェント・プロジェクト・AI がしたこと の 3 列", await p.evaluate(() => document.querySelectorAll("#review .isk .skh").length === 3 && document.querySelectorAll("#review .isk .skl").length >= 2));
+    check("サンキーは、エージェント・プロジェクト・GitHub に反映したか の 3 列", await p.evaluate(() => document.querySelectorAll("#review .isk .skh").length === 3 && document.querySelectorAll("#review .isk .skl").length >= 2));
     await view("cal");
     await p.keyboard.press("m"); await pause();
     const opts = await p.locator("#calk option").evaluateAll(xs => xs.map(x => x.value));

@@ -621,10 +621,11 @@ function insModelMix(u, key){
 function insPct(xs){ const tot = xs.reduce((a, v) => a + Math.max(0, v), 0); if (!(tot > 0)) return xs.map(() => 0);
   const r = xs.map(v => Math.max(0, v) * 100 / tot), f = r.map(Math.floor); let left = 100 - f.reduce((a, v) => a + v, 0);
   r.map((v, i) => [v - f[i], i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).forEach(([, i]) => { if (left > 0){ f[i]++; left--; } }); return f; }
-/* insSankey は、量（費用・クレジット・トークン・時間）がエージェント → プロジェクト → そのセッションで AI がしたこと へどう流れたか。
-   右の列は、そのセッションの履歴にある、AI が実行して成功したことだけで決める（ほかのセッションとのつながりや、同じ時間の git のコミットからは推し量らない）。
-   いくつもしたセッションは、いちばん先のもの 1 つに：PR 作成 ＞ push ＞ コミット ＞ ファイル変更 ＞ GitHub の操作（マージ・レビュー・コメントなど）＞ ツールのみ ＞ チャットのみ。
-   編集を記録しないエージェント（Kiro Crew の一部）で、上の事実がないものは「記録なし」。プロジェクトは多い順に 6 つまで、残りは「その他」。帯の太さは量に比例する */
+/* insSankey は、量（費用・クレジット・トークン・時間）がエージェント → プロジェクト → GitHub に反映したか へどう流れたか。
+   右の列は、そのセッションの履歴にある、AI が実行して成功したことだけで決める（ほかのセッションとのつながりは推し量らない）：
+   GitHub に反映（push・PR の作成・マージ・レビュー・コメントなど GitHub への書き込み）＞ 手元の変更だけ（ファイルの変更・コミット）＞ 変更なし（ツールのみ・会話だけ）。
+   「手動も含める」なら、同じ時期の手動の push・コミットも数える。編集を記録しないエージェント（Kiro Crew の一部）で、上の事実がないものは「記録なし」。
+   プロジェクトは多い順に 6 つまで、残りは「その他」。帯の太さは量に比例する */
 function insSankey(){
   const {ws, we} = period(), ss = DATA.filter(s => s.start >= ws && s.start < we);
   const val = {cost: s => sesTok(s) ? s.cost || 0 : 0, credits: s => s.credits || 0, tokens: s => sesTok(s), minutes: s => minIn(s, s.start, s.end)};
@@ -633,19 +634,15 @@ function insSankey(){
   const xs = ss.map(s => ({s, v: val[k](s)})).filter(x => x.v > 0); if (xs.length < 2) return "";
   const pt = new Map(); xs.forEach(x => pt.set(x.s.project, (pt.get(x.s.project) || 0) + x.v));
   const topP = [...pt].sort((a, b) => b[1] - a[1]).slice(0, 6).map(x => x[0]), OTH = t("Other"), pj = p => topP.includes(p) ? p : OTH;
-  const PRS = t("PR opened"), PSH = t("Pushed"), CMT = t("Committed"), CH = t("Changed files"), GH = t("GitHub comments and actions"), TOOL = t("Tools only"), CHAT = t("Chat only"), UNK = t("Not recorded");
-  const STG = [PRS, PSH, CMT, CH, GH, TOOL, CHAT, UNK], ord = Object.fromEntries(STG.map((x, i) => [x, i]));
-  // 「手動も含める」をオンにすると、セッションの間（終わってから 10 分まで）に同じプロジェクトであったコミット（git log）と push（この PC の git reflog）も、そのセッションのものに数える。
-  // 手動の PR は、GitHub に問い合わせないとわからないので含めない
+  const GHC = t("Changed GitHub"), LOC = t("Local changes only"), NOCH = t("No changes"), UNK = t("Not recorded");
+  const STG = [GHC, LOC, NOCH, UNK], ord = Object.fromEntries(STG.map((x, i) => [x, i]));
+  // 「手動も含める」をオンにすると、セッションの間（終わってから 10 分まで）に同じプロジェクトであった push（この PC の git reflog）とコミット（git log）も、そのセッションのものに数える。
+  // 手動の PR やコメントは、GitHub に問い合わせないとわからないので含めない
   const man = !!st.insSkMan, manPush = s => (META.push || []).some(p => p.project === s.project && p.t >= s.start && p.t <= s.end + 600);
   const did = s => { const o = s.outputs || {};
-    if (o.prs || (s.prs || []).length) return PRS;
-    if (o.ranPushes || man && manPush(s)) return PSH;
-    if (o.ranCommits || o.commits || man && commitsOf(s).length) return CMT; // commits は Claude Code が実行を記録したコミット（ranCommits と同じ呼び出し）
-    if ((s.nFiles || 0) > 0) return CH;
-    if (o.merges || o.reviews || o.ghOps) return GH;
-    if (!records(s.source, "files")) return UNK;
-    return (s.tools || []).length || (s.subagents || []).length ? TOOL : CHAT; };
+    if (o.prs || (s.prs || []).length || o.ranPushes || o.merges || o.reviews || o.ghOps || man && manPush(s)) return GHC;
+    if ((s.nFiles || 0) > 0 || o.ranCommits || o.commits || man && commitsOf(s).length) return LOC; // commits は Claude Code が実行を記録したコミット
+    return records(s.source, "files") ? NOCH : UNK; };
   const cols = [new Map(), new Map(), new Map()], links = new Map(), add = (m, key, v) => m.set(key, (m.get(key) || 0) + v);
   xs.forEach(({s, v}) => { const a = s.source, p = pj(s.project), c = did(s); add(cols[0], a, v); add(cols[1], p, v); add(cols[2], c, v); add(links, `0\u0000${a}\u0000${p}`, v); add(links, `1\u0000${p}\u0000${c}`, v); });
   const C = cols.map((m, i) => i === 2 ? [...m].sort((a, b) => ord[a[0]] - ord[b[0]]) : [...m].sort((a, b) => (a[0] === OTH) - (b[0] === OTH) || b[1] - a[1]));
@@ -655,7 +652,7 @@ function insSankey(){
   const mx = Math.max(...C.map(c => c.length)), sc = (H - T - B - gap * Math.max(1, mx - 1)) / tot;
   const pos = C.map(c => { const m = new Map(); let y = T; c.forEach(([key, v]) => { m.set(key, {y, h: Math.max(2, v * sc), o: 0, oi: 0}); y += v * sc + gap; }); return m; });
   const pcol = p => p === OTH ? "var(--other)" : `var(--c${(topP.indexOf(p) + 3) % 8})`;
-  const color = (i, key) => i === 0 ? agColor(key) : i === 1 ? pcol(key) : ({[PRS]: "var(--go-ink)", [PSH]: "var(--go)", [CMT]: "var(--go-2)", [CH]: "var(--go-3)", [GH]: "var(--out)", [TOOL]: "var(--ink-3)", [CHAT]: "var(--ink-2)"})[key] || "var(--other)"; // 先へ進んだものほど明るい緑
+  const color = (i, key) => i === 0 ? agColor(key) : i === 1 ? pcol(key) : ({[GHC]: "var(--go)", [LOC]: "var(--go-3)", [NOCH]: "var(--ink-3)"})[key] || "var(--other)"; // GitHub に反映したものは明るい緑
   const xout = i => X[i] + nw + (i === 1 ? LW + nw : 0);
   const at = (i, key) => pos[i].get(key).y, lk = [...links].map(([key, v]) => [key.split("\u0000"), v]).sort(([[i1, a1, b1]], [[i2, a2, b2]]) => i1 - i2 || at(+i1, a1) - at(+i2, a2) || at(+i1 + 1, b1) - at(+i2 + 1, b2));
   const paths = lk.map(([[ci, a, b], v]) => { const i = +ci, A = pos[i].get(a), Bn = pos[i + 1].get(b), h = v * sc;
@@ -672,13 +669,13 @@ function insSankey(){
   const mname = {cost: t("estimated cost"), credits: t("Kiro credits"), tokens: t("tokens"), minutes: t("session time")}[k];
   const parts = C[2].map(([key]) => t("{name} {pc}%", {name: key, pc: shr[2].get(key)}));
   const sy = C[2].every(([key]) => key === UNK) ? t("These agents don't record what their sessions changed, so it is not known what the amount led to")
-    : t(man ? "Of {tot} {metric}, by what the session did, including commits and pushes by hand: {parts}" : "Of {tot} {metric}, by what AI did in the session: {parts}", {tot: fv(tot), metric: mname, parts: parts.join(JA ? "、" : ", ")});
+    : t(man ? "Of {tot} {metric}, including commits and pushes by hand: {parts}" : "Of {tot} {metric}: {parts}", {tot: fv(tot), metric: mname, parts: parts.join(JA ? "、" : ", ")});
   const mtabs = (ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-skk="${x}" aria-pressed="${x === k}">${esc(INS_SW_NAME()[x])}</button>`).join("")}</div>` : "")
     + `<div class="segc insk"><button type="button" data-skm aria-pressed="${man}" title="${esc(t("Also count commits and pushes made in the same project during the session or up to 10 minutes after it, by hand or otherwise. Pull requests made by hand can't be known without asking GitHub, so they are not counted"))}">${esc(t("Include commits and pushes by hand"))}</button></div>`;
-  const heads = [t("Agent"), t("Project"), man ? t("What the session did") : t("What AI did")], hx = [X[0] + nw / 2, X[1] + nw + LW / 2, X[2] + nw / 2];
+  const heads = [t("Agent"), t("Project"), t("Reached GitHub?")], hx = [X[0] + nw / 2, X[1] + nw + LW / 2, X[2] + nw / 2];
   // 狭い画面の一覧：列ごとに、色の印・名前・量・割合（図の文字の代わり。読み上げもこちらで）
   const list = `<div class="sklist">${C.map((c, i) => `<div class="skcol" role="group" aria-label="${esc(heads[i])}"><h6 class="iksh">${esc(heads[i])}</h6><ul>${c.map(([key, v]) => `<li><i style="background:${color(i, key)}"></i><span class="skn2">${esc(key)}</span><span class="iwv">${esc(fv(v))}</span><b>${shr[i].get(key)}%</b></li>`).join("")}</ul></div>`).join("")}</div>`;
-  return `<div class="inshead"><h4 class="ikgh skgh">${esc(t("From input to output"))}<span data-flag="heavy"></span></h4>${mtabs}</div>${say(sy)}<figure class="insfig isk"><svg viewBox="-24 -18 ${W + 24} ${H + 18}" role="img" aria-label="${esc(t("From input to output"))}">${heads.map((h, i) => `<text class="skh" x="${hx[i]}" y="-2">${esc(h)}</text>`).join("")}${paths}${fill}${nodes}</svg>${list}<p class="ifxs">${fx(t("Band width = the amount. The right column is what AI did in each session, from that session's own history: a tool call that ran and succeeded. A session that did several counts once, under the furthest: PR opened (gh pr create or a GitHub tool), Pushed (git push), Committed (git commit), Changed files (edit tools), GitHub comments and actions (merging, reviewing or commenting on a pull request, or writing to an issue), Tools only (other tools, such as reading or searching) or Chat only (no tool calls). Commits, pushes and pull requests you made by hand, and what later sessions did with a session's changes, are not counted here; see the Output panel for those. The six largest projects are shown, the rest as Other. Sessions count in the period they started in, so the total can differ from the Input panel"), "", "", `<span class="skcd">${esc(t("Band width is the amount"))}</span><span class="skcl">${esc(t("Each list adds up to 100%"))}</span>`)}${k === "minutes" ? INS_STIME() : ""}</p></figure>`;
+  return `<div class="inshead"><h4 class="ikgh skgh">${esc(t("From input to output"))}<span data-flag="heavy"></span></h4>${mtabs}</div>${say(sy)}<figure class="insfig isk"><svg viewBox="-24 -18 ${W + 24} ${H + 18}" role="img" aria-label="${esc(t("From input to output"))}">${heads.map((h, i) => `<text class="skh" x="${hx[i]}" y="-2">${esc(h)}</text>`).join("")}${paths}${fill}${nodes}</svg>${list}<p class="ifxs">${fx(t("Band width = the amount. The right column says whether each session changed GitHub, from that session's own history (a tool call that ran and succeeded): Changed GitHub (a push, opening, merging or reviewing a pull request, or commenting on one or writing to an issue), Local changes only (changed files or committed, but nothing sent to GitHub) or No changes (only read, searched or talked). What later sessions did with a session's changes is not guessed. Include commits and pushes by hand also counts the pushes (from this computer's git reflog) and commits made in the session's project during it or up to 10 minutes after it; pull requests and comments made by hand can't be known without asking GitHub. The six largest projects are shown, the rest as Other. Sessions count in the period they started in, so the total can differ from the Input panel"), "", "", `<span class="skcd">${esc(t("Band width is the amount"))}</span><span class="skcl">${esc(t("Each list adds up to 100%"))}</span>`)}${k === "minutes" ? INS_STIME() : ""}</p></figure>`;
 }
 /* 数の枠（statH）に、いつもの範囲との不等式を添える。k は MET の指標名（なければ添えない） */
 // 大きく外れた量は、値を中立の色にして札を添える（insOdd）。verd は評価の文（insVerdict）の色が付く数字で、印を重ねない
