@@ -240,7 +240,7 @@ Status draws the way to merging as four steps, Draft → Checks → Review → M
 | Merge | Ready to merge (approved) | The last review |
 | Merge | Waiting to merge (no review decision) | The last commit |
 
-GitHub doesn't say when a pull request reached a step, so these times are estimates. Hover the status for every step's state. Above the tables, "Where your pull requests are stopped" shows your own pull requests in four columns, one per step, each as a bar as long as the time it has been stopped there (longest first, on a square-root scale).
+GitHub doesn't say when a pull request reached a step, so these times are estimates. Hover the status for every step's state. Above the tables, "Where your pull requests are stopped" shows your own pull requests in four columns, one per step, each named by its repository and number (hover for the owner too) with a bar as long as the time it has been stopped there (longest first, on a square-root scale).
 
 Rows are ordered by repository, then by the most recently updated. The page shows what is open now, so it has no week or month.
 

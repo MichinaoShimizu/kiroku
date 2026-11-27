@@ -96,14 +96,15 @@ function prState(it, now){
   return `<div class="prflow" role="img" aria-label="${esc(full)}" title="${esc(full)}"><div class="prsteps">${PR_STAGES.map(step).join("")}</div>
     <div class="prstop ${F.kind}"><b>${esc(F.label)}</b>${age ? `<span>${esc(age)}</span>` : ""}</div></div>`;
 }
-// prOverview は、表の上の図：自分の PR が流れのどの段で止まっているか。段ごとに PR を、止まっている時間の長い順に棒で（長さは時間）
+// prOverview は、表の上の図：自分の PR が流れのどの段で止まっているか。段ごとに PR を、止まっている時間の長い順に棒で（長さは時間）。
+// 棒の名前はリポジトリ名と番号（番号だけでは、どのリポジトリの PR かわからない）。持ち主までの名前は title に
 function prOverview(items, now){
   const mine = items.filter(it => (it.why || []).includes("author")); if (!mine.length) return "";
   const N = PR_STAGE_NAME(), rows = mine.map(it => ({it, F: prFlow(it)})).map(x => ({...x, h: x.F.since && now > x.F.since ? (now - x.F.since) / 3600 : 0}));
   const max = Math.max(24, ...rows.map(x => x.h));
   const col = k => { const xs = rows.filter(x => x.F.at === k).sort((a, b) => b.h - a.h), shown = xs.slice(0, 5);
     return `<li class="prcol"><div class="prcolh"><span>${esc(N[k])}</span><b>${xs.length}</b></div>
-      ${xs.length ? `<ul class="prbars">${shown.map(x => `<li class="${x.F.kind}" title="${esc(`${x.it.repo} #${x.it.number} · ${x.F.label} · ${prAge(x.F.since, now)} ${x.F.basis}`)}"><span class="prbn">#${esc(x.it.number)}</span><span class="prbt"><i style="width:${Math.max(4, Math.round(100 * Math.sqrt(x.h / max)))}%"></i></span><span class="prba">${esc(prAge(x.F.since, now) || "—")}</span></li>`).join("")}</ul>${xs.length > shown.length ? `<p class="prmore">${esc(t("+{n} more", {n: xs.length - shown.length}))}</p>` : ""}` : `<p class="prnone">—</p>`}</li>`; };
+      ${xs.length ? `<ul class="prbars">${shown.map(x => `<li class="${x.F.kind}" title="${esc(`${x.it.repo} #${x.it.number} · ${x.F.label} · ${prAge(x.F.since, now)} ${x.F.basis}`)}"><span class="prbn"><span class="prbr">${esc(String(x.it.repo).split("/")[1] || x.it.repo)}</span><span class="prbno">#${esc(x.it.number)}</span></span><span class="prbt"><i style="width:${Math.max(4, Math.round(100 * Math.sqrt(x.h / max)))}%"></i></span><span class="prba">${esc(prAge(x.F.since, now) || "—")}</span></li>`).join("")}</ul>${xs.length > shown.length ? `<p class="prmore">${esc(t("+{n} more", {n: xs.length - shown.length}))}</p>` : ""}` : `<p class="prnone">—</p>`}</li>`; };
   return `<section class="prov" aria-labelledby="provh"><h3 id="provh">${esc(t("Where your pull requests are stopped"))}</h3>
     <ol class="prcols">${PR_STAGES.map(col).join("")}</ol>
     <p class="note">${esc(t("Each bar is one of your pull requests, at the first step it hasn't passed; its length is how long it has been there (longest first, square-root scale). Times are estimates from the last commit, review or update GitHub reports."))}</p></section>`;
