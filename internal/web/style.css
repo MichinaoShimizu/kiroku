@@ -652,7 +652,7 @@ body[data-view="prs"] .wk .nav,body[data-view="prs"] .wk .nav .view-controls{mar
   .prtable{table-layout:fixed}.prtable th:nth-child(1){width:160px}.prtable th:nth-child(3){width:190px}.prtable th:nth-child(4){width:198px}.prtable th:nth-child(5){width:104px}.prtable th:nth-child(6){width:220px}
 }
 @media (min-width:1500px){.prtable th:nth-child(1){width:200px}.prtable th:nth-child(3){width:250px}}
-.prrepo{font-family:var(--mono);overflow-wrap:anywhere}.prown{display:block;font-size:var(--fs-xs);color:var(--ink-3)}.prname{font-weight:600}
+.prrepo{font-family:var(--mono)}.prown,.prname{display:inline-block;max-width:100%;overflow-wrap:anywhere}.prown{color:var(--ink-2)}.prname{font-weight:600} /* org/ と repo の切れ目で先に折り返す */
 .prwhat{overflow-wrap:anywhere}.prno{font-family:var(--mono);font-weight:600;white-space:nowrap}
 .prby{display:block;margin-top:2px;font-size:var(--fs-xs);color:var(--ink-3)}
 .prsl{display:flex;align-items:center;gap:6px;max-width:100%;padding:0;font-size:var(--fs-xs);line-height:1.6;color:var(--ink-2);text-align:left;text-decoration:underline;text-decoration-color:var(--rule-2);text-underline-offset:2px}.prsl:hover{color:var(--ink)}
@@ -681,7 +681,7 @@ body[data-view="prs"] .wk .nav,body[data-view="prs"] .wk .nav .view-controls{mar
 .prcol:not(:last-child)::after{content:"";position:absolute;right:-6px;top:14px;width:10px;height:10px;border-top:1px solid var(--rule-2);border-right:1px solid var(--rule-2);transform:rotate(45deg);background:var(--surface);z-index:1}
 .prcolh{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:var(--fs-xs);color:var(--ink-2)}.prcolh b{font-size:var(--fs-lg);color:var(--ink);font-variant-numeric:tabular-nums}
 .prbars{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
-.prbars{gap:8px !important}.prbars li{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 8px;font-size:var(--fs-xs)}.prbars li .prbn{grid-column:1/-1;display:flex;gap:6px;min-width:0;white-space:nowrap}.prbr{min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:var(--ink)}.prbno{flex:none}
+.prbars{gap:8px !important}.prbars li{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 8px;font-size:var(--fs-xs)}.prbars li .prbn{grid-column:1/-1;display:flex;align-items:baseline;gap:6px;min-width:0}.prbr{min-width:0;font-weight:600;color:var(--ink)}.prbr span{display:inline-block;max-width:100%;overflow-wrap:anywhere}.prbno{flex:none;white-space:nowrap} /* 長い org/repo は折り返す（切らない）。番号はいつも名前の右 */
 .prbn{font-family:var(--mono);color:var(--ink-2)}.prba{font-variant-numeric:tabular-nums;color:var(--ink-2);min-width:2.5em;text-align:right}
 .prbt{height:8px;background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:2px;overflow:hidden}.prbt i{display:block;height:100%;background:var(--ink-3)}
 .prbars li.fix .prbt i{background:var(--warn)}.prbars li.ready .prbt i{background:var(--acc)}.prbars li.fix .prba{color:var(--warn);font-weight:600}
@@ -693,7 +693,7 @@ body[data-view="prs"] .wk .nav,body[data-view="prs"] .wk .nav .view-controls{mar
   .prtable td{display:block;border:0;padding:0}.prtable tbody tr:hover td{background:none}
   .prtable td.prrepo,.prtable td.prwhat,.prtable td.prses,.prtable td.pract{grid-column:1/-1}
   .prtable td.prses::before,.prtable td.prst::before,.prtable td.prup::before,.prtable td.pract::before{content:attr(data-l);display:block;margin-bottom:2px;font-size:var(--fs-2xs);color:var(--ink-3)}
-  .prown{display:inline}.prst .prtag{margin-bottom:0}
+  .prst .prtag{margin-bottom:0}
   .prtable td.pract{padding-top:10px;border-top:1px solid var(--rule-2)}
 }
 @media (max-width:480px){.prtable tr{grid-template-columns:repeat(2,minmax(0,1fr))}}

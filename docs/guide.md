@@ -226,7 +226,7 @@ It needs the [GitHub CLI](https://cli.github.com/) (`gh`), installed and logged 
 | Waiting for your review | Open pull requests where a review is requested from you |
 | Mentioning you | Open pull requests that mention you |
 
-Each row has these columns: Repository (owner above the name), Pull request (the number, a link to GitHub, and the title; for other people's, who opened it), Sessions (your sessions whose history records that they created this pull request, or merged or reviewed it by its address; click one to open it), Status, Updated, and Copy a prompt.
+Each row has these columns: Repository (as `org/repo`), Pull request (the number, a link to GitHub, and the title; for other people's, who opened it), Sessions (your sessions whose history records that they created this pull request, or merged or reviewed it by its address; click one to open it), Status, Updated, and Copy a prompt.
 
 Status draws the way to merging as four steps, Draft → Checks → Review → Merge, the same order as the names under the column heading. Filled steps are done, the thick one is where the pull request is stopped (the first step not done), red ones need a fix, and dashed ones are not reached yet. Below it are the step's state and how long it has been stopped there:
 
@@ -240,7 +240,7 @@ Status draws the way to merging as four steps, Draft → Checks → Review → M
 | Merge | Ready to merge (approved) | The last review |
 | Merge | Waiting to merge (no review decision) | The last commit |
 
-GitHub doesn't say when a pull request reached a step, so these times are estimates. Hover the status for every step's state. Above the tables, "Where your pull requests are stopped" shows your own pull requests in four columns, one per step, each named by its repository and number (hover for the owner too) with a bar as long as the time it has been stopped there (longest first, on a square-root scale).
+GitHub doesn't say when a pull request reached a step, so these times are estimates. Hover the status for every step's state. Above the tables, "Where your pull requests are stopped" shows your own pull requests in four columns, one per step, each named by its repository (`org/repo`) and number with a bar as long as the time it has been stopped there (longest first, on a square-root scale).
 
 Rows are ordered by repository, then by the most recently updated. The page shows what is open now, so it has no week or month.
 
