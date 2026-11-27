@@ -1,4 +1,4 @@
 - "Claude Code sessions that reached a commit or PR" counts only Claude Code sessions in its numerator as well as its denominator, so pull requests from other agents don't raise it
 - The Output panel's and unit cost's pull request choices are named "PRs opened" (PR 作成), "PR merges", "PR reviews" and "PR approvals", and the pull request tile is "Pull requests created", so it is clear that "PRs" counts pull requests AI opened
 - From input to output's right column is the output type (see Added) instead of "Commit or PR" / "Files changed only" / "None" / "Not recorded", which also counted commits made by hand during a session
-- From input to output shows each band's amount and share of the whole at its start, where the band has room, and its right column is headed "Output type"
+- From input to output shows each band's amount, its share of the whole and, in brackets, its share of the node it leaves at its start, where the band has room, and its right column is headed "Output type"
