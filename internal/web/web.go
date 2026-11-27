@@ -46,7 +46,8 @@ var scripts = []string{
 	"insight.js",    // サマリーの頭：要点・推移といつもの範囲・改善のアドバイス
 	"git.js",        // 詳細：コミット・push・PR
 	"session.js",    // 詳細：セッション・プロンプトの流れ
-	"prs.js",        // 自分に関係するプルリクエストの一覧（kiroku serve --prs）
+	"prs.js",        // PRトリアージ：自分に関係するプルリクエストの一覧（kiroku serve --prs）
+	"home.js",       // ホーム：ページごとのカード
 	"events.js",     // ボタンとキーの操作
 	"boot.js",       // 起動
 	"live.js",       // kiroku serve の自動更新

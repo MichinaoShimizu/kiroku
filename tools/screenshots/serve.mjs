@@ -47,7 +47,7 @@ try {
   const openWithKey = async (page, url) => {
     await page.goto(`${url}/`);
     await page.evaluate(k => localStorage.setItem("kiroku:key", k), key);
-    await page.goto(`${url}/`);
+    await page.goto(`${url}/#/sessions`); await page.reload(); // セッション履歴のページ（カレンダー）。# なしはホーム。# だけが変わる移動は読み込み直さないので、読み込み直す
   };
   const base = `http://localhost:${port}`;
   // 読み終わるのを待つ（以前の版の Cookie も付けるのは、修正の前の版に対してこのテストが失敗することを確かめられるように）
@@ -77,8 +77,8 @@ try {
   check("動いている kiroku serve をもう一度打つと、止まらずにそれを開く（使い捨てのコードの URL で、鍵は出さない）", /already running at/.test(again) && !!once && !hopFile.includes(key) && !again.includes(key), `${again} / ${once}`);
   await pc.goto(once);
   await pc.waitForURL(u => !u.search.includes("code="), { timeout: 10000 });
-  await pc.waitForSelector(".run[data-sid]", { timeout: 15000 });
-  check("?code= で開くと履歴が出て、鍵は localStorage にある", await pc.evaluate(() => localStorage.getItem("kiroku:key")) === key);
+  await pc.waitForSelector("#homev .hmcard .card[data-id]", { timeout: 15000 });
+  check("?code= で開くとホームに履歴（最近のセッション）が出て、鍵は localStorage にある", await pc.evaluate(() => localStorage.getItem("kiroku:key")) === key);
   check("開いた URL のどれにも鍵が載らない", !visited.some(u => u.includes(key)), JSON.stringify(visited));
   // 使い終わったコードでは鍵を受け取れず、そう伝える（アドレスからコードも消す）
   const pa = await (await b.newContext()).newPage();
@@ -118,7 +118,7 @@ try {
   check("ほかのポートのサーバーへ kiroku の Cookie を送らない", !seen.some(r => /kiroku/.test(r.headers.cookie || "")), JSON.stringify(seen.map(r => r.headers.cookie)));
 
   // 履歴ファイルの「Open」は、鍵を付けて読み、Blob から保存する
-  await p.goto(`${base}/`);
+  await p.goto(`${base}/#/sessions`);
   await p.waitForSelector(".run[data-sid]", { timeout: 15000 });
   await p.evaluate(() => { const r = [...document.querySelectorAll(".run[data-sid]")].find(e => DATA.some(s => s.id === e.dataset.sid && s.file)); r.scrollIntoView({ block: "center" }); r.click(); });
   check("セッションの詳細の履歴ファイル・モデル・ツールは畳まずに出ている", await p.evaluate(() => !document.querySelector("#panel details.sdet") && !!document.querySelector("#panel .sdet a[data-hist]")));
@@ -131,7 +131,7 @@ try {
   check("CSP に止められたもの・ページのエラーがない", errors.length === 0, JSON.stringify(errors));
 
   // 日報と振り返りは、プロンプトをコピーするだけ（kiroku は AI を動かさない）。AI を動かすボタン・ダイアログ・/ai/run はない
-  await p.goto(`${base}/`);
+  await p.goto(`${base}/#/sessions`);
   await p.waitForSelector(".head .dayrun", { timeout: 15000 });
   check("AI を動かすボタンはなく、日報はプロンプトのコピー", await p.locator(".ai-action").count() === 0 && await p.locator(".head .dayrun.ai-copy").count() > 0);
   check("バッジ（点だけ）の名前に AI はない", !((await p.locator("#live").getAttribute("aria-label")) || "").includes("AI"));
@@ -191,7 +191,7 @@ try {
       const res = await r.fetch();
       await r.fulfill(mode === "500" ? { status: 500, body: "boom" } : { response: res, headers: { ...res.headers(), "x-kiroku-reload": "failed" } });
     });
-    await pr.goto(`${base}/`);
+    await pr.goto(`${base}/#/sessions`);
     await pr.waitForSelector(".run[data-sid]", { timeout: 15000 });
     mode = "failed";
     await pr.waitForFunction(() => /Could not read the latest history/.test(document.querySelector("#live").title), null, { timeout: 15000 });

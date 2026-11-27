@@ -18,7 +18,7 @@ if (fakeNow) await ctx.clock.install({ time: fakeNow });
 await ctx.addInitScript(() => { try { localStorage.setItem("kiroku:colorBy", '"project"'); } catch (e) {} });
 const p = await ctx.newPage();
 const tStart = Date.now(); // 録画の始まり（ほぼ）
-await p.goto("file://" + path.resolve(html));
+await p.goto("file://" + path.resolve(html) + "#/sessions"); // セッション履歴のページ（# なしはホーム）
 await p.waitForTimeout(600);
 await p.keyboard.press("ArrowLeft"); // 先週（記録がそろっている週）
 await p.waitForTimeout(400);

@@ -1,0 +1,2 @@
+- A Home page opens first, with a card for each page: this week's active time, sessions, estimated cost and credits, active time by day and your 5 most recent sessions; and, with `kiroku serve --prs`, how many open pull requests you opened (and how many need a fix), wait for your review and mention you, as of the last time PR triage asked GitHub. Home never asks GitHub itself
+- A menu next to the logo moves between the pages. Each page has its own address (`#/sessions`, `#/prs`), so the browser's Back and Forward move between them and a bookmark opens that page

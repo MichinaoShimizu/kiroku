@@ -1,11 +1,13 @@
-// 自分に関係する、開いているプルリクエストの表（kiroku serve --prs のときだけ。なければ表示の切り替えにも出さない）。
+// PRトリアージのページ：自分に関係する、開いているプルリクエストの表（kiroku serve --prs のときだけ。なければ上のメニューにも出さない）。
 // kiroku serve が GitHub CLI（gh）で GitHub に問い合わせた結果を /prs から読む。問い合わせるのは、この表示を開いたときと「更新」を押したときだけ。
 // 題名・名前・URL は、ほかの人が書ける文字。どれも esc を通して出し、AI に渡すプロンプトには URL（形を確かめたもの）しか入れない
 const PRS = {data: null, busy: false, failed: false};
 const prsOn = () => LIVE && !!META && META.prs === true;
-// prsSync は、表示の切り替えに「プルリクエスト」を出すかどうかと、開いていれば表の描き直し（render が呼ぶ。履歴が変わると、作ったセッションの欄が変わる）
+// prsSync は、上のメニューに「PRトリアージ」を出すかどうかと、開いていれば表の描き直し（render が呼ぶ。履歴が変わると、作ったセッションの欄が変わる）
 function prsSync(){ const b = $("#prtab"), on = prsOn(); if (b) b.hidden = !on;
-  if (st.view === "prs"){ if (on) prsDraw(); else st.view = "cal"; } }
+  if (st.page === "prs") prsDraw(); else { const V = $("#prsv"); if (V && !V.hidden){ V.hidden = true; V.textContent = ""; } } } // ほかのページでは表を残さない（ホームと同じわけ）
+// prsOffH は、--prs なしで PRトリアージを開いたとき（以前の # のリンクなど）と、ホームのカードに出す使い方。GitHub には何も問い合わせない
+const prsOffH = () => `<p class="note">${esc(LIVE ? t("Start kiroku serve with --prs to use this page. It is off by default.") : t("This page works in kiroku serve started with --prs, not in a saved HTML file."))}</p>${codeH("kiroku serve --prs")}`;
 // PR の URL の形（kiroku serve が確かめたものと同じ）。プロンプトのコマンドに入れるので、ここでも確かめる
 const PR_URL = /^https:\/\/([A-Za-z0-9][A-Za-z0-9.-]*(?::\d{1,5})?)\/([A-Za-z0-9][A-Za-z0-9_.-]*)\/(?!\.{1,2}\/)([A-Za-z0-9_.][A-Za-z0-9_.-]*)\/pull\/([1-9]\d{0,8})$/;
 // prTasks は、その PR でいま頼むこと（プロンプトの手順と、行に出す一言を決める）。
@@ -145,23 +147,26 @@ function prsBody(){
   return (secs ? prOverview(items, nowMs() / 1000) + secs : noneH(esc(t("No open pull requests involve you right now.")))) + (d.partial ? `<p class="note">${esc(t("GitHub answered only in part, so some pull requests or their status may be missing."))}</p>` : "");
 }
 function prsDraw(){
-  const V = $("#prsv"), d = PRS.data, hadRe = document.activeElement && document.activeElement.id === "prsre";
+  const V = $("#prsv"), d = PRS.data, on = prsOn(), hadRe = document.activeElement && document.activeElement.id === "prsre", hadH = document.activeElement && document.activeElement.id === "prsh"; // 描き直しで消えるフォーカスを戻す（メニューから移ったときは見出しにある）
   V.hidden = false;
-  V.innerHTML = `<div class="panel prpanel"><div class="prhead"><div><h2 id="prsh">${ico("pr")}${esc(t("Pull requests that involve you"))}</h2>
+  // --prs なしなら、見出しと使い方だけ（GitHub には問い合わせない）
+  const head = `<h2 id="prsh">${ico("pr")}${esc(t("PR triage"))}</h2><p class="prsub">${esc(t("Open pull requests that involve you, where each one is stopped, and a prompt for the next step"))}</p>`;
+  V.innerHTML = !on ? `<div class="panel prpanel"><div class="prhead"><div>${head}</div></div>${prsOffH()}</div>` : `<div class="panel prpanel"><div class="prhead"><div>${head}
       <p class="prwhen" role="status">${d && d.fetched ? esc(t("From GitHub (through gh) as of {time}", {time: hm(d.fetched)})) + (d.login ? ` · @${esc(d.login)}` : "") : ""}${d && PRS.busy ? ` · ${esc(t("Asking GitHub…"))}` : ""}</p>
       ${d && PRS.failed ? `<p class="prstale">${esc(t("Couldn't get the list from kiroku serve, so this may be out of date. Is it still running?"))}</p>` : ""}</div>
       <button type="button" class="pill" id="prsre" aria-disabled="${PRS.busy ? "true" : "false"}">${esc(t("Refresh"))}</button></div>
     <div class="prsbody">${prsBody()}</div>
     <p class="note">${esc(t("kiroku asks GitHub only when you open or refresh this list, through the GitHub CLI on this computer. It sends the fixed question \"open pull requests that involve me\" and nothing from your history. Titles and names come from GitHub and can be written by other people."))}</p></div>`;
-  $("#prsre").onclick = () => prsLoad(true);
-  if (hadRe) $("#prsre").focus();
+  const re = $("#prsre"), h = $("#prsh");
+  if (re) re.onclick = () => prsLoad(true);
+  if (hadRe && re) re.focus(); else if (hadH && h){ h.tabIndex = -1; h.focus({preventScroll: true}); }
   V.querySelectorAll(".prsl[data-id]").forEach(b => b.onclick = () => select(b.dataset.id));
   V.querySelectorAll(".prcp").forEach(b => b.onclick = () => { const it = d && (d.items || [])[+b.dataset.pr]; if (!it) return;
     const p = prPrompt(it, d.fetched || Date.now() / 1000, b.dataset.task); if (p) copyPrompt(b, p); });
 }
 // prsLoad は /prs を読んで描き直す。force は「更新」（POST。kiroku serve が、ほかのサイトからの POST を断れるよう X-Kiroku を付ける）
 async function prsLoad(force){
-  if (PRS.busy) return; PRS.busy = true; PRS.failed = false; if (st.view === "prs") prsDraw();
+  if (PRS.busy) return; PRS.busy = true; PRS.failed = false; if (st.page === "prs") prsDraw();
   const was = PRS.data && PRS.data.fetched;
   try { const r = await kfetch("prs", force ? {method: "POST", headers: {"X-Kiroku": "1"}} : {}); if (!r.ok) throw new Error(String(r.status));
     const j = await r.json(); if (!j || !Array.isArray(j.items)) throw new Error("bad"); PRS.data = j;
@@ -169,7 +174,8 @@ async function prsLoad(force){
     if (force && was && j.fetched === was) toast(t("GitHub was asked a moment ago, so this is still that answer."), 4500);
   } catch(e){ PRS.failed = true; }
   PRS.busy = false;
-  if (st.view === "prs") prsDraw();
+  if (st.page === "prs") prsDraw();
+  else if (st.page === "home") homeSync(); // ホームのカードの数（問い合わせはしない。PRトリアージで読んだ答えを使う）
 }
-// prsShow は、表示を「プルリクエスト」に切り替えたとき（setView）。kiroku serve は、新しい結果があるうちは GitHub に問い合わせ直さない
-function prsShow(){ if (!prsOn()) return; prsDraw(); prsLoad(false); }
+// prsShow は、PRトリアージのページを開いたとき（setPage・boot）。kiroku serve は、新しい結果があるうちは GitHub に問い合わせ直さない
+function prsShow(){ prsDraw(); if (prsOn()) prsLoad(false); }

@@ -12,11 +12,15 @@
 <header>
   <div class="wrap bar">
     <div class="brand">
-      <a data-t class="home" id="home" href="/" title="Back to the start"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--ink)"/><rect x="6" y="8" width="13" height="4" rx="2" fill="var(--acc)"/><rect x="11" y="14" width="15" height="4" rx="2" fill="var(--bg)"/><rect x="6" y="20" width="9" height="4" rx="2" fill="var(--bg)" opacity=".55"/></svg>
+      <a data-t class="home" id="home" href="#/" title="Home"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--ink)"/><rect x="6" y="8" width="13" height="4" rx="2" fill="var(--acc)"/><rect x="11" y="14" width="15" height="4" rx="2" fill="var(--bg)"/><rect x="6" y="20" width="9" height="4" rx="2" fill="var(--bg)" opacity=".55"/></svg>
       <h1 class="word">kiroku</h1></a><span class="ver" id="ver" hidden></span>
       <button type="button" data-t class="live" id="live" hidden title="Updates automatically as your history grows" aria-label="LIVE"></button>
       <p data-t class="tagline">Your AI agents' history, on this machine only</p>
     </div>
+    <nav data-t class="gnav" id="gnav" aria-label="Pages">
+      <a data-t href="#/sessions" data-page="sessions">Session history</a>
+      <a data-t href="#/prs" data-page="prs" id="prtab" hidden>PR triage</a>
+    </nav>
     <label class="search"><span data-t class="sr">Search</span>
       <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
       <input data-t id="q" type="search" placeholder="Prompts, files, commits" aria-label="Search prompts, files and commits" autocomplete="off"><kbd>/</kbd></label>
@@ -24,6 +28,8 @@
 </header>
 <main class="wrap">
   <p class="scope" id="scopebar" role="note" hidden></p>
+  <section data-t id="homev" aria-labelledby="homeh" hidden></section>
+  <h2 data-t class="sr" id="sesh">Session history</h2>
   <section data-t class="week" aria-label="Period">
     <nav data-t class="wk" aria-label="Change period">
       <div class="lbl" aria-live="polite"><div class="y" id="ry"></div><div class="d" id="rd"></div></div>
@@ -31,7 +37,7 @@
         <button data-t class="iconbtn" id="prev" aria-label="Previous"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
         <button data-t class="iconbtn" id="next" aria-label="Next"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
         <button data-t class="pill" id="today">This week</button>
-        <div class="view-controls"><div class="control-group"><span data-t class="control-label">Period</span><div data-t class="segc mode" role="group" aria-label="Period" id="mode"><button data-t data-v="week">Week</button><button data-t data-v="month">Month</button></div></div><div class="control-group"><span data-t class="control-label">View</span><div data-t class="segc vsel" role="group" aria-label="View" id="view"><button data-t data-v="cal">Calendar</button><button data-t data-v="sum">Summary</button><button data-t data-v="prs" id="prtab" hidden title="Open pull requests that involve you, with a prompt for each">Pull requests</button></div></div></div>
+        <div class="view-controls"><div class="control-group"><span data-t class="control-label">Period</span><div data-t class="segc mode" role="group" aria-label="Period" id="mode"><button data-t data-v="week">Week</button><button data-t data-v="month">Month</button></div></div><div class="control-group"><span data-t class="control-label">View</span><div data-t class="segc vsel" role="group" aria-label="View" id="view"><button data-t data-v="cal">Calendar</button><button data-t data-v="sum">Summary</button></div></div></div>
       </div>
     </nav>
     <div class="kpis" id="kpis"></div>
@@ -42,7 +48,7 @@
   <p class="fnote" id="fnote" role="note" hidden></p>
   <section data-t class="tlbox" id="tl" aria-label="Calendar"></section>
   <section data-t id="review"></section>
-  <section data-t id="prsv" aria-label="Pull requests that involve you" hidden></section>
+  <section data-t id="prsv" aria-labelledby="prsh" hidden></section>
 </main>
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dkind dtitle" aria-hidden="true">

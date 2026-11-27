@@ -17,7 +17,7 @@ const clock = async ctx => { if (fakeNow) await ctx.clock.install({ time: fakeNo
 const b = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 const ctx = await clock(await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, timezoneId: "Asia/Tokyo", locale: "en-US", colorScheme: "dark" }));
 const p = await ctx.newPage();
-await p.goto("file://" + path.resolve(html));
+await p.goto("file://" + path.resolve(html) + "#/sessions"); // セッション履歴のページ（# なしはホーム）
 await p.waitForTimeout(600);
 await p.keyboard.press("ArrowLeft"); // 先週（記録がそろっている週）
 await p.waitForTimeout(500);
@@ -59,7 +59,7 @@ await p.waitForTimeout(300);
 // 右の列にはダミーデータの一時フォルダのパスが出るので入れない
 const sc = await clock(await b.newContext({ viewport: { width: 1440, height: 1700 }, deviceScaleFactor: 2, timezoneId: "Asia/Tokyo", locale: "en-US", colorScheme: "dark" }));
 const s = await sc.newPage();
-await s.goto("file://" + path.resolve(html));
+await s.goto("file://" + path.resolve(html) + "#/sessions");
 await s.waitForTimeout(600);
 await s.keyboard.press("ArrowLeft");
 await s.waitForTimeout(500);
@@ -87,7 +87,7 @@ await s.screenshot({ path: path.join(docs, "session.png"), clip: box });
 // SNS のリンクカード用（og.png）。ふつうの画面幅（1440）で、カードの比率（1.91:1）に合わせた高さ 754 を 2 倍の 2880x1508 で撮る。デモページの og:image に使う
 const og = await clock(await b.newContext({ viewport: { width: 1440, height: 754 }, deviceScaleFactor: 2, timezoneId: "Asia/Tokyo", locale: "en-US", colorScheme: "dark" }));
 const q = await og.newPage();
-await q.goto("file://" + path.resolve(html));
+await q.goto("file://" + path.resolve(html) + "#/sessions");
 await q.waitForTimeout(600);
 await q.keyboard.press("ArrowLeft");
 await q.waitForTimeout(500);

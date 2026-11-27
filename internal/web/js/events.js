@@ -32,11 +32,37 @@ function setMode(m){ if (m === "month" && META.scope && META.scope.mode === "wee
   if (m === "week" && st.mode === "month" && monthOf(st.week).getTime() !== st.month.getTime()) st.week = mondayOf(st.month);
   st.mode = m; st.sel = null; st.animate = true; render(); scrollToWork(); }
 document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = e => { setMode(b.dataset.v); if (e.detail) b.blur(); }); // マウスで押したら、フォーカスを外す（←→ で期間を動かせるように）
-/* 表示：カレンダーかサマリー。広い画面ではページ全体を画面に固定し、選んだほうだけが中でスクロールする（ページとカレンダーの二重のスクロールをなくす） */
+/* ページ：ホーム（# なし・#/）、セッション履歴（#/sessions）、PRトリアージ（#/prs）。どのページかは URL の # だけで決める
+   （kiroku serve でも HTML ファイルでもデモでも同じで、読み込み直さずに移り、ブラウザの戻る・進むで行き来できる）。
+   ほかの # は（以前の版のリンクなども）ホーム。PRトリアージは kiroku serve --prs のときだけ上のメニューに出す。
+   ないときに #/prs を開いたら、ページはそのまま開いて、使い方の案内だけを出す（gh も /prs も使わない） */
+const PAGES = {"": "home", "/": "home", "/sessions": "sessions", "/prs": "prs"};
+const PAGE_HASH = {home: "#/", sessions: "#/sessions", prs: "#/prs"};
+const pageName = p => ({home: t("Home"), sessions: t("Session history"), prs: t("PR triage")})[p];
+function pageOfHash(){ let h = ""; try { h = decodeURIComponent(String(location.hash || "").replace(/^#/, "")); } catch(e){}
+  return Object.prototype.hasOwnProperty.call(PAGES, h) ? PAGES[h] : "home"; }
+// showPage は、いまのページを body の data-page と上のメニュー（aria-current）と題（タブの名前）に映す（render が呼ぶ）
+function showPage(){ const b = document.body; b.dataset.page = st.page;
+  document.querySelectorAll("#gnav a[data-page]").forEach(a => { if (a.dataset.page === st.page) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  document.title = st.page === "home" ? "kiroku" : `${pageName(st.page)} · kiroku`; }
+// setPage は、ページを移る（# が変わったとき）。移った先の頭から見せ、フォーカスはそのページの見出しへ（メニューから移ったとき、読み上げがどこにいるかわかるように）
+function setPage(p, focus){ if (p === st.page) return; st.page = p; tipOff(); closeHint();
+  if (st.sel) select(null); // 詳細を開いたまま（ブラウザの「戻る」などで）ページが変わったら、閉じる
+  render(); scrollTo(0, 0); const m = $("main"); if (m) m.scrollTop = 0;
+  if (p === "sessions"){ if (st.view === "cal") scrollToWork(); else skBack($("#review")); }
+  else if (p === "prs") prsShow();
+  if (focus){ const h = $(p === "home" ? "#homeh" : p === "prs" ? "#prsh" : "#sesh"); if (h){ h.tabIndex = -1; h.focus({preventScroll: true}); } } }
+addEventListener("hashchange", () => setPage(pageOfHash(), true));
+// ページの中から別のページへ移るリンク（ホームのカードのボタンなど）。data-go はページ、data-view はセッション履歴で開く表示
+document.addEventListener("click", e => { const a = e.target.closest && e.target.closest("a[data-go]"); if (!a) return;
+  const v = a.dataset.view === "cal" || a.dataset.view === "sum" ? a.dataset.view : null;
+  if (st.page === a.dataset.go){ e.preventDefault(); if (v) setView(v); return; }
+  if (v) st.view = v; }); // # が変わると setPage が描き直す
+/* 表示：カレンダーかサマリー（セッション履歴のページの中）。広い画面ではページ全体を画面に固定し、選んだほうだけが中でスクロールする（ページとカレンダーの二重のスクロールをなくす） */
 function showView(){ document.body.dataset.view = st.view;
   document.querySelectorAll("#view button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.view)); }
 function setView(v, focus){ if (v === st.view) return; st.view = v; showView();
-  const m = $("main"); if (m) m.scrollTop = 0; if (v === "cal") scrollToWork(); else if (v === "prs") prsShow(); else skBack($("#review")); // サンキーの名前の札は、見えているときにしか測れない（隠れたまま描いたサマリーを開いたときに敷く）
+  const m = $("main"); if (m) m.scrollTop = 0; if (v === "cal") scrollToWork(); else skBack($("#review")); // サンキーの名前の札は、見えているときにしか測れない（隠れたまま描いたサマリーを開いたときに敷く）
   if (focus && v === "sum"){ const r = $("#review"); r.tabIndex = -1; r.focus({preventScroll: true}); } }
 document.querySelectorAll("#view button[data-v]").forEach(b => b.onclick = e => { setView(b.dataset.v); if (e.detail) b.blur(); });
 $("#skipcal").onclick = e => { e.preventDefault(); setView("sum", true); };
@@ -50,8 +76,7 @@ $("#sres").addEventListener("keydown", e => { if ((e.key !== "ArrowDown" && e.ke
   const rows = [...$("#sres").querySelectorAll(".srow, .srmore")], i = rows.indexOf(e.target), to = i < 0 ? null : rows[i + (e.key === "ArrowDown" ? 1 : -1)];
   e.preventDefault(); // 最後の結果で ↓ を押しても、ページはスクロールしない
   if (to) to.focus(); else if (e.key === "ArrowUp" && i <= 0) $("#q").focus(); });
-// ロゴは最初の画面へ。kiroku serve では "/"、HTML ファイルやデモでは、同じファイルを開き直す（"/" ではディスクやサイトの一番上へ行ってしまう）
-if (!LIVE) $("#home").href = location.href.split(/[?#]/)[0];
+// ロゴはホームへ（#/。読み込み直さない。HTML ファイルやデモでも、"/" のようにディスクやサイトの一番上へ行かない）
 
 // ダイアログ（ショートカット・Worth a look など）は、枠の外を押すと閉じる（詳細のパネルの #scrim と同じ）。
 // 押し始めも外だったときだけ（枠の中で文字を選んで、外で離したときには閉じない）
@@ -82,20 +107,21 @@ document.addEventListener("keydown", e => {
   const k = e.key;
   if (k === "Escape" && closeHint()) return; // 開いた説明（?）があれば、それだけ閉じる
   const ses = st.sel && DATA.find(x => x.id === st.sel); // セッションの詳細を開いているとき
+  const onSes = st.page === "sessions"; // 期間と表示を変えるキー（← → T W M V）は、セッション履歴のページでだけ
   if (k === "ArrowLeft" || k === "ArrowRight"){ // 詳細を開いているあいだは前後のセッションへ（週は動かさない。閉じて別の週へ飛ぶと、どこにいるかわからなくなる）
     if (e.target.closest?.(ARROW_OWN)) return;
     if (st.sel){ if (ses){ e.preventDefault(); const n = sesNeighbors(ses.id); goSession(k === "ArrowLeft" ? n.prev : n.next); } return; }
-    go(k === "ArrowLeft" ? -1 : 1); }
+    if (onSes) go(k === "ArrowLeft" ? -1 : 1); }
   else if (st.sel && ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(k) && !e.target.closest?.(ARROW_OWN) && !(k === " " && e.target.closest?.("button, a, summary"))){ // スペースは、ボタンの上では押す動きのまま // 詳細の中をキーでスクロール
     const P = $("#panel"), step = k === "ArrowUp" || k === "ArrowDown" ? 64 : P.clientHeight * 0.85;
     e.preventDefault(); if (k === "Home") P.scrollTop = 0; else if (k === "End") P.scrollTop = P.scrollHeight; else P.scrollBy({top: (k === "ArrowUp" || k === "PageUp" ? -1 : 1) * step}); }
   else if ((k === "f" || k === "F") && ses) toggleFlowFull();
   else if (k === "Escape" && $("#drawer").classList.contains("flowfull")) toggleFlowFull(false);
-  else if (k === "t" || k === "T") go(null);
+  else if ((k === "t" || k === "T") && onSes) go(null);
   else if (k === "/"){ e.preventDefault(); $("#q").focus(); }
   else if (k === "Escape" && st.sel) select(null); else if (k === "?") $("#keys").showModal();
-  else if (k === "w" || k === "W") setMode("week"); else if (k === "m" || k === "M") setMode("month");
-  else if ((k === "v" || k === "V") && !st.sel) setView(st.view === "cal" ? "sum" : "cal"); // プルリクエストの表からは、カレンダーへ // 詳細を開いているあいだは、うしろの表示を変えない
+  else if ((k === "w" || k === "W") && onSes) setMode("week"); else if ((k === "m" || k === "M") && onSes) setMode("month");
+  else if ((k === "v" || k === "V") && !st.sel && onSes) setView(st.view === "cal" ? "sum" : "cal"); // 詳細を開いているあいだは、うしろの表示を変えない
 });
 // workHours は、表示中の週の作業の時間帯 {first, last}（時。記録がなければ null）。
 // 朝 6 時より前の開始が 2 割に満たなければ、早い時刻の数本に引っぱられないよう、6 時以降でいちばん早い開始時刻から。
@@ -126,7 +152,7 @@ function scrollToWork(){ // その週の作業が始まるころの少し前へ
 // （朝の時間帯は縮めて描くが、それでも作業の始まりが下のほうになる画面がある）。上の数字は、上へスクロールすれば見える。
 // デモ（README のスクリーンショット）と、セッションを開いた状態で戻ってきたときは送らない
 function openAtWork(){
-  if ((META && META.demo) || st.sel || st.view !== "cal" || st.mode !== "week" || soFar() == null) return;
+  if ((META && META.demo) || st.sel || st.page !== "sessions" || st.view !== "cal" || st.mode !== "week" || soFar() == null) return;
   const w = workHours(), sc = $("#tl .calscroll"), hd = $("#tl .tlhead"); if (!w || !sc || !hd) return;
   const lineY = sc.getBoundingClientRect().top + scrollY + calY(Math.max(0, w.first - 0.5));
   if (lineY - scrollY < innerHeight * 0.6) return; // もう最初の画面の上のほうに見えている
