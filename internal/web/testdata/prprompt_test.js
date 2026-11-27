@@ -1,6 +1,6 @@
 // prTasks・prPrompt・prFlow・prAge・prSteps・prOrder: 自分に関係する PR（kiroku serve --prs）の、指示ごとのプロンプトと、マージまでの流れのどこで止まっているか。
 // プロンプトに入れるのは形を確かめた URL と kiroku が見た状況だけで、GitHub から来た題名・名前（ほかの人が書ける）は入れない。
-const esc = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`), inEnglish = f => f(), md = () => "Fri, Nov 27", hm = () => "10:04", utcOff = () => "UTC+09:00", t = (s, v) => s.replace(/\{(\w+)\}/g, (m, k) => v && k in v ? String(v[k]) : m);
+const esc = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`), inEnglish = f => f(), isJA = () => false, LSEP = () => ", ", md = () => "Fri, Nov 27", hm = () => "10:04", utcOff = () => "UTC+09:00", t = (s, v) => s.replace(/\{(\w+)\}/g, (m, k) => v && k in v ? String(v[k]) : m);
 let bad = 0;
 const eq = (what, got, want) => { if (JSON.stringify(got) !== JSON.stringify(want)) { console.error(`${what}: got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`); bad++; } };
 const has = (what, s, wants, nots = []) => { for (const w of wants) if (!s.includes(w)) { console.error(`${what} lacks ${JSON.stringify(w)}:\n${s}`); bad++; }
@@ -55,8 +55,11 @@ eq("steps draft", steps({draft: true, checks: "passing"}), [{draft: "cur", check
 eq("steps checks failing", steps({checks: "failing", conflict: true}), [{draft: "done", checks: "cur", review: "todo", merge: "todo"}, ["done", "cur fix", "todo", "todo fix"]]);
 eq("steps changes", steps({checks: "passing", review: "changes"}), [{draft: "done", checks: "done", review: "cur", merge: "todo"}, ["done", "done", "cur fix", "todo"]]);
 eq("steps ready", steps({checks: "passing", review: "approved"})[1], ["done", "done", "done", "cur ready"]);
+eq("steps no review decision", steps({checks: "passing"})[1], ["done", "done", "todo", "cur"]);
+has("steps no review text", prSteps({checks: "passing"}, prFlow({checks: "passing"})).text, ["Review: no review decision, Merge: waiting"]);
+has("steps ready text", prSteps({checks: "passing", review: "approved"}, prFlow({checks: "passing", review: "approved"})).text, ["Review: done, Merge: ready"]);
 eq("steps waiting", steps({checks: "pending"})[1], ["done", "cur", "todo", "todo"]);
-has("steps text", prSteps({checks: "failing"}, prFlow({checks: "failing"})).text, ["Draft: done → Checks: needs a fix → Review: not yet → Merge: not yet"]);
+has("steps text", prSteps({checks: "failing"}, prFlow({checks: "failing"})).text, ["Draft: done, Checks: needs a fix, Review: not yet, Merge: not yet"]);
 has("steps escape", prSteps({}, prFlow({})).html, ["<span>Draft</span>"], ["<script"]);
 // 並び: 自分の PR は直すもの → マージ可 → 待ち、同じ中は止まっている時間の長い順。ほかの人の PR は時間の長い順だけ
 const rows = [{n: 1, kind: "wait", since: 10}, {n: 2, kind: "fix", since: 50}, {n: 3, kind: "ready", since: 5}, {n: 4, kind: "fix", since: 20}, {n: 5, kind: "wait", since: 0}];

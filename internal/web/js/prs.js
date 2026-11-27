@@ -89,16 +89,19 @@ function prAge(since, now){ if (!since || now < since) return ""; const h = (now
 // 止まっている段より後ろは、済んだとわかるもの（チェック成功・承認済み）を「済み」、ほかを「まだ」にする（直すものは警告の色の白抜き）
 function prSteps(it, F){
   const N = PR_STAGE_NAME(), at = PR_STAGES.indexOf(F.at), known = {checks: it.checks === "passing", review: it.review === "approved"};
-  const V = Object.fromEntries(PR_STAGES.map((k, i) => [k, i < at ? "done" : i === at ? "cur" : known[k] ? "done" : "todo"]));
-  const say = k => V[k] === "done" ? t("done") : F.S[k] === "fix" ? t("needs a fix") : V[k] === "cur" ? t("waiting") : t("not yet");
+  // レビューの判断がない（必須でない）PR は、レビューを「済み」と描かない（誰も見ていないので）
+  const noRev = !it.review;
+  const V = Object.fromEntries(PR_STAGES.map((k, i) => [k, i === at ? "cur" : k === "review" && noRev ? "todo" : i < at || known[k] ? "done" : "todo"]));
+  const say = k => V[k] === "done" ? t("done") : F.S[k] === "fix" ? t("needs a fix") : V[k] === "cur" ? (F.kind === "ready" ? t("ready") : t("waiting"))
+    : k === "review" && noRev && PR_STAGES.indexOf(k) < at ? t("no review decision") : t("not yet");
   const cls = k => V[k] === "done" ? "" : F.S[k] === "fix" ? " fix" : V[k] === "cur" && F.kind === "ready" ? " ready" : "";
-  return {V, text: PR_STAGES.map(k => `${N[k]}: ${say(k)}`).join(" → "),
+  return {V, text: PR_STAGES.map(k => `${N[k]}: ${say(k)}`).join(LSEP()),
     html: `<ol class="prsteps" aria-hidden="true">${PR_STAGES.map(k => `<li class="prstep ${V[k]}${cls(k)}"><i></i><span>${esc(N[k])}</span></li>`).join("")}</ol>`};
 }
 // prState は、状況の欄：段の図と、止まっている段の名前と時間
 function prState(it, now){
   const F = prFlow(it), age = prAge(F.since, now), P = prSteps(it, F);
-  const full = `${P.text}. ${F.label}${age ? ` · ${age} ${F.basis}` : ""}`;
+  const full = `${P.text}${isJA() ? "。" : ". "}${F.label}${age ? ` · ${age} ${F.basis}` : ""}`;
   return `<div class="prflow" role="img" aria-label="${esc(full)}" title="${esc(full)}">${P.html}
     <div class="prstop ${F.kind}"><b>${esc(F.label)}</b>${age ? `<span>${esc(age)}</span>` : ""}</div></div>`;
 }
@@ -109,7 +112,7 @@ const prOrder = (mine, now) => (a, b) => (mine ? PR_KINDS.indexOf(a.kind) - PR_K
 // prSum は、自分の PR の表の上の、種類ごとの数。押すとその種類だけを出し、もう一度押すと全部に戻す
 function prSum(kinds){
   const K = PR_KIND_NAME(), n = Object.fromEntries(PR_KINDS.map(k => [k, kinds.filter(x => x === k).length]));
-  return `<div class="prsum" role="group" aria-label="${esc(t("Show only"))}">${PR_KINDS.map(k => `<button type="button" class="prk ${k}" data-k="${k}" aria-pressed="${PRS.filter === k}"${n[k] ? "" : " disabled"}><span>${esc(K[k])}</span><b>${n[k]}</b></button>`).join("")}</div>`;
+  return `<div class="prsum" role="group" aria-labelledby="prsuml"><span class="prsuml" id="prsuml">${esc(t("Show only"))}</span>${PR_KINDS.map(k => `<button type="button" class="prk ${k}" data-k="${k}" aria-pressed="${PRS.filter === k}"${n[k] ? "" : " disabled"}><span>${esc(K[k])}</span><b>${n[k]}</b></button>`).join("")}</div>`;
 }
 // prSessionsOf は、その PR と関係するセッション：履歴に、同じ URL の PR を作った記録か、その URL を名指ししてマージ・レビューした記録があるもの（新しい順）
 const prSame = u => { const m = /^https:\/\/([^/\s]+)\/([^/\s]+)\/([^/\s]+)\/pull\/(\d+)(?:[/?#]|$)/.exec(String(u || "")); return m ? `${m[1]}/${m[2]}/${m[3]}#${m[4]}`.toLowerCase() : null; };
