@@ -47,7 +47,7 @@ try {
   const openWithKey = async (page, url) => {
     await page.goto(`${url}/`);
     await page.evaluate(k => localStorage.setItem("kiroku:key", k), key);
-    await page.goto(`${url}/`);
+    await page.goto(`${url}/#/sessions`); await page.reload(); // セッション履歴のページ（カレンダー）。# なしはホーム。# だけが変わる移動は読み込み直さないので、読み込み直す
   };
   const base = `http://localhost:${port}`;
   // 読み終わるのを待つ（以前の版の Cookie も付けるのは、修正の前の版に対してこのテストが失敗することを確かめられるように）
@@ -77,8 +77,8 @@ try {
   check("動いている kiroku serve をもう一度打つと、止まらずにそれを開く（使い捨てのコードの URL で、鍵は出さない）", /already running at/.test(again) && !!once && !hopFile.includes(key) && !again.includes(key), `${again} / ${once}`);
   await pc.goto(once);
   await pc.waitForURL(u => !u.search.includes("code="), { timeout: 10000 });
-  await pc.waitForSelector(".run[data-sid]", { timeout: 15000 });
-  check("?code= で開くと履歴が出て、鍵は localStorage にある", await pc.evaluate(() => localStorage.getItem("kiroku:key")) === key);
+  await pc.waitForSelector("#homev .hmcard .card[data-id]", { timeout: 15000 });
+  check("?code= で開くとホームに履歴（最近のセッション）が出て、鍵は localStorage にある", await pc.evaluate(() => localStorage.getItem("kiroku:key")) === key);
   check("開いた URL のどれにも鍵が載らない", !visited.some(u => u.includes(key)), JSON.stringify(visited));
   // 使い終わったコードでは鍵を受け取れず、そう伝える（アドレスからコードも消す）
   const pa = await (await b.newContext()).newPage();
@@ -118,7 +118,7 @@ try {
   check("ほかのポートのサーバーへ kiroku の Cookie を送らない", !seen.some(r => /kiroku/.test(r.headers.cookie || "")), JSON.stringify(seen.map(r => r.headers.cookie)));
 
   // 履歴ファイルの「Open」は、鍵を付けて読み、Blob から保存する
-  await p.goto(`${base}/`);
+  await p.goto(`${base}/#/sessions`);
   await p.waitForSelector(".run[data-sid]", { timeout: 15000 });
   await p.evaluate(() => { const r = [...document.querySelectorAll(".run[data-sid]")].find(e => DATA.some(s => s.id === e.dataset.sid && s.file)); r.scrollIntoView({ block: "center" }); r.click(); });
   check("セッションの詳細の履歴ファイル・モデル・ツールは畳まずに出ている", await p.evaluate(() => !document.querySelector("#panel details.sdet") && !!document.querySelector("#panel .sdet a[data-hist]")));
@@ -131,7 +131,7 @@ try {
   check("CSP に止められたもの・ページのエラーがない", errors.length === 0, JSON.stringify(errors));
 
   // 日報と振り返りは、プロンプトをコピーするだけ（kiroku は AI を動かさない）。AI を動かすボタン・ダイアログ・/ai/run はない
-  await p.goto(`${base}/`);
+  await p.goto(`${base}/#/sessions`);
   await p.waitForSelector(".head .dayrun", { timeout: 15000 });
   check("AI を動かすボタンはなく、日報はプロンプトのコピー", await p.locator(".ai-action").count() === 0 && await p.locator(".head .dayrun.ai-copy").count() > 0);
   check("バッジ（点だけ）の名前に AI はない", !((await p.locator("#live").getAttribute("aria-label")) || "").includes("AI"));
@@ -162,6 +162,29 @@ try {
     const pt = await until("待ち受け（追加）", () => (lg.match(/serving http:\/\/localhost:(\d+)\//) || [])[1]);
     await until("読み込み（追加）", async () => (await fetch(`http://localhost:${pt}/stamp`, { headers: { "X-Kiroku-Key": key } }).catch(() => ({ ok: false }))).ok);
     return { url: `http://localhost:${pt}`, log: () => lg }; };
+  // PRトリアージ（--prs）：GitHub に問い合わせる（gh を動かす）のは、ページの中で PRトリアージへのリンクを押したときと「再取得」だけ。
+  // ホームを開いても、URL（/#/prs）で開いても（ほかのサイトのリンクから移ってきたときと同じ）問い合わせない。gh は呼ばれた回数を残す偽物
+  {
+    const fakeGh = path.join(work, "fakegh"), ghLog = path.join(work, "gh-calls"); await mkdir(fakeGh, { recursive: true });
+    await writeFile(path.join(fakeGh, "gh"), `#!/bin/sh
+echo x >> "${ghLog}"
+printf '%s' '{"data":{"viewer":{"login":"me-dev"},"author":{"nodes":[]},"review":{"nodes":[]},"mention":{"nodes":[]}}}'
+`); await chmod(path.join(fakeGh, "gh"), 0o755);
+    const calls = async () => (await readFile(ghLog, "utf8").catch(() => "")).split("\n").filter(Boolean).length;
+    const ps = await startExtra([...serveArgs, "--prs"], { PATH: `${fakeGh}${path.delimiter}${process.env.PATH}` });
+    const pp = await ctx.newPage(), asked = []; pp.on("request", r => { if (new URL(r.url()).pathname === "/prs") asked.push(r.method()); });
+    await pp.goto(`${ps.url}/`); await pp.evaluate(k => localStorage.setItem("kiroku:key", k), key);
+    await pp.goto(`${ps.url}/#/prs`); await pp.reload(); await pp.waitForSelector("#prsv .prpanel", { timeout: 15000 }); await pp.waitForTimeout(800);
+    check("--prs: URL（/#/prs）で開いても GitHub に問い合わせない（ほかのサイトから移らせても gh は動かない）", asked.length === 0 && await calls() === 0 && /Refresh/.test(await pp.locator("#prsv").innerText()), `${asked} ${await calls()}`);
+    await pp.locator("#home").click(); await pp.waitForFunction(() => document.body.dataset.page === "home"); await pp.waitForTimeout(500);
+    check("--prs: ホームは GitHub に問い合わせない", asked.length === 0 && await calls() === 0);
+    await pp.evaluate(() => { location.hash = "#/prs"; }); await pp.waitForFunction(() => document.body.dataset.page === "prs"); await pp.waitForTimeout(500);
+    check("--prs: スクリプトで # を変えても問い合わせない", asked.length === 0);
+    await pp.locator("#home").click(); await pp.waitForFunction(() => document.body.dataset.page === "home");
+    await pp.locator('#gnav a[data-page="prs"]').click(); await pp.waitForSelector("#prsv .prsec, #prsv .none", { timeout: 15000 });
+    check("--prs: メニューの PRトリアージを押すと問い合わせる", asked.join() === "GET" && await calls() === 1, `${asked} ${await calls()}`);
+    await pp.close();
+  }
   const old = await startExtra([...serveArgs, "--ai"], { KIROKU_AI: "1" });
   check("--ai を付けても起動し、外したことと「Copy prompt」を言う", /--ai \(\$KIROKU_AI\) was removed in 4\.0/.test(old.log()) && /Copy prompt/.test(old.log()), old.log());
   const po = await ctx.newPage();
@@ -191,7 +214,7 @@ try {
       const res = await r.fetch();
       await r.fulfill(mode === "500" ? { status: 500, body: "boom" } : { response: res, headers: { ...res.headers(), "x-kiroku-reload": "failed" } });
     });
-    await pr.goto(`${base}/`);
+    await pr.goto(`${base}/#/sessions`);
     await pr.waitForSelector(".run[data-sid]", { timeout: 15000 });
     mode = "failed";
     await pr.waitForFunction(() => /Could not read the latest history/.test(document.querySelector("#live").title), null, { timeout: 15000 });

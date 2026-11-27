@@ -1,0 +1,2 @@
+- The calendar and the summary are now the Session history page, and "Pull requests" (`kiroku serve --prs`) is now the PR triage page in the menu next to the logo, instead of a third choice under View
+- The logo goes to Home without reloading the page. ←, →, T, W, M and V work on Session history only

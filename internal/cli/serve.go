@@ -681,7 +681,7 @@ func serveLiveWith(addr string, allow []string, every time.Duration, picked []so
 	startLive(l, every)
 	fmt.Fprintln(l.print, st.dim("only browsers with its key can open it (to protect it from other users of this computer); run \"kiroku serve\" again to open it in another browser"))
 	if prs {
-		fmt.Fprintln(l.print, st.dim("--prs: the view has a Pull requests page; kiroku asks GitHub through gh only when you open or refresh it, and sends nothing from your history"))
+		fmt.Fprintln(l.print, st.dim("--prs: the view has a PR triage page; kiroku asks GitHub through gh only when you open it from the menu or refresh it, and sends nothing from your history"))
 	}
 	if open {
 		if err := openWithKey(url); err != nil {

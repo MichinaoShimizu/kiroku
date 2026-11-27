@@ -15,7 +15,7 @@ if (META && META.scope){ const f = scopeStart(); st.week = mondayOf(f); st.month
   const bar = $("#scopebar"); bar.textContent = ""; bar.insertAdjacentHTML("beforeend", scopeNote()); bar.hidden = false;
   if (META.scope.mode === "week") $("#mode").hidden = true; }
 mq.addEventListener("change", () => { ph(); render(); });
-render(); scrollToWork(); openAtWork();
+st.page = pageOfHash(); render(); if (st.page === "prs") prsShow(false); scrollToWork(); openAtWork();
 }
 // 文言・入力欄・テーマは、データを待たずに整える（kiroku serve で data.json を読んでいるあいだも、見た目がそろうように）
 applyStaticText();

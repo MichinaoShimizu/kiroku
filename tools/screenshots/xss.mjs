@@ -59,7 +59,9 @@ const clickAll = async (sel, step, after) => {
   }
 };
 
-await check("load");
+await check("load (home)"); // # なしで開くとホーム（最近のセッションの題・プロジェクト名もここで確かめる）
+await p.evaluate(() => { location.hash = "#/sessions"; }); await p.waitForTimeout(300); // ここからはセッション履歴のページ
+await check("session history page");
 // push の記録（リモート追跡ブランチの reflog）が、悪意のある ref の名前と、__proto__・constructor"><img …> のプロジェクト名で読めている（確かめる対象に入っている）
 { const r = await p.evaluate(() => { const ps = META.push || []; return {n: ps.length, projects: [...new Set(ps.map(x => x.project))], refs: [...new Set(ps.map(x => x.ref))]}; });
   const ok = r.n >= 6 && r.projects.includes("__proto__") && r.projects.some(x => x.startsWith('constructor"><img')) && r.refs.some(x => x.includes("<svg/onload=alert(40)>"));
@@ -233,7 +235,7 @@ if (sw > iw) { failed++; console.log(`  FAIL overflows sideways at 390px: ${sw} 
     await pg.addInitScript(() => { window.__hits = []; window.alert = x => { window.__hits.push(String(x)); }; });
     await pg.addInitScript(([keys, raw]) => { let n = 0; for (const k of keys) { try { localStorage.setItem(k, raw); n++; } catch (e) {} } window.__tampered = n; }, [keys, raw]);
     try {
-      await pg.goto("file://" + path.resolve(html)); await pg.waitForTimeout(300);
+      await pg.goto("file://" + path.resolve(html) + "#/sessions"); await pg.waitForTimeout(300);
       const sw = pg.locator("#view button[data-v=sum]");
       if ((await sw.getAttribute("aria-pressed")) !== "true") { await sw.click(); await pg.waitForTimeout(300); }
       await check(`localStorage ${name}`, pg);

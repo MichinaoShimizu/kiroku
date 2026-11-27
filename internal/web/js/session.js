@@ -329,7 +329,7 @@ const OPENER_ATTRS = ["data-sid", "data-id", "data-s", "data-c", "data-git", "da
 let lastClick = null; addEventListener("click", e => { lastClick = e.target; }, true); // Safari はボタンを押してもフォーカスが移らないので、押した要素も覚える
 function openerOf(el){ // 詳細を開いた要素を、描き直したあとも同じものを探せる形で覚える（どの枠の、どの属性の、何番目か）
   el = el && el.closest && el.closest(OPENER_ATTRS.map(a => `[${a}]`).join(","));
-  const root = el && el.closest("#tl, #review"), a = root && OPENER_ATTRS.find(a => el.hasAttribute(a));
+  const root = el && el.closest("#tl, #review, #homev, #prsv"), a = root && OPENER_ATTRS.find(a => el.hasAttribute(a));
   if (!a) return null;
   const q = `[${a}="${CSS.escape(el.getAttribute(a))}"]`;
   return {root: root.id, q, n: [...root.querySelectorAll(q)].indexOf(el), y: scrollY}; }
