@@ -789,7 +789,7 @@ func TestPRName(t *testing.T) {
 }
 
 // 自分に関係する PR（kiroku serve --prs）のプロンプト：何を頼むかは状況で決まり、入れるのは形を確かめた URL と状況だけ。
-// GitHub から来た題名・名前は入れず、形の合わない URL ではプロンプトを作らない。
+// GitHub から来た題名・名前も、履歴から来たフォルダも入れず、形の合わない URL ではプロンプトを作らない。
 func TestPRPrompt(t *testing.T) {
 	node, err := exec.LookPath("node")
 	if err != nil {
@@ -802,14 +802,12 @@ func TestPRPrompt(t *testing.T) {
 		}
 		return strings.ReplaceAll(string(b), "\r\n", "\n")
 	}
-	prs, mdjs := read("prs.js"), read("markdown.js")
+	prs := read("prs.js")
 	var parts []string
 	for _, x := range []struct{ src, re string }{
 		{prs, `(?m)^const PR_URL = .*;$`},
 		{prs, `(?ms)^function prTasks\(it\)\{.*?^\}$`},
-		{prs, `(?ms)^function prPrompt\(it, ses, at\)\{.*?^\}$`},
-		{mdjs, `(?ms)^function mdCode\(s\)\{.*?^  return f \+ pad \+ s \+ pad \+ f; \}$`},
-		{mdjs, `(?ms)^function oneLine\(s\)\{.*?\.trim\(\); \}$`},
+		{prs, `(?ms)^function prPrompt\(it, at\)\{.*?^\}$`},
 	} {
 		m := regexp.MustCompile(x.re).FindString(x.src)
 		if m == "" {

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -31,6 +32,9 @@ const prsAnswer = `{"data":{"viewer":{"login":"me-dev"},
  {"url":"https://github.com/o/r/issues/1","title":"x"},
  {"url":"https://github.com/o/r/pull/1 --web; rm -rf ~","title":"x"},
  {"url":"https://evil.example/o/r/pull/0","title":"x"},
+ {"url":"https://github.com/o/../pull/5","title":"x"},
+ {"url":"https://github.com/o/./pull/5","title":"x"},
+ {"url":"https://github.com/o/r/pull/12","title":"the same pull request again"},
  {},
  null,
  {"url":"https://github.com/o/r/pull/99","title":"","reviewDecision":"APPROVED","commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"PENDING"}}}]}}]}}}`
@@ -79,6 +83,16 @@ func TestParsePRs(t *testing.T) {
 	res, ok = parsePRs([]byte(`{"data":{"viewer":{"login":"x y"},"author":{"issueCount":1,"nodes":[{"url":"https://github.com/o/r/pull/1","title":` + string(long) + `}]},"review":null},"errors":[{"message":"x"}]}`))
 	if !ok || !res.Partial || res.Login != "" || len(res.Items) != 1 || len([]rune(res.Items[0].Title)) != prsTitleMax {
 		t.Errorf("partial answer: ok=%v res.Partial=%v login=%q items=%d", ok, res.Partial, res.Login, len(res.Items))
+	}
+	// 頼んだ数（50）より多く返されても、頼んだ数まで。同じ PR が同じわけで何度来ても、わけは 1 回
+	var many []string
+	for i := 1; i <= 300; i++ {
+		many = append(many, `{"url":"https://github.com/o/r/pull/`+strconv.Itoa(i)+`","title":"t"}`)
+	}
+	dup := strings.Repeat(`{"url":"https://github.com/o/r/pull/1","title":"t"},`, 200)
+	res, ok = parsePRs([]byte(`{"data":{"viewer":{"login":"x"},"author":{"issueCount":300,"nodes":[` + strings.Join(many, ",") + `]},"review":{"issueCount":1,"nodes":[` + dup + `{}]},"mention":{"issueCount":0,"nodes":[]}}}`))
+	if !ok || len(res.Items) != prsPerList || strings.Join(res.Items[0].Why, ",") != "author,review" {
+		t.Errorf("many: ok=%v items=%d why=%v", ok, len(res.Items), res.Items[0].Why)
 	}
 	for _, bad := range []string{"", "not json", `{"errors":[{"message":"x"}]}`, `{"data":null}`, `[]`} {
 		if _, ok := parsePRs([]byte(bad)); ok {

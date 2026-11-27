@@ -53,6 +53,7 @@ const (
 	prsFresh     = 2 * time.Minute  // これより新しい結果があれば、一覧を開いても問い合わせ直さない
 	prsMinGap    = 10 * time.Second // 「更新」を続けて押しても、これより短い間隔では問い合わせない
 	prsTitleMax  = 300
+	prsPerList   = 50 // prsQuery の first: 50 と同じ
 )
 
 // prItem は、画面に出す 1 つのプルリクエスト。どの値も、確かめた形のものだけ。
@@ -150,7 +151,11 @@ func parsePRs(out []byte) (res prsResult, ok bool) {
 			}
 			res.More[why] = true
 		}
-		for _, n := range list.Nodes {
+		nodes := list.Nodes
+		if len(nodes) > prsPerList { // 頼んだ数より多く返されても、頼んだ数まで
+			nodes = nodes[:prsPerList]
+		}
+		for _, n := range nodes {
 			if n == nil {
 				continue
 			}
@@ -159,7 +164,9 @@ func parsePRs(out []byte) (res prsResult, ok bool) {
 				continue
 			}
 			if j, seen := at[it.URL]; seen {
-				res.Items[j].Why = append(res.Items[j].Why, why)
+				if w := res.Items[j].Why; w[len(w)-1] != why { // 同じ PR が同じわけで 2 回来ても、わけは 1 回
+					res.Items[j].Why = append(w, why)
+				}
 				continue
 			}
 			it.Why = []string{why}
@@ -173,7 +180,7 @@ func parsePRs(out []byte) (res prsResult, ok bool) {
 // prFromNode は 1 件を確かめて prItem にする。URL が PR の形でなければ捨てる。
 func prFromNode(n *prsNode) (prItem, bool) {
 	m := prURLPattern.FindStringSubmatch(n.URL)
-	if m == nil {
+	if m == nil || m[3] == "." || m[3] == ".." { // . と .. は、ブラウザが開くときに別の場所へ読みかえる
 		return prItem{}, false
 	}
 	num := 0
