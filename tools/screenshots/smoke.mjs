@@ -972,14 +972,14 @@ async function run(env) {
         && (onlyUnk ? pcs.length === 0 : pcs.length === idx.length && pcs.reduce((a, v) => a + v, 0) === 100)), JSON.stringify({sk, pcs}));
       check("サンキーの一覧の割合は、列ごとに足して 100", !sk || sk.list.every(v => v === 100), JSON.stringify(sk && sk.list));
     }
-    if (await p.locator('#review [data-skm]').count()){ // 「手動のコミット・push も含める」（既定はオン）：押すと切り替わり、オンのときは 1 文がそう言う。手動の分を足すので、オンの方が変更を残した割合は減らない。もう一度押すと戻る
+    if (await p.locator('#review [data-skm]').count()){ // 「手動の push も含める」（既定はオン）：押すと切り替わり、オンのときは 1 文がそう言う。手動の分を足すので、オンの方が変更を残した割合は減らない。もう一度押すと戻る
       const st0 = () => p.evaluate(() => { const c = document.querySelector("#review .isk"), say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay");
         const li = [...c.querySelectorAll(".sklist .skcol:last-child li")].map(l => [l.querySelector(".skn2").textContent, parseInt(l.querySelector("b").textContent)]);
         return {txt: say.textContent, up: li.filter(([n]) => /^(Changed GitHub|Local changes only|GitHub に反映|手元の変更だけ)$/.test(n)).reduce((a, x) => a + x[1], 0),
           on: document.querySelector("#review [data-skm]").getAttribute("aria-pressed") === "true"}; });
       const a = await st0(); await p.locator('#review [data-skm]').click(); await pause(); const b = await st0();
       const [on, off] = a.on ? [a, b] : [b, a];
-      check("「手動のコミット・push も含める」は既定でオンで、押すと切り替わる。オンのときは 1 文がそう言い、変更を残した割合はオフより減らない",
+      check("「手動の push も含める」は既定でオンで、押すと切り替わる。オンのときは 1 文がそう言い、変更を残した割合はオフより減らない",
         a.on && !b.on && /by hand|手動/.test(on.txt) && !/by hand|手動/.test(off.txt) && on.up >= off.up - 2, JSON.stringify({a, b}));
       await p.locator('#review [data-skm]').click(); await pause();
       check("もう一度押すと元に戻る", (await st0()).on === a.on);
