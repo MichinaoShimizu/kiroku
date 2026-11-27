@@ -643,19 +643,21 @@ body[data-view="prs"] .wk .nav,body[data-view="prs"] .wk .nav .view-controls{mar
 .prstale{margin:4px 0 0;font-size:var(--fs-xs);color:var(--warn);font-weight:600}#prsre[aria-disabled="true"]{opacity:.5;cursor:default}
 .prsec h3{margin:22px 0 8px}
 .prscroll{overflow-x:auto}
-.prtable{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
-.prtable th{text-align:left;font-weight:600;font-size:var(--fs-xs);color:var(--ink-3);padding:6px 16px 6px 0;border-bottom:1px solid var(--rule-2);white-space:nowrap}
-.prtable td{padding:12px 16px 12px 0;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.55}
-.prtable th:last-child,.prtable td:last-child{padding-right:0}
+.prtable{width:100%;border-collapse:collapse;font-size:var(--fs-sm);border:1px solid var(--rule-2)}
+.prtable th,.prtable td{border:1px solid var(--rule-2);padding:10px 12px;vertical-align:top;text-align:left}
+.prtable th{font-weight:600;font-size:var(--fs-xs);color:var(--ink-2);background:var(--surface-2);padding:8px 12px;white-space:nowrap}
+.prtable td{line-height:1.55}
 .prtable tbody tr:hover td{background:color-mix(in srgb,var(--ink) 3%,transparent)}
-@media (min-width:1280px){ /* 3 つの表で欄の位置をそろえる。札の欄と右の 2 つは決まった幅、残りをリポジトリとタイトルで分ける */
-  .prtable{table-layout:fixed}.prtable th:nth-child(1){width:19%}.prtable th:nth-child(3){width:92px}.prtable th:nth-child(4){width:132px}.prtable th:nth-child(5){width:124px}.prtable th:nth-child(6){width:104px}.prtable th:nth-child(7){width:204px}
+@media (min-width:1280px){ /* 3 つの表で欄の位置をそろえる。札の欄と右の 2 つは決まった幅、残りはタイトルに */
+  .prtable{table-layout:fixed}.prtable th:nth-child(1){width:150px}.prtable th:nth-child(3){width:150px}.prtable th:nth-child(4){width:76px}.prtable th:nth-child(5){width:130px}.prtable th:nth-child(6){width:112px}.prtable th:nth-child(7){width:100px}.prtable th:nth-child(8){width:190px}
 }
+@media (min-width:1500px){.prtable th:nth-child(1){width:200px}.prtable th:nth-child(3){width:220px}}
 .prrepo{font-family:var(--mono);overflow-wrap:anywhere}.prown{display:block;font-size:var(--fs-xs);color:var(--ink-3)}.prname{font-weight:600}
 .prwhat{overflow-wrap:anywhere}.prno{font-family:var(--mono);font-weight:600;white-space:nowrap}
 .prby{display:block;margin-top:2px;font-size:var(--fs-xs);color:var(--ink-3)}
-.prsl{display:flex;align-items:center;gap:6px;max-width:100%;margin-top:6px;padding:0;font-size:var(--fs-xs);color:var(--ink-2);text-align:left;text-decoration:underline;text-decoration-color:var(--rule-2);text-underline-offset:2px}.prsl:hover{color:var(--ink)}
-.prsl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prsl{display:flex;align-items:center;gap:6px;max-width:100%;padding:0;font-size:var(--fs-xs);line-height:1.6;color:var(--ink-2);text-align:left;text-decoration:underline;text-decoration-color:var(--rule-2);text-underline-offset:2px}.prsl:hover{color:var(--ink)}
+.prsl+.prsl{margin-top:6px}.prsl{align-items:flex-start}.prsl .agm{margin-top:2px}.prsl span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+.prmore{display:block;margin-top:6px;font-size:var(--fs-xs);color:var(--ink-3)}
 .prst .prtag{display:inline-block;margin:0 4px 4px 0}
 .prtag{font-size:var(--fs-xs);line-height:20px;padding:0 8px;border-radius:6px;border:1px solid var(--rule-2);color:var(--ink-2);white-space:nowrap}
 .prtag.warn{border-color:var(--warn);color:var(--warn);font-weight:600}.prtag.good{border-color:var(--acc);color:var(--acc-ink)}
@@ -664,13 +666,13 @@ body[data-view="prs"] .wk .nav,body[data-view="prs"] .wk .nav .view-controls{mar
 .pract .prnext{display:block;margin-bottom:8px;color:var(--ink)}.pract .pill{max-width:100%}
 @media (max-width:1279px){ /* 表の欄が収まらない幅では、1 行を 1 枚のカードに。リポジトリとタイトルは上に、チェック・レビュー・マージ・更新は名前つきで横に並べる */
   .prtable thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-  .prtable,.prtable tbody{display:block}
-  .prtable tr{display:grid;grid-template-columns:repeat(4,minmax(0,170px));justify-content:start;gap:8px 20px;border:1px solid var(--rule);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+  .prtable{border:0}.prtable,.prtable tbody{display:block}
+  .prtable tr{display:grid;grid-template-columns:repeat(4,minmax(0,170px));justify-content:start;gap:8px 20px;border:1px solid var(--rule-2);border-radius:12px;padding:12px 14px;margin-bottom:10px}
   .prtable td{display:block;border:0;padding:0}.prtable tbody tr:hover td{background:none}
-  .prtable td.prrepo,.prtable td.prwhat,.prtable td.pract{grid-column:1/-1}
-  .prtable td.prst::before,.prtable td.prup::before,.prtable td.pract::before{content:attr(data-l);display:block;margin-bottom:2px;font-size:var(--fs-2xs);color:var(--ink-3)}
+  .prtable td.prrepo,.prtable td.prwhat,.prtable td.prses,.prtable td.pract{grid-column:1/-1}
+  .prtable td.prses::before,.prtable td.prst::before,.prtable td.prup::before,.prtable td.pract::before{content:attr(data-l);display:block;margin-bottom:2px;font-size:var(--fs-2xs);color:var(--ink-3)}
   .prown{display:inline}.prst .prtag{margin-bottom:0}
-  .pract{padding-top:10px !important;border-top:1px solid var(--rule) !important}
+  .prtable td.pract{padding-top:10px;border-top:1px solid var(--rule-2)}
 }
 @media (max-width:480px){.prtable tr{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* 数字の内訳（metric.js） */

@@ -1120,6 +1120,7 @@ const JA_TEXT = {
   "Failing": "失敗",
   "Running": "実行中",
   "Conflicts": "コンフリクト",
+  "+{n} more": "ほか {n} 件",
 };
 // t は英語の文 s を今の言語にする。{name} は vars の値で埋める（日本語では語順が変わるので、文ごと鍵にする）
 function t(s, vars){

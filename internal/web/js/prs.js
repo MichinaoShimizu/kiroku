@@ -61,16 +61,17 @@ const prTag = (label, cls) => `<span class="prtag${cls ? " " + cls : ""}">${esc(
 const prChecks = it => it.checks === "failing" ? prTag(t("Failing"), "warn") : it.checks === "pending" ? prTag(t("Running")) : it.checks === "passing" ? prTag(t("Passing"), "good") : PR_NONE;
 const prReview = it => it.review === "changes" ? prTag(t("Changes requested"), "warn") : it.review === "approved" ? prTag(t("Approved"), "good") : it.review === "required" ? prTag(t("Review required")) : PR_NONE;
 const prMerge = it => [it.conflict && prTag(t("Conflicts"), "warn"), it.draft && prTag(t("Draft"))].filter(Boolean).join("") || PR_NONE;
-// prSessionOf は、その PR を作ったセッション（履歴に、同じ URL の PR を作った記録があるもの。いちばん新しいもの）
+// prSessionsOf は、その PR と関係するセッション：履歴に、同じ URL の PR を作った記録か、その URL を名指ししてマージ・レビューした記録があるもの（新しい順）
 const prSame = u => { const m = /^https:\/\/([^/\s]+)\/([^/\s]+)\/([^/\s]+)\/pull\/(\d+)(?:[/?#]|$)/.exec(String(u || "")); return m ? `${m[1]}/${m[2]}/${m[3]}#${m[4]}`.toLowerCase() : null; };
-// 自分が作った PR だけ（ほかの人の PR と同じ URL を履歴に書かれても、そのセッションを結び付けない）
-function prSessionOf(it){ const k = (it.why || []).includes("author") ? prSame(it.url) : null; if (!k) return null;
-  return DATA.filter(s => (s.prs || []).some(u => prSame(u) === k)).sort((a, b) => b.end - a.end)[0] || null; }
+function prSessionsOf(it){ const k = prSame(it.url); if (!k) return [];
+  return DATA.filter(s => (s.prs || []).some(u => prSame(u) === k) || (s.prActs || []).some(a => prSame(a.ref) === k)).sort((a, b) => b.end - a.end); }
 function prsRow(it, i){
-  const ses = prSessionOf(it), tasks = prTasks(it), T = PR_TASK(), ok = PR_URL.test(it.url || ""), num = `#${it.number}`, [owner, name] = String(it.repo).split("/");
+  const ses = prSessionsOf(it), tasks = prTasks(it), T = PR_TASK(), ok = PR_URL.test(it.url || ""), num = `#${it.number}`, [owner, name] = String(it.repo).split("/");
+  const sesB = s => `<button type="button" class="prsl" data-id="${esc(s.id)}" title="${esc(`${s.title} · ${md(s.start)} ${hm(s.start)} · ${s.source}`)}">${agMark(s.source)}<span>${esc(s.title)}</span></button>`;
   return `<tr>
     <td class="prrepo" data-l="${esc(t("Repository"))}"><span class="prown">${esc(owner)}/</span><span class="prname">${esc(name || "")}</span></td>
-    <td class="prwhat" data-l="${esc(t("Pull request"))}"><span class="prno">${ok ? ext(it.url, `${esc(num)} ↗`) : esc(num)}</span> <span class="prt">${esc(it.title || t("(no title)"))}</span>${it.author && !(it.why || []).includes("author") ? `<span class="prby">${esc(t("by {name}", {name: it.author}))}</span>` : ""}${ses ? `<button type="button" class="prsl" data-id="${esc(ses.id)}" title="${esc(t("Session that created it"))}">${agMark(ses.source)}<span>${esc(ses.title)}</span></button>` : ""}</td>
+    <td class="prwhat" data-l="${esc(t("Pull request"))}"><span class="prno">${ok ? ext(it.url, `${esc(num)} ↗`) : esc(num)}</span> <span class="prt">${esc(it.title || t("(no title)"))}</span>${it.author && !(it.why || []).includes("author") ? `<span class="prby">${esc(t("by {name}", {name: it.author}))}</span>` : ""}</td>
+    <td class="prses" data-l="${esc(t("Sessions"))}">${ses.length ? ses.slice(0, 3).map(sesB).join("") + (ses.length > 3 ? `<span class="prmore">${esc(t("+{n} more", {n: ses.length - 3}))}</span>` : "") : PR_NONE}</td>
     <td class="prst" data-l="${esc(t("Checks"))}">${prChecks(it)}</td>
     <td class="prst" data-l="${esc(t("Review"))}">${prReview(it)}</td>
     <td class="prst" data-l="${esc(t("Merge"))}">${prMerge(it)}</td>
@@ -90,7 +91,7 @@ function prsBody(){
   // グループごとに 1 つの表。リポジトリの順（同じリポジトリの PR が並ぶ）、その中は更新の新しい順
   const secs = G.map(([k, label]) => { const xs = items.map((it, i) => [it, i]).filter(([it]) => (first(it) || [])[0] === k)
       .sort(([a], [b]) => String(a.repo).localeCompare(String(b.repo)) || (b.updated || 0) - (a.updated || 0));
-    return xs.length ? `<section class="prsec"><h3>${esc(label)} · ${xs.length}</h3><div class="prscroll"><table class="prtable"><thead><tr>${[t("Repository"), t("Pull request"), t("Checks"), t("Review"), t("Merge"), t("Updated"), t("Next step")].map(th).join("")}</tr></thead><tbody>${xs.map(([it, i]) => prsRow(it, i)).join("")}</tbody></table></div>${d.more && d.more[k] ? `<p class="note">${esc(t("Only the 50 most recently updated are shown."))}</p>` : ""}</section>` : ""; }).join("");
+    return xs.length ? `<section class="prsec"><h3>${esc(label)} · ${xs.length}</h3><div class="prscroll"><table class="prtable"><thead><tr>${[t("Repository"), t("Pull request"), t("Sessions"), t("Checks"), t("Review"), t("Merge"), t("Updated"), t("Next step")].map(th).join("")}</tr></thead><tbody>${xs.map(([it, i]) => prsRow(it, i)).join("")}</tbody></table></div>${d.more && d.more[k] ? `<p class="note">${esc(t("Only the 50 most recently updated are shown."))}</p>` : ""}</section>` : ""; }).join("");
   return (secs || noneH(esc(t("No open pull requests involve you right now.")))) + (d.partial ? `<p class="note">${esc(t("GitHub answered only in part, so some pull requests or their status may be missing."))}</p>` : "");
 }
 function prsDraw(){
