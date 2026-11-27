@@ -972,15 +972,17 @@ async function run(env) {
         && (onlyUnk ? pcs.length === 0 : pcs.length === idx.length && pcs.reduce((a, v) => a + v, 0) === 100)), JSON.stringify({sk, pcs}));
       check("サンキーの一覧の割合は、列ごとに足して 100", !sk || sk.list.every(v => v === 100), JSON.stringify(sk && sk.list));
     }
-    if (await p.locator('#review [data-skm]').count()){ // 「手動のコミット・push も含める」：押すと右の列の見出しと 1 文が変わり、もう一度押すと戻る。手動の分を足すので、コミット以上の割合は減らない
-      const reach = () => p.evaluate(() => { const c = document.querySelector("#review .isk"), say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay");
+    if (await p.locator('#review [data-skm]').count()){ // 「手動のコミット・push も含める」（既定はオン）：押すと切り替わり、オンのときは 1 文がそう言う。手動の分を足すので、オンの方が変更を残した割合は減らない。もう一度押すと戻る
+      const st0 = () => p.evaluate(() => { const c = document.querySelector("#review .isk"), say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay");
         const li = [...c.querySelectorAll(".sklist .skcol:last-child li")].map(l => [l.querySelector(".skn2").textContent, parseInt(l.querySelector("b").textContent)]);
-        return {head: [...c.querySelectorAll("text.skh")].pop().textContent, txt: say.textContent, up: li.filter(([n]) => /^(Changed GitHub|Local changes only|GitHub に反映|手元の変更だけ)$/.test(n)).reduce((a, x) => a + x[1], 0),
-          on: document.querySelector("#review [data-skm]").getAttribute("aria-pressed")}; });
-      const off = await reach(); await p.locator('#review [data-skm]').click(); await pause(); const on = await reach();
-      check("「手動のコミット・push も含める」を押すと、1 文がそう言い、変更を残した割合（GitHub に反映・手元の変更だけ）は減らない", on.on === "true" && /by hand|手動/.test(on.txt) && on.up >= off.up - 2, JSON.stringify({off, on}));
+        return {txt: say.textContent, up: li.filter(([n]) => /^(Changed GitHub|Local changes only|GitHub に反映|手元の変更だけ)$/.test(n)).reduce((a, x) => a + x[1], 0),
+          on: document.querySelector("#review [data-skm]").getAttribute("aria-pressed") === "true"}; });
+      const a = await st0(); await p.locator('#review [data-skm]').click(); await pause(); const b = await st0();
+      const [on, off] = a.on ? [a, b] : [b, a];
+      check("「手動のコミット・push も含める」は既定でオンで、押すと切り替わる。オンのときは 1 文がそう言い、変更を残した割合はオフより減らない",
+        a.on && !b.on && /by hand|手動/.test(on.txt) && !/by hand|手動/.test(off.txt) && on.up >= off.up - 2, JSON.stringify({a, b}));
       await p.locator('#review [data-skm]').click(); await pause();
-      check("もう一度押すと、AI がしたことだけに戻る", (await reach()).on === "false");
+      check("もう一度押すと元に戻る", (await st0()).on === a.on);
     }
     { // サンキーの名前は、どれもカードの地の色の札の上（色の帯に直接乗らない）
       const lb = await p.evaluate(() => { const ts = [...document.querySelectorAll("#review .isk text.skt")].filter(x => x.checkVisibility());
