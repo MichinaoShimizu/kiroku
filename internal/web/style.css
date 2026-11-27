@@ -1323,8 +1323,11 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .pick[hidden],body.srch .pick,body[data-view="sum"] .pick{display:none}
 .pick .pkh{display:flex;align-items:baseline;gap:4px 12px;flex-wrap:wrap;margin-bottom:12px}
 .pick .pkh h2{font:700 var(--fs-lg)/1.3 var(--sans);margin:0}
-.pick .pkh p{font-size:var(--fs-xs);color:var(--ink-3);margin:0;line-height:1.6}
-.pick .pks{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.pick .pkh p{font-size:var(--fs-xs);color:var(--ink-3);margin:0;line-height:1.6;flex:1;min-width:min(100%,220px)}
+.pick .pkfold{margin-left:auto;flex:none}
+.pick.fold{padding-bottom:16px}.pick.fold .pkh{margin-bottom:0;align-items:center}
+.pick .pkb[hidden]{display:none}
+.pick .pks{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:12px}
 .pick .pki{min-width:0;display:flex;flex-direction:column;gap:6px}
 .pick .pki .card{margin-bottom:0}
 .pick .pkl{margin:0;font-size:var(--fs-xs);color:var(--ink-2);line-height:1.6;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px;overflow-wrap:anywhere}

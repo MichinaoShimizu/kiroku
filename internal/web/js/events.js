@@ -124,9 +124,9 @@ function scrollToWork(){ // その週の作業が始まるころの少し前へ
 }
 // openAtWork は、開いたときだけ、今週の作業が始まる時刻がページの下のほうに隠れていれば、その時刻が日付の見出しのすぐ下に来るまでページを送る
 // （朝の時間帯は縮めて描くが、それでも作業の始まりが下のほうになる画面がある）。上の数字は、上へスクロールすれば見える。
-// デモ（README のスクリーンショット）と、セッションを開いた状態で戻ってきたときは送らない。「前回の続き」が出ているときも送らない（開いて最初に読むものを、画面の外へ送らない）
+// デモ（README のスクリーンショット）と、セッションを開いた状態で戻ってきたときは送らない。「前回の続き」が開いて出ているときも送らない（開いて最初に読むものを、画面の外へ送らない）
 function openAtWork(){
-  if ((META && META.demo) || ($("#pick") && !$("#pick").hidden) || st.sel || st.view !== "cal" || st.mode !== "week" || soFar() == null) return;
+  if ((META && META.demo) || ($("#pick") && !$("#pick").hidden && !$("#pick").classList.contains("fold")) || st.sel || st.view !== "cal" || st.mode !== "week" || soFar() == null) return;
   const w = workHours(), sc = $("#tl .calscroll"), hd = $("#tl .tlhead"); if (!w || !sc || !hd) return;
   const lineY = sc.getBoundingClientRect().top + scrollY + calY(Math.max(0, w.first - 0.5));
   if (lineY - scrollY < innerHeight * 0.6) return; // もう最初の画面の上のほうに見えている

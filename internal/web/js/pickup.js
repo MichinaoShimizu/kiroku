@@ -48,9 +48,9 @@ function pickItem({s, files}){
   const last = [...(s.prompts || [])].reverse().find(p => !p.kind && String(p.text || "").trim());
   const txt = last ? String(last.text).replace(/\s+/g, " ").trim() : "", lim = (s.limits || []).some(t0 => t0 >= s.end - 120);
   const li = elx("li", "pki"), fl = elx("p", "pkl"), act = elx("div", "pka"), hide = elx("button", "pill pkd", t("Hide"));
-  fl.title = files.map(rel).join("\n"); fl.append(elx("span", "pkk", t("Not in a commit yet")), ...shown.map(p => elx("code", "", short(p))));
+  fl.title = files.map(rel).join("\n"); fl.append(elx("span", "pkk", `${t("Not in a commit yet")} (${n})`), ...shown.map(p => elx("code", "", short(p))));
   if (rest > 0) fl.append(elx("span", "pkm", JA ? t("{n} more files", {n: rest}) : plural(rest, "more file")));
-  li.append(sesCardEl(s, `${md(s.end)} ${hm(s.end)} · ${s.project}${s.branch ? ` · ${s.branch}` : ""}`, plural(n, "file")), fl);
+  li.append(sesCardEl(s, `${md(s.end)} ${hm(s.start)}–${hm(s.end)} · ${s.project}${s.branch ? ` · ${s.branch}` : ""}`), fl);
   if (txt){ const q = elx("p", "pkq"); q.append(elx("span", "pkk", t("Last prompt")), " " + (txt.length > 160 ? txt.slice(0, 159) + "…" : txt)); li.append(q); }
   if (lim){ const w = elx("p", "pkl pklim"); w.append(icoEl("limit"), t("The session ended at a usage limit")); li.append(w); }
   if (s.resume){ const c = copyBtnEl(t("Copy the resume command"), s.resume); c.title = s.resume; act.append(c); }
@@ -65,20 +65,27 @@ function pickup(){
   el.hidden = !all.length; el.textContent = "";
   if (!all.length) return;
   const hid = new Set(pickHidden()), xs = all.filter(x => !hid.has(x.s.id)), nh = all.length - xs.length;
-  const cap = mq.matches ? 1 : PICK_SHOW, more = xs.length > cap && !st.pickAll, show = more ? xs.slice(0, cap) : xs; // 狭い画面では 1 件（カレンダーを下へ押しやらない）
+  // 狭い画面では 1 件（カレンダーを下へ押しやらない）。帯は畳める（畳むと見出しと件数の 1 行。この端末に覚える）
+  const fold = store.get("pickFold", false) === true, cap = mq.matches ? 1 : PICK_SHOW, more = xs.length > cap && !st.pickAll, show = fold ? [] : more ? xs.slice(0, cap) : xs;
   const from = all.reduce((m, x) => Math.min(m, x.s.end), Infinity);
   const head = elx("div", "pkh"), h = elx("h2", "", t("Pick up where you left off")), foot = elx("div", "pkf"); h.id = "pick-h";
-  head.append(h, elx("p", "", t("Sessions since {date} where AI changed files that are in none of your commits since then. Today's sessions are left out.", {date: md(from)})));
-  el.append(head);
-  if (show.length){ const ul = elx("ul", "pks"); ul.setAttribute("role", "list"); ul.append(...show.map(pickItem)); el.append(ul); }
+  const fb = elx("button", "pill pkfold", fold ? t("Show") : t("Collapse")); fb.type = "button"; fb.id = "pkfold"; fb.setAttribute("aria-expanded", String(!fold)); fb.setAttribute("aria-controls", "pick-b");
+  fb.onclick = () => { store.set("pickFold", !fold); pickup(); $("#pkfold").focus(); };
+  el.classList.toggle("fold", fold);
+  head.append(h, fold ? elx("p", "", plural(xs.length, "session")) : elx("p", "", t("Sessions since {date} where AI changed files that are in none of your commits since then. Today's sessions are left out.", {date: md(from)})), fb);
+  const body = elx("div", "pkb"); body.id = "pick-b"; body.hidden = fold;
+  el.append(head, body);
+  if (show.length){ const ul = elx("ul", "pks"); ul.setAttribute("role", "list"); ul.append(...show.map(pickItem)); body.append(ul); }
   // 隠す・戻すと、押したボタンは消える。フォーカスは帯に残す（ページの頭に戻さない）
   const again = () => { pickup(); const f = el.querySelector("[data-id], #pkback"); if (f) f.focus(); };
   if (more){ const b = elx("button", "pill", t("Show the remaining {n}", {n: xs.length - cap})); b.type = "button"; b.id = "pkmore";
     b.onclick = () => { st.pickAll = true; pickup(); const f = el.querySelectorAll("[data-id]")[cap]; if (f) f.focus(); }; foot.append(b); }
+  else if (st.pickAll && xs.length > cap){ const b = elx("button", "pill", t("Show fewer")); b.type = "button"; b.id = "pkless";
+    b.onclick = () => { st.pickAll = false; pickup(); const f = el.querySelector("#pkmore"); if (f) f.focus(); }; foot.append(b); }
   if (nh){ const b = elx("button", "pill", t("Show them again")); b.type = "button"; b.id = "pkback";
     b.onclick = () => { const ids = new Set(all.map(x => x.s.id)); store.set("pickHidden", pickHidden().filter(x => !ids.has(x))); again(); };
     foot.append(elx("span", "pkn", t("{n} hidden", {n: nh})), b); }
-  el.append(foot);
+  body.append(foot);
   bindCopy(el);
   el.querySelectorAll("[data-id]").forEach(b => b.onclick = () => select(b.dataset.id));
   el.querySelectorAll("[data-pkd]").forEach(b => b.onclick = () => { store.set("pickHidden", [...pickHidden().filter(x => x !== b.dataset.pkd), b.dataset.pkd].slice(-200)); again(); });

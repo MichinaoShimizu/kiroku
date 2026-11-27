@@ -1088,6 +1088,9 @@ const JA_TEXT = {
   "Hide": "隠す",
   "{n} hidden": "{n} 件を隠しています",
   "Show them again": "もう一度表示",
+  "Show fewer": "少なく表示",
+  "Collapse": "畳む",
+  "Show": "表示",
   "Copy the resume command": "再開のコマンドをコピー",
 };
 // t は英語の文 s を今の言語にする。{name} は vars の値で埋める（日本語では語順が変わるので、文ごと鍵にする）

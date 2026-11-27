@@ -276,7 +276,7 @@ async function run(env) {
   await step("前回の続き", async () => {
     // 今週（今日を含む期間）を見ているときだけ、カレンダーの上に出す。ダミーデータの「今」によっては 1 件もないことがある（そのときは帯ごと出さない）
     const wk = await p.evaluate(() => st.week.getTime());
-    await p.evaluate(() => { try { localStorage.removeItem("kiroku:pickHidden"); } catch (e) {} go(null); }); await pause();
+    await p.evaluate(() => { try { localStorage.removeItem("kiroku:pickHidden"); localStorage.removeItem("kiroku:pickFold"); } catch (e) {} go(null); }); await pause();
     const want = await p.evaluate(() => leftOff(pickNow(), DATA, META.git || []).map(x => x.s.id));
     const cap = env.viewport.width <= 1000 ? 1 : 3, pick = p.locator("#pick");
     check("今週を開くと、コミットに入っていない変更のあるセッションを新しい順に出す（広い画面は 3 件、狭い画面は 1 件まで）",
@@ -289,7 +289,14 @@ async function run(env) {
       const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
       check("帯が横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
       if (want.length > cap) { await pick.locator("#pkmore").click(); await pause();
-        check("「残りを表示」で全部出し、フォーカスは増えた最初のカードへ", await pick.locator(".card[data-id]").count() === want.length && await p.evaluate(c => document.activeElement === document.querySelectorAll("#pick .card[data-id]")[c], cap)); }
+        check("「残りを表示」で全部出し、フォーカスは増えた最初のカードへ", await pick.locator(".card[data-id]").count() === want.length && await p.evaluate(c => document.activeElement === document.querySelectorAll("#pick .card[data-id]")[c], cap));
+        await pick.locator("#pkless").click(); await pause();
+        check("「少なく表示」で元の数に戻り、フォーカスは「残りを表示」へ", await pick.locator(".card[data-id]").count() === cap && await p.evaluate(() => document.activeElement?.id === "pkmore")); }
+      await pick.locator("#pkfold").click(); await pause();
+      check("「畳む」で見出しと件数の 1 行になり、開け閉めを覚える（フォーカスはボタンに残る）", await p.evaluate(() => !document.querySelector("#pick .card") && document.querySelector("#pkfold").getAttribute("aria-expanded") === "false"
+        && document.activeElement?.id === "pkfold" && JSON.parse(localStorage.getItem("kiroku:pickFold")) === true && document.querySelector("#pick").getBoundingClientRect().height < 110));
+      await pick.locator("#pkfold").click(); await pause();
+      check("もう一度押すと開く", await pick.locator(".card[data-id]").count() === Math.min(cap, want.length));
       await pick.locator(".card[data-id]").first().click(); await pause();
       check("カードを押すと、そのセッションの詳細が開く", await drawerOpen() && await p.evaluate(id => st.sel === id, want[0]));
       await p.keyboard.press("Escape"); await pause();
