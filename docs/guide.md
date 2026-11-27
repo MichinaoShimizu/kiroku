@@ -226,7 +226,7 @@ It needs the [GitHub CLI](https://cli.github.com/) (`gh`), installed and logged 
 | Waiting for your review | Open pull requests where a review is requested from you |
 | Mentioning you | Open pull requests that mention you |
 
-Each row has the repository, the number (a link to GitHub) and title, its status (Draft, Checks failing / running / passing, Changes requested / Approved / Review required, Merge conflicts), when it was last updated, and the next step. Rows are ordered by repository, then by the most recently updated. When one of your sessions created the pull request (the same pull requests kiroku already links from your history), the row also links to that session. The page shows what is open now, so it has no week or month.
+Each row has these columns: Repository (owner above the name), Pull request (the number, a link to GitHub, and the title; for other people's, who opened it), Checks (Passing, Failing or Running), Review (Approved, Changes requested or Review required), Merge (Conflicts, Draft), Updated, and Next step with "Copy prompt". A dash means GitHub reported nothing for that column. The three tables share the same column positions; below 1280px wide each row becomes a card with the same fields named. Rows are ordered by repository, then by the most recently updated. When one of your sessions created the pull request (the same pull requests kiroku already links from your history), the row also links to that session. The page shows what is open now, so it has no week or month.
 
 "Copy prompt" copies a prompt for the row's next step, which the row names:
 

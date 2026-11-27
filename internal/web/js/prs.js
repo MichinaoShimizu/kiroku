@@ -56,26 +56,25 @@ function prPrompt(it, at){
 // 行に出す一言（何を頼むプロンプトか）
 const PR_TASK = () => ({checks: t("Fix the failing checks"), changes: t("Address the review"), conflict: t("Resolve the conflicts"), merge: t("Check that it is ready to merge"),
   status: t("See what it is waiting for"), review: t("Review it"), mention: t("Reply to the mention")});
-// 状況の札（色だけに頼らず、文字で言う。warn は手を入れるもの）
-function prTags(it){
-  const tag = (label, cls) => `<span class="prtag${cls ? " " + cls : ""}">${esc(label)}</span>`;
-  return [it.draft && tag(t("Draft")),
-    it.checks === "failing" ? tag(t("Checks failing"), "warn") : it.checks === "pending" ? tag(t("Checks running")) : it.checks === "passing" ? tag(t("Checks passing"), "good") : "",
-    it.review === "changes" ? tag(t("Changes requested"), "warn") : it.review === "approved" ? tag(t("Approved"), "good") : it.review === "required" ? tag(t("Review required")) : "",
-    it.conflict && tag(t("Merge conflicts"), "warn")].filter(Boolean).join("");
-}
+// 状況は、チェック・レビュー・マージの 3 つの欄に分ける（縦に見比べられるように）。色だけに頼らず、文字で言う。warn は手を入れるもの、なければ「—」
+const prTag = (label, cls) => `<span class="prtag${cls ? " " + cls : ""}">${esc(label)}</span>`, PR_NONE = `<span class="prnone">—</span>`;
+const prChecks = it => it.checks === "failing" ? prTag(t("Failing"), "warn") : it.checks === "pending" ? prTag(t("Running")) : it.checks === "passing" ? prTag(t("Passing"), "good") : PR_NONE;
+const prReview = it => it.review === "changes" ? prTag(t("Changes requested"), "warn") : it.review === "approved" ? prTag(t("Approved"), "good") : it.review === "required" ? prTag(t("Review required")) : PR_NONE;
+const prMerge = it => [it.conflict && prTag(t("Conflicts"), "warn"), it.draft && prTag(t("Draft"))].filter(Boolean).join("") || PR_NONE;
 // prSessionOf は、その PR を作ったセッション（履歴に、同じ URL の PR を作った記録があるもの。いちばん新しいもの）
 const prSame = u => { const m = /^https:\/\/([^/\s]+)\/([^/\s]+)\/([^/\s]+)\/pull\/(\d+)(?:[/?#]|$)/.exec(String(u || "")); return m ? `${m[1]}/${m[2]}/${m[3]}#${m[4]}`.toLowerCase() : null; };
 // 自分が作った PR だけ（ほかの人の PR と同じ URL を履歴に書かれても、そのセッションを結び付けない）
 function prSessionOf(it){ const k = (it.why || []).includes("author") ? prSame(it.url) : null; if (!k) return null;
   return DATA.filter(s => (s.prs || []).some(u => prSame(u) === k)).sort((a, b) => b.end - a.end)[0] || null; }
 function prsRow(it, i){
-  const ses = prSessionOf(it), tasks = prTasks(it), T = PR_TASK(), ok = PR_URL.test(it.url || ""), num = `#${it.number}`;
+  const ses = prSessionOf(it), tasks = prTasks(it), T = PR_TASK(), ok = PR_URL.test(it.url || ""), num = `#${it.number}`, [owner, name] = String(it.repo).split("/");
   return `<tr>
-    <td class="prrepo" data-l="${esc(t("Repository"))}">${esc(it.repo)}</td>
-    <td class="prwhat" data-l="${esc(t("Pull request"))}"><span class="prno">${ok ? ext(it.url, `${esc(num)} ↗`) : esc(num)}</span> <span class="prt">${esc(it.title || t("(no title)"))}</span>${it.author && !(it.why || []).includes("author") ? ` <span class="prby">${esc(t("by {name}", {name: it.author}))}</span>` : ""}${ses ? `<button type="button" class="prsl" data-id="${esc(ses.id)}" title="${esc(t("Session that created it"))}">${agMark(ses.source)}<span>${esc(ses.title)}</span></button>` : ""}</td>
-    <td class="prst" data-l="${esc(t("Status"))}">${prTags(it) || `<span class="prnone">—</span>`}</td>
-    <td class="prup" data-l="${esc(t("Updated"))}">${it.updated ? `${esc(md(it.updated))} ${esc(hm(it.updated))}` : "—"}</td>
+    <td class="prrepo" data-l="${esc(t("Repository"))}"><span class="prown">${esc(owner)}/</span><span class="prname">${esc(name || "")}</span></td>
+    <td class="prwhat" data-l="${esc(t("Pull request"))}"><span class="prno">${ok ? ext(it.url, `${esc(num)} ↗`) : esc(num)}</span> <span class="prt">${esc(it.title || t("(no title)"))}</span>${it.author && !(it.why || []).includes("author") ? `<span class="prby">${esc(t("by {name}", {name: it.author}))}</span>` : ""}${ses ? `<button type="button" class="prsl" data-id="${esc(ses.id)}" title="${esc(t("Session that created it"))}">${agMark(ses.source)}<span>${esc(ses.title)}</span></button>` : ""}</td>
+    <td class="prst" data-l="${esc(t("Checks"))}">${prChecks(it)}</td>
+    <td class="prst" data-l="${esc(t("Review"))}">${prReview(it)}</td>
+    <td class="prst" data-l="${esc(t("Merge"))}">${prMerge(it)}</td>
+    <td class="prup" data-l="${esc(t("Updated"))}">${it.updated ? `<span>${esc(md(it.updated))}</span> <span>${esc(hm(it.updated))}</span>` : "—"}</td>
     <td class="pract" data-l="${esc(t("Next step"))}">${ok ? `<span class="prnext">${esc(tasks.map(k => T[k]).join(" · "))}</span>${promptBtn("prp" + i, t("Copy a prompt that asks your AI agent to do this"))}` : ""}</td>
   </tr>`;
 }
@@ -91,7 +90,7 @@ function prsBody(){
   // グループごとに 1 つの表。リポジトリの順（同じリポジトリの PR が並ぶ）、その中は更新の新しい順
   const secs = G.map(([k, label]) => { const xs = items.map((it, i) => [it, i]).filter(([it]) => (first(it) || [])[0] === k)
       .sort(([a], [b]) => String(a.repo).localeCompare(String(b.repo)) || (b.updated || 0) - (a.updated || 0));
-    return xs.length ? `<section class="prsec"><h3>${esc(label)} · ${xs.length}</h3><div class="prscroll"><table class="prtable"><thead><tr>${[t("Repository"), t("Pull request"), t("Status"), t("Updated"), t("Next step")].map(th).join("")}</tr></thead><tbody>${xs.map(([it, i]) => prsRow(it, i)).join("")}</tbody></table></div>${d.more && d.more[k] ? `<p class="note">${esc(t("Only the 50 most recently updated are shown."))}</p>` : ""}</section>` : ""; }).join("");
+    return xs.length ? `<section class="prsec"><h3>${esc(label)} · ${xs.length}</h3><div class="prscroll"><table class="prtable"><thead><tr>${[t("Repository"), t("Pull request"), t("Checks"), t("Review"), t("Merge"), t("Updated"), t("Next step")].map(th).join("")}</tr></thead><tbody>${xs.map(([it, i]) => prsRow(it, i)).join("")}</tbody></table></div>${d.more && d.more[k] ? `<p class="note">${esc(t("Only the 50 most recently updated are shown."))}</p>` : ""}</section>` : ""; }).join("");
   return (secs || noneH(esc(t("No open pull requests involve you right now.")))) + (d.partial ? `<p class="note">${esc(t("GitHub answered only in part, so some pull requests or their status may be missing."))}</p>` : "");
 }
 function prsDraw(){
