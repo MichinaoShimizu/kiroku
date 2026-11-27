@@ -18,7 +18,7 @@ function render(){
     b.disabled = off; });
   $("#prev").setAttribute("aria-label", M ? t("Previous month") : t("Previous week")); $("#next").setAttribute("aria-label", M ? t("Next month") : t("Next week"));
   document.querySelectorAll("#mode button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.mode));
-  prsSync(); // ヘッダーの「プルリクエスト」（kiroku serve --prs のときだけ）
+  prsSync(); // 表示の切り替えの「プルリクエスト」（kiroku serve --prs のときだけ）
   showView(); // カレンダーかサマリーか（画面いっぱいに 1 つだけ）
   document.body.classList.toggle("srch", !!st.q); // 検索の最中は、結果だけを見せる（期間の行・凡例・カレンダー・サマリーは隠す。結果はどれも全期間から）
 

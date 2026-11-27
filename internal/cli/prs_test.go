@@ -239,7 +239,7 @@ func TestPRBoardAsksRarely(t *testing.T) {
 	}
 }
 
-// /prs は --prs のときだけある。付けなければ 404 で、gh を起動せず、画面にもボタンを出す印（meta の prs）を渡さない。
+// /prs は --prs のときだけある。付けなければ 404 で、gh を起動せず、画面にも「プルリクエスト」の表示を出す印（meta の prs）を渡さない。
 // 「更新」（POST）は、/archive と同じく、画面だけが付ける X-Kiroku ヘッダーと同じオリジンを求める（ほかのサイトのページから問い合わせさせない）。
 func TestServePRs(t *testing.T) {
 	logw = io.Discard
@@ -290,7 +290,7 @@ func TestServePRs(t *testing.T) {
 		}
 	}
 	if _, has := off.snap.meta["prs"]; has || strings.Contains(string(off.json), `"prs":true`) {
-		t.Error("without --prs: the view is told to show the pull request button")
+		t.Error("without --prs: the view is told to show the pull request page")
 	}
 
 	on, srvOn := mk(true)

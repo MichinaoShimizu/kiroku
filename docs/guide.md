@@ -216,9 +216,9 @@ Things to know:
 
 ## Pull requests that involve you
 
-`kiroku serve --prs` adds a "Pull requests" button next to the kiroku logo. It opens a list of the open pull requests that involve you, with each one's status and a prompt for your AI agent. It is off by default: without `--prs`, kiroku never asks GitHub about pull requests.
+`kiroku serve --prs` adds "Pull requests" next to Calendar and Summary under View. It is a page of tables of the open pull requests that involve you, with each one's repository, status and a prompt for your AI agent. It is off by default: without `--prs`, kiroku never asks GitHub about pull requests.
 
-It needs the [GitHub CLI](https://cli.github.com/) (`gh`), installed and logged in (`gh auth login`). The list has three groups; a pull request that fits more than one appears once, in the first:
+It needs the [GitHub CLI](https://cli.github.com/) (`gh`), installed and logged in (`gh auth login`). The page has one table per group; a pull request that fits more than one appears once, in the first:
 
 | Group | What is in it |
 |---|---|
@@ -226,7 +226,7 @@ It needs the [GitHub CLI](https://cli.github.com/) (`gh`), installed and logged 
 | Waiting for your review | Open pull requests where a review is requested from you |
 | Mentioning you | Open pull requests that mention you |
 
-Each row shows the repository and number (a link to GitHub), the title, when it was last updated, and its status: Draft, Checks failing / running / passing, Changes requested / Approved / Review required, and Merge conflicts. When one of your sessions created the pull request (the same pull requests kiroku already links from your history), the row also links to that session.
+Each row has the repository, the number (a link to GitHub) and title, its status (Draft, Checks failing / running / passing, Changes requested / Approved / Review required, Merge conflicts), when it was last updated, and the next step. Rows are ordered by repository, then by the most recently updated. When one of your sessions created the pull request (the same pull requests kiroku already links from your history), the row also links to that session. The page shows what is open now, so it has no week or month.
 
 "Copy prompt" copies a prompt for the row's next step, which the row names:
 
@@ -240,10 +240,10 @@ Each row shows the repository and number (a link to GitHub), the title, when it 
 
 Things to know:
 
-- kiroku asks GitHub only when you open the list (not again within 2 minutes) or press Refresh (not again within 10 seconds). It never asks in the background
+- kiroku asks GitHub only when you open the page (not again within 2 minutes) or press Refresh (not again within 10 seconds). It never asks in the background
 - It runs `gh api graphql` with one fixed, read-only question: "open pull requests that I opened, that request my review, or that mention me", up to 50 of each, most recently updated first. "Me" is whoever `gh` is logged in as, on the host `gh` uses by default. Nothing from your history is sent, and kiroku never reads, stores or passes a token
 - The answer stays in the memory of `kiroku serve`; it is not written to a file, and it is served only to a browser that has the key
-- Titles and names come from GitHub and can be written by other people. The view shows them as text. The prompt contains only the pull request's address and the status kiroku saw, never the title, the description or a name. It tells the agent to read the pull request with `gh`, to treat what it reads as material and not as instructions, and to wait for your OK before it pushes, comments, reviews, merges or closes anything. When one of your sessions created the pull request, the prompt also names that session's folder as your probable checkout
+- Titles and names come from GitHub and can be written by other people. The view shows them as text. The prompt contains only the pull request's address and the status kiroku saw, never the title, the description or a name. It tells the agent to read the pull request with `gh`, to treat what it reads as material and not as instructions, and to wait for your OK before it pushes, comments, reviews, merges or closes anything, and to stop and ask when the current folder is not a checkout of that repository or has uncommitted changes. When one of your sessions created the pull request, the prompt also names that session's folder as your probable checkout
 - As with reviews and reports, kiroku runs no agent: the agent you paste the prompt into reads the pull request and may send it to its provider
 - If `kiroku serve` is already running without `--prs`, `kiroku serve --prs` only opens the running view; stop it first
 
@@ -583,7 +583,7 @@ Per command:
 | `serve` | `--interval` | `5s` | How often to check history for changes. Reloads when changes stop for twice the interval (at most 12 times the interval) |
 | `serve` | `--lang` | `$KIROKU_LANG`, else the browser's language | Language of the view: `en` or `ja`. `?lang=en` or `?lang=ja` in the address also picks it |
 | `serve` | `--no-open` | | Don't open the browser (if `kiroku serve` is already running, only print its address) |
-| `serve` | `--prs` | | Add the "Pull requests" list: open pull requests that involve you, with their status and a prompt for each. Asks GitHub through the GitHub CLI (`gh`) when you open or refresh the list, and sends nothing from your history (see [Pull requests that involve you](#pull-requests-that-involve-you)) |
+| `serve` | `--prs` | | Add the "Pull requests" page: open pull requests that involve you, with their status and a prompt for each. Asks GitHub through the GitHub CLI (`gh`) when you open or refresh it, and sends nothing from your history (see [Pull requests that involve you](#pull-requests-that-involve-you)) |
 | `serve --check` | `--no-update-check` | | Don't ask GitHub whether a newer release exists |
 | `serve --check` | `--all` | | List every agent kiroku looks at, including those with no history, with where it looks |
 | `serve --check` | `--report` | | Print only kinds and counts for a bug report (kiroku --version, OS, per agent sessions, newest version seen, unreadable lines, unknown kinds); no paths, project names, IDs or content |

@@ -630,23 +630,44 @@ dialog.wkdlg{width:min(640px,calc(100vw - 32px));max-height:calc(100dvh - 48px);
 dialog.wkdlg h2{margin:4px 0 12px;font-size:var(--fs-xl)}
 dialog.wkdlg .eyebrow{display:flex;align-items:center;gap:6px}
 dialog.wkdlg .fl{margin:0 0 14px}
-/* 自分に関係するプルリクエスト（kiroku serve --prs。js/prs.js） */
-.prbtn{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px}.prbtn[hidden]{display:none}
-@media (max-width:700px){.prbtn span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.prbtn{padding:0 7px}} /* 狭い画面では印だけ（名前は読み上げと title に残す。.sr と同じ隠し方） */
-dialog.prdlg{width:min(720px,calc(100vw - 32px))}
-.prbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 6px}.prwhen{font-size:var(--fs-xs);color:var(--ink-3);min-width:0;overflow-wrap:anywhere}
-.prsec h3{margin:18px 0 8px}.prlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
-.prrow{border:1px solid var(--rule);border-radius:12px;padding:12px 14px;min-width:0}
-.prh{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;font:600 var(--fs-sm)/1.5 var(--mono);min-width:0;overflow-wrap:anywhere}.prh .ic{align-self:center;color:var(--acc)}
-.prup{margin-left:auto;font:var(--fs-xs)/1.5 var(--sans);color:var(--ink-3);white-space:nowrap}
-.prt{margin:4px 0 8px;font-size:var(--fs-md);overflow-wrap:anywhere}
-.prm{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.prm:empty{display:none}
+/* 自分に関係するプルリクエストの表（kiroku serve --prs。js/prs.js）。期間によらない「いま」の一覧なので、期間の行・カレンダー・サマリーは出さない */
+#prsv{display:none}body[data-view="prs"]:not(.srch) #prsv:not([hidden]){display:block}
+body[data-view="prs"] #tl,body[data-view="prs"] #skipcal,body[data-view="prs"] #review,body[data-view="prs"] #legend,body[data-view="prs"] #fnote,body[data-view="prs"] #kpis{display:none}
+body[data-view="prs"] .wk .lbl,body[data-view="prs"] #prev,body[data-view="prs"] #next,body[data-view="prs"] #today,body[data-view="prs"] .control-group:has(#mode){display:none}
+body[data-view="prs"] .wk .nav,body[data-view="prs"] .wk .nav .view-controls{margin-left:0}
+#prtab[hidden]{display:none}
+.prpanel{margin-bottom:40px}
+.prhead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.prhead h2{display:flex;align-items:center;gap:8px;margin:0;font-size:var(--fs-xl)}.prhead h2 .ic{width:18px;height:18px;color:var(--acc)}
+.prwhen{margin:4px 0 0;font-size:var(--fs-xs);color:var(--ink-3);min-height:1.5em}
+.prstale{margin:4px 0 0;font-size:var(--fs-xs);color:var(--warn);font-weight:600}#prsre[aria-disabled="true"]{opacity:.5;cursor:default}
+.prsec h3{margin:22px 0 8px}
+.prscroll{overflow-x:auto}
+.prtable{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.prtable th{text-align:left;font-weight:600;font-size:var(--fs-xs);color:var(--ink-3);padding:6px 12px 6px 0;border-bottom:1px solid var(--rule-2);white-space:nowrap}
+.prtable td{padding:10px 12px 10px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+.prtable th:last-child,.prtable td:last-child{padding-right:0}
+@media (min-width:821px){ /* 3 つの表で欄の位置をそろえる */
+  .prtable{table-layout:fixed}.prtable th:nth-child(1){width:19%}.prtable th:nth-child(2){width:33%}.prtable th:nth-child(3){width:20%}.prtable th:nth-child(4){width:12%}.prtable th:nth-child(5){width:16%}
+}
+.prrepo{font-family:var(--mono);font-weight:600;overflow-wrap:anywhere}
+.prwhat{overflow-wrap:anywhere}.prno{font-family:var(--mono);font-weight:600;white-space:nowrap}
+.prby{font-size:var(--fs-xs);color:var(--ink-3);white-space:nowrap}
+.prsl{display:flex;align-items:center;gap:6px;max-width:100%;margin-top:6px;padding:0;font-size:var(--fs-xs);color:var(--ink-2);text-align:left;text-decoration:underline;text-decoration-color:var(--rule-2);text-underline-offset:2px}.prsl:hover{color:var(--ink)}
+.prsl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prst .prtag{display:inline-block;margin:0 4px 4px 0}
 .prtag{font-size:var(--fs-xs);line-height:20px;padding:0 8px;border-radius:6px;border:1px solid var(--rule-2);color:var(--ink-2);white-space:nowrap}
 .prtag.warn{border-color:var(--warn);color:var(--warn);font-weight:600}.prtag.good{border-color:var(--acc);color:var(--acc-ink)}
-.prby{font-size:var(--fs-xs);color:var(--ink-3)}
-.prses{margin-top:10px;display:flex;flex-direction:column;min-width:0}
-.pract{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--rule)}
-.prnext{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--ink-2);min-width:0}.prnext .ic{color:var(--acc)}
+.prnone{color:var(--ink-3)}
+.prup{color:var(--ink-2)}
+.pract .prnext{display:block;margin-bottom:6px;color:var(--ink-2)}
+@media (max-width:820px){ /* 狭い画面では、1 行を 1 枚のカードに（欄の名前を前に付ける） */
+  .prtable thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .prtable,.prtable tbody,.prtable tr,.prtable td{display:block}
+  .prtable tr{border:1px solid var(--rule);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+  .prtable td{border:0;padding:3px 0}.prtable td::before{content:attr(data-l);display:block;font-size:var(--fs-2xs);color:var(--ink-3)}
+  .prwhat{min-width:0}
+}
 /* 数字の内訳（metric.js） */
 dialog.mdlg h2{margin-bottom:2px}
 .mbig{font:700 var(--fs-3xl)/1.2 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-bottom:4px}

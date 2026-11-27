@@ -57,7 +57,7 @@ func (l *live) refresh() error {
 	l.reload.Lock()
 	defer l.reload.Unlock()
 	snap := l.load()
-	if l.prs != nil { // 画面に「プルリクエスト」のボタンを出す（履歴ではない設定）
+	if l.prs != nil { // 画面の表示の切り替えに「プルリクエスト」を出す（履歴ではない設定）
 		if snap.meta == nil {
 			snap.meta = map[string]any{}
 		}
@@ -681,7 +681,7 @@ func serveLiveWith(addr string, allow []string, every time.Duration, picked []so
 	startLive(l, every)
 	fmt.Fprintln(l.print, st.dim("only browsers with its key can open it (to protect it from other users of this computer); run \"kiroku serve\" again to open it in another browser"))
 	if prs {
-		fmt.Fprintln(l.print, st.dim("--prs: the view can list pull requests that involve you; kiroku asks GitHub through gh only when you open or refresh that list, and sends nothing from your history"))
+		fmt.Fprintln(l.print, st.dim("--prs: the view has a Pull requests page; kiroku asks GitHub through gh only when you open or refresh it, and sends nothing from your history"))
 	}
 	if open {
 		if err := openWithKey(url); err != nil {
