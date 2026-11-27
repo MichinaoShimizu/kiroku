@@ -502,6 +502,7 @@ function bindInsight(R){
     if (el.matches(".stat, .mrow")){ const kt = lab.parentElement.querySelector(":scope > .kt"); if (kt) kt.querySelector(":scope > span").after(b); else lab.after(b); } else { if (/^H\d$/.test(lab.tagName)) lab.setAttribute("aria-label", name); (lab.querySelector(":scope > .kt") || lab).append(b); } });
   requestAnimationFrame(() => skBack(R));
   insPack(R);
+  R.querySelectorAll("[data-skm]").forEach(b => b.onclick = () => { st.insSkMan = !st.insSkMan; store.set("insSkMan", st.insSkMan); summary(); const nb = $("#review").querySelector("[data-skm]"); if (nb) nb.focus(); }); // 手動のコミット・push も含める
   for (const [attr, key] of [["skk", "insSk"]]) R.querySelectorAll(`[data-${attr}]`).forEach(b => b.onclick = () => { st[key] = b.dataset[attr]; store.set(key, st[key]); summary(); const nb = $("#review").querySelector(`[data-${attr}="${CSS.escape(b.dataset[attr])}"]`); if (nb) nb.focus(); });
   R.querySelectorAll("[data-wfk]").forEach(b => b.onclick = () => { st.insWf = b.dataset.wfk; store.set("insWf", st.insWf); summary(); const nb = $("#review").querySelector(`[data-wfk="${CSS.escape(b.dataset.wfk)}"]`); if (nb) nb.focus(); });
   R.querySelectorAll("[data-wk]").forEach(b => b.onclick = () => { st.insWk = b.dataset.wk; store.set("insWk", st.insWk); summary(); const nb = $("#review").querySelector(`[data-wk="${CSS.escape(b.dataset.wk)}"]`); if (nb) nb.focus(); });
@@ -634,10 +635,13 @@ function insSankey(){
   const topP = [...pt].sort((a, b) => b[1] - a[1]).slice(0, 6).map(x => x[0]), OTH = t("Other"), pj = p => topP.includes(p) ? p : OTH;
   const PRS = t("PR opened"), PSH = t("Pushed"), CMT = t("Committed"), CH = t("Changed files"), GH = t("GitHub comments and actions"), TOOL = t("Tools only"), CHAT = t("Chat only"), UNK = t("Not recorded");
   const STG = [PRS, PSH, CMT, CH, GH, TOOL, CHAT, UNK], ord = Object.fromEntries(STG.map((x, i) => [x, i]));
+  // 「手動も含める」をオンにすると、セッションの間（終わってから 10 分まで）に同じプロジェクトであったコミット（git log）と push（この PC の git reflog）も、そのセッションのものに数える。
+  // 手動の PR は、GitHub に問い合わせないとわからないので含めない
+  const man = !!st.insSkMan, manPush = s => (META.push || []).some(p => p.project === s.project && p.t >= s.start && p.t <= s.end + 600);
   const did = s => { const o = s.outputs || {};
     if (o.prs || (s.prs || []).length) return PRS;
-    if (o.ranPushes) return PSH;
-    if (o.ranCommits || o.commits) return CMT; // commits は Claude Code が実行を記録したコミット（ranCommits と同じ呼び出し）
+    if (o.ranPushes || man && manPush(s)) return PSH;
+    if (o.ranCommits || o.commits || man && commitsOf(s).length) return CMT; // commits は Claude Code が実行を記録したコミット（ranCommits と同じ呼び出し）
     if ((s.nFiles || 0) > 0) return CH;
     if (o.merges || o.reviews || o.ghOps) return GH;
     if (!records(s.source, "files")) return UNK;
@@ -668,9 +672,10 @@ function insSankey(){
   const mname = {cost: t("estimated cost"), credits: t("Kiro credits"), tokens: t("tokens"), minutes: t("session time")}[k];
   const parts = C[2].map(([key]) => t("{name} {pc}%", {name: key, pc: shr[2].get(key)}));
   const sy = C[2].every(([key]) => key === UNK) ? t("These agents don't record what their sessions changed, so it is not known what the amount led to")
-    : t("Of {tot} {metric}, by what AI did in the session: {parts}", {tot: fv(tot), metric: mname, parts: parts.join(JA ? "、" : ", ")});
-  const mtabs = ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-skk="${x}" aria-pressed="${x === k}">${esc(INS_SW_NAME()[x])}</button>`).join("")}</div>` : "";
-  const heads = [t("Agent"), t("Project"), t("What AI did")], hx = [X[0] + nw / 2, X[1] + nw + LW / 2, X[2] + nw / 2];
+    : t(man ? "Of {tot} {metric}, by what the session did, including commits and pushes by hand: {parts}" : "Of {tot} {metric}, by what AI did in the session: {parts}", {tot: fv(tot), metric: mname, parts: parts.join(JA ? "、" : ", ")});
+  const mtabs = (ks.length > 1 ? `<div class="segc insk" role="group" aria-label="${esc(t("Metric"))}">${ks.map(x => `<button type="button" data-skk="${x}" aria-pressed="${x === k}">${esc(INS_SW_NAME()[x])}</button>`).join("")}</div>` : "")
+    + `<div class="segc insk"><button type="button" data-skm aria-pressed="${man}" title="${esc(t("Also count commits and pushes made in the same project during the session or up to 10 minutes after it, by hand or otherwise. Pull requests made by hand can't be known without asking GitHub, so they are not counted"))}">${esc(t("Include commits and pushes by hand"))}</button></div>`;
+  const heads = [t("Agent"), t("Project"), man ? t("What the session did") : t("What AI did")], hx = [X[0] + nw / 2, X[1] + nw + LW / 2, X[2] + nw / 2];
   // 狭い画面の一覧：列ごとに、色の印・名前・量・割合（図の文字の代わり。読み上げもこちらで）
   const list = `<div class="sklist">${C.map((c, i) => `<div class="skcol" role="group" aria-label="${esc(heads[i])}"><h6 class="iksh">${esc(heads[i])}</h6><ul>${c.map(([key, v]) => `<li><i style="background:${color(i, key)}"></i><span class="skn2">${esc(key)}</span><span class="iwv">${esc(fv(v))}</span><b>${shr[i].get(key)}%</b></li>`).join("")}</ul></div>`).join("")}</div>`;
   return `<div class="inshead"><h4 class="ikgh skgh">${esc(t("From input to output"))}<span data-flag="heavy"></span></h4>${mtabs}</div>${say(sy)}<figure class="insfig isk"><svg viewBox="-24 -18 ${W + 24} ${H + 18}" role="img" aria-label="${esc(t("From input to output"))}">${heads.map((h, i) => `<text class="skh" x="${hx[i]}" y="-2">${esc(h)}</text>`).join("")}${paths}${fill}${nodes}</svg>${list}<p class="ifxs">${fx(t("Band width = the amount. The right column is what AI did in each session, from that session's own history: a tool call that ran and succeeded. A session that did several counts once, under the furthest: PR opened (gh pr create or a GitHub tool), Pushed (git push), Committed (git commit), Changed files (edit tools), GitHub comments and actions (merging, reviewing or commenting on a pull request, or writing to an issue), Tools only (other tools, such as reading or searching) or Chat only (no tool calls). Commits, pushes and pull requests you made by hand, and what later sessions did with a session's changes, are not counted here; see the Output panel for those. The six largest projects are shown, the rest as Other. Sessions count in the period they started in, so the total can differ from the Input panel"), "", "", `<span class="skcd">${esc(t("Band width is the amount"))}</span><span class="skcl">${esc(t("Each list adds up to 100%"))}</span>`)}${k === "minutes" ? INS_STIME() : ""}</p></figure>`;
