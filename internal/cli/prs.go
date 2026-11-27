@@ -39,7 +39,8 @@ fragment prs on SearchResultItemConnection {
       reviewDecision
       mergeable
       author { login }
-      commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
+      commits(last: 1) { nodes { commit { committedDate statusCheckRollup { state } } } }
+      reviews(last: 1) { nodes { submittedAt } }
     }
   }
 }`
@@ -69,7 +70,9 @@ type prItem struct {
 	Review   string   `json:"review,omitempty"` // approved・changes・required（なければ空）
 	Checks   string   `json:"checks,omitempty"` // passing・failing・pending（なければ空）
 	Conflict bool     `json:"conflict,omitempty"`
-	Why      []string `json:"why"` // author・review・mention
+	Pushed   float64  `json:"pushed,omitempty"`   // 最後のコミットの時刻（UNIX 秒。チェックやレビューを待ち始めた目安）
+	Reviewed float64  `json:"reviewed,omitempty"` // 最後のレビューの時刻（変更の依頼や承認からの目安）
+	Why      []string `json:"why"`                // author・review・mention
 }
 
 // prsResult は /prs の答え。Error は画面に出す短い種類だけ（くわしいわけは端末に出す）：
@@ -104,12 +107,18 @@ type prsNode struct {
 	Commits *struct {
 		Nodes []struct {
 			Commit struct {
+				CommittedDate     string `json:"committedDate"`
 				StatusCheckRollup *struct {
 					State string `json:"state"`
 				} `json:"statusCheckRollup"`
 			} `json:"commit"`
 		} `json:"nodes"`
 	} `json:"commits"`
+	Reviews *struct {
+		Nodes []struct {
+			SubmittedAt string `json:"submittedAt"`
+		} `json:"nodes"`
+	} `json:"reviews"`
 }
 
 type prsList struct {
@@ -199,6 +208,12 @@ func prFromNode(n *prsNode) (prItem, bool) {
 		it.Review = "changes"
 	case "REVIEW_REQUIRED":
 		it.Review = "required"
+	}
+	if n.Commits != nil && len(n.Commits.Nodes) > 0 {
+		it.Pushed = prTime(n.Commits.Nodes[0].Commit.CommittedDate)
+	}
+	if n.Reviews != nil && len(n.Reviews.Nodes) > 0 {
+		it.Reviewed = prTime(n.Reviews.Nodes[0].SubmittedAt)
 	}
 	if n.Commits != nil && len(n.Commits.Nodes) > 0 && n.Commits.Nodes[0].Commit.StatusCheckRollup != nil {
 		switch n.Commits.Nodes[0].Commit.StatusCheckRollup.State {

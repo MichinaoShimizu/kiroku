@@ -790,6 +790,7 @@ func TestPRName(t *testing.T) {
 
 // 自分に関係する PR（kiroku serve --prs）のプロンプト：何を頼むかは状況で決まり、入れるのは形を確かめた URL と状況だけ。
 // GitHub から来た題名・名前も、履歴から来たフォルダも入れず、形の合わない URL ではプロンプトを作らない。
+// 1 つのプロンプトで頼むのは 1 つの指示だけ。状況の図は、止まっている段と、そこで止まっている時間の起点を正しく選ぶ。
 func TestPRPrompt(t *testing.T) {
 	node, err := exec.LookPath("node")
 	if err != nil {
@@ -807,7 +808,10 @@ func TestPRPrompt(t *testing.T) {
 	for _, x := range []struct{ src, re string }{
 		{prs, `(?m)^const PR_URL = .*;$`},
 		{prs, `(?ms)^function prTasks\(it\)\{.*?^\}$`},
-		{prs, `(?ms)^function prPrompt\(it, at\)\{.*?^\}$`},
+		{prs, `(?ms)^function prPrompt\(it, at, task\)\{.*?^\}$`},
+		{prs, `(?m)^const PR_STAGES = .*;$`},
+		{prs, `(?ms)^function prFlow\(it\)\{.*?^\}$`},
+		{prs, `(?m)^function prAge\(since, now\)\{.*\n.*\}$`},
 	} {
 		m := regexp.MustCompile(x.re).FindString(x.src)
 		if m == "" {

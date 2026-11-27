@@ -20,12 +20,13 @@ function prTasks(it){
   }
   return [why.includes("review") ? "review" : "mention"];
 }
-// prPrompt は、AI に渡すプロンプト（英語のまま）。入れるのは PR の URL と kiroku が見た状況だけで、題名や本文は入れない
-// （ほかの人が書ける文字を、指示のように読ませないため）。履歴から来た文字（作ったセッションのフォルダなど）も入れない。at は GitHub に問い合わせた時刻
-function prPrompt(it, at){
+// prPrompt は、AI に渡すプロンプト（英語のまま）。頼むのは task の 1 つだけ（行のボタン 1 つにプロンプト 1 つ）。
+// 入れるのは PR の URL と kiroku が見た状況だけで、題名や本文は入れない（ほかの人が書ける文字を、指示のように読ませないため）。
+// 履歴から来た文字（作ったセッションのフォルダなど）も入れない。at は GitHub に問い合わせた時刻
+function prPrompt(it, at, task){
   if (!PR_URL.test(it.url || "")) return "";
   return inEnglish(() => {
-    const why = it.why || [], tasks = prTasks(it), u = it.url, m = PR_URL.exec(u);
+    const why = it.why || [], u = it.url, m = PR_URL.exec(u);
     // 行ごとのレビューコメントは gh pr view には出ないので、API で読ませる（github.com 以外は、そのホストを名指しする）
     const inline = `gh api ${m[1] === "github.com" ? "" : `--hostname ${m[1]} `}repos/${m[2]}/${m[3]}/pulls/${m[4]}/comments`;
     const who = why.includes("author") ? "I opened it" : why.includes("review") ? "I was asked to review it" : "I am mentioned in it";
@@ -41,10 +42,11 @@ function prPrompt(it, at){
       review: "Review it. First say in 2-3 lines what it changes and why. Then list problems by severity, each with the file and line and a concrete fix. Draft the review comments for me; don't submit the review.",
       mention: "Find where I am mentioned, say what is being asked of me, and draft a reply for me. Don't post it.",
     };
+    if (!Object.prototype.hasOwnProperty.call(STEP, task)) return "";
     const L = [`Help me with this pull request: ${u}`, "",
       `What kiroku, a tool on this computer, saw on GitHub at ${md(at)} ${hm(at)} (${utcOff(at)}): ${seen}. This may be out of date, so read the current state first:`,
       `- \`gh pr view ${u} --comments\``, `- \`gh pr checks ${u}\``, `- \`gh pr diff ${u}\``,
-      "", "Then:", ...tasks.map((k, i) => `${i + 1}. ${STEP[k]}`),
+      "", `Then: ${STEP[task]}`,
       "", "Rules:",
       "- Show me what you plan to do and wait for my OK before you push, comment, review, merge or close anything on GitHub. Never force-push without asking",
       "- If the current folder is not a checkout of this repository, or it has uncommitted changes, stop and ask me before you change anything",
@@ -56,39 +58,72 @@ function prPrompt(it, at){
 // 行に出す一言（何を頼むプロンプトか）
 const PR_TASK = () => ({checks: t("Fix the failing checks"), changes: t("Address the review"), conflict: t("Resolve the conflicts"), merge: t("Check that it is ready to merge"),
   status: t("See what it is waiting for"), review: t("Review it"), mention: t("Reply to the mention")});
-// 状況は 1 つの欄に、いまの様子を短く。手を入れるもの（チェックの失敗・変更の依頼・コンフリクト）があれば、それだけを並べる（warn）。
-// なければ、いちばん先に進むのを止めているもの 1 つ（ドラフト・チェック実行中・レビュー待ち）か、マージできそうなら「マージ可」。
-// 色だけに頼らず、文字で言う。チェック・レビュー・マージのそれぞれは、title（とカードの読み上げ）で全部言う
+// 状況は、マージまでの流れ（ドラフト → チェック → レビュー → マージ）の図で、どこで・どのくらい止まっているかを示す。
+// 段ごとに、済んだ（done）・待っている（wait）・直すものがある（fix）。止まっているのは、済んでいない最初の段。
+// 止まってからの時間は、GitHub の時刻から見積もる（その段に入った時刻そのものは GitHub が返さないので、目安と断る）:
+//   ドラフト: 作った時刻から / チェック: 最後のコミットから / 変更の依頼: 最後のレビューから / レビュー待ち: 最後のコミットから /
+//   コンフリクト: 最後の更新から / マージ可（承認済み）: 最後のレビューから / マージ待ち: 最後のコミットから
+const PR_STAGES = ["draft", "checks", "review", "merge"];
+const PR_STAGE_NAME = () => ({draft: t("Draft"), checks: t("Checks"), review: t("Review"), merge: t("Merge")});
 const prTag = (label, cls) => `<span class="prtag${cls ? " " + cls : ""}">${esc(label)}</span>`, PR_NONE = `<span class="prnone">—</span>`;
-function prState(it){
-  const fix = [it.checks === "failing" && t("Checks failing"), it.review === "changes" && t("Changes requested"), it.conflict && t("Merge conflicts")].filter(Boolean);
-  if (fix.length) return fix.map(l => prTag(l, "warn")).join("");
-  if (it.draft) return prTag(t("Draft"));
-  if (it.checks === "pending") return prTag(t("Checks running"));
-  if (it.review === "approved") return prTag(t("Ready to merge"), "good");
-  if (it.review === "required") return prTag(t("Review required"));
-  return it.checks === "passing" ? prTag(t("Checks passing")) : PR_NONE;
+function prFlow(it){
+  const S = {draft: it.draft ? "wait" : "done",
+    checks: it.checks === "failing" ? "fix" : it.checks === "pending" ? "wait" : "done",
+    review: it.review === "changes" ? "fix" : it.review === "required" ? "wait" : "done",
+    merge: it.conflict ? "fix" : "wait"};
+  const at = PR_STAGES.find(k => S[k] !== "done"), ready = at === "merge" && S.merge === "wait" && it.review === "approved";
+  const pushed = it.pushed || it.updated || it.created || 0;
+  const [label, since, basis] = {
+    draft: [t("Draft"), it.created, t("since it was opened")],
+    checks: S.checks === "fix" ? [t("Checks failing"), pushed, t("since the last commit")] : [t("Checks running"), pushed, t("since the last commit")],
+    review: S.review === "fix" ? [t("Changes requested"), it.reviewed || it.updated, t("since the last review")] : [t("Review required"), Math.max(pushed, it.created || 0), t("since the last commit")],
+    merge: S.merge === "fix" ? [t("Merge conflicts"), it.updated, t("since the last update")] : ready ? [t("Ready to merge"), it.reviewed || pushed, t("since the last review")] : [t("Waiting to merge"), pushed, t("since the last commit")],
+  }[at];
+  return {S, at, label, since: since || 0, basis, kind: S[at] === "fix" ? "fix" : ready ? "ready" : "wait"};
 }
-// prStateFull は、状況の欄の title：チェック・レビュー・マージを全部、短い言葉で
-function prStateFull(it){
-  const C = {passing: t("passing"), failing: t("failing"), pending: t("running")}, R = {approved: t("approved"), changes: t("changes requested"), required: t("required")};
-  return [t("Checks: {v}", {v: C[it.checks] || "—"}), t("Review: {v}", {v: R[it.review] || "—"}),
-    t("Merge: {v}", {v: [it.conflict && t("conflicts"), it.draft && t("draft")].filter(Boolean).join(LSEP()) || "—"})].join(" · ");
+// prAge は、止まってからの時間を短く（1 時間未満・N 時間・N 日）。now は秒
+function prAge(since, now){ if (!since || now < since) return ""; const h = (now - since) / 3600;
+  return h < 1 ? t("<1h") : h < 48 ? t("{n}h", {n: Math.floor(h)}) : t("{n}d", {n: Math.floor(h / 24)}); }
+// prState は、状況の欄：4 つの段の図と、止まっている段の名前と時間
+function prState(it, now){
+  const F = prFlow(it), N = PR_STAGE_NAME(), age = prAge(F.since, now);
+  // 止まっている段より後ろは、直すもの（fix）と、済んだとわかるもの（チェック成功・承認済み）だけを塗り、ほかは「まだ」（todo）
+  const after = k => PR_STAGES.indexOf(k) > PR_STAGES.indexOf(F.at), known = {checks: it.checks === "passing", review: it.review === "approved"};
+  const V = Object.fromEntries(PR_STAGES.map(k => [k, after(k) && F.S[k] === "done" && !known[k] ? "todo" : F.S[k]]));
+  const full = `${PR_STAGES.map(k => `${N[k]}: ${({done: t("done"), wait: t("waiting"), fix: t("needs a fix"), todo: t("not yet")})[V[k]]}`).join(" → ")}. ${F.label}${age ? ` · ${age} ${F.basis}` : ""}`;
+  const step = k => { const cur = k === F.at;
+    return `<span class="prstep ${V[k]}${cur ? " cur" : ""}${cur && F.kind === "ready" ? " ready" : ""}"></span>`; };
+  return `<div class="prflow" role="img" aria-label="${esc(full)}" title="${esc(full)}"><div class="prsteps">${PR_STAGES.map(step).join("")}</div>
+    <div class="prstop ${F.kind}"><b>${esc(F.label)}</b>${age ? `<span>${esc(age)}</span>` : ""}</div></div>`;
+}
+// prOverview は、表の上の図：自分の PR が流れのどの段で止まっているか。段ごとに PR を、止まっている時間の長い順に棒で（長さは時間）
+function prOverview(items, now){
+  const mine = items.filter(it => (it.why || []).includes("author")); if (!mine.length) return "";
+  const N = PR_STAGE_NAME(), rows = mine.map(it => ({it, F: prFlow(it)})).map(x => ({...x, h: x.F.since && now > x.F.since ? (now - x.F.since) / 3600 : 0}));
+  const max = Math.max(24, ...rows.map(x => x.h));
+  const col = k => { const xs = rows.filter(x => x.F.at === k).sort((a, b) => b.h - a.h), shown = xs.slice(0, 5);
+    return `<li class="prcol"><div class="prcolh"><span>${esc(N[k])}</span><b>${xs.length}</b></div>
+      ${xs.length ? `<ul class="prbars">${shown.map(x => `<li class="${x.F.kind}" title="${esc(`${x.it.repo} #${x.it.number} · ${x.F.label} · ${prAge(x.F.since, now)} ${x.F.basis}`)}"><span class="prbn">#${esc(x.it.number)}</span><span class="prbt"><i style="width:${Math.max(4, Math.round(100 * Math.sqrt(x.h / max)))}%"></i></span><span class="prba">${esc(prAge(x.F.since, now) || "—")}</span></li>`).join("")}</ul>${xs.length > shown.length ? `<p class="prmore">${esc(t("+{n} more", {n: xs.length - shown.length}))}</p>` : ""}` : `<p class="prnone">—</p>`}</li>`; };
+  return `<section class="prov" aria-labelledby="provh"><h3 id="provh">${esc(t("Where your pull requests are stopped"))}</h3>
+    <ol class="prcols">${PR_STAGES.map(col).join("")}</ol>
+    <p class="note">${esc(t("Each bar is one of your pull requests, at the first step it hasn't passed; its length is how long it has been there (longest first, square-root scale). Times are estimates from the last commit, review or update GitHub reports."))}</p></section>`;
 }
 // prSessionsOf は、その PR と関係するセッション：履歴に、同じ URL の PR を作った記録か、その URL を名指ししてマージ・レビューした記録があるもの（新しい順）
 const prSame = u => { const m = /^https:\/\/([^/\s]+)\/([^/\s]+)\/([^/\s]+)\/pull\/(\d+)(?:[/?#]|$)/.exec(String(u || "")); return m ? `${m[1]}/${m[2]}/${m[3]}#${m[4]}`.toLowerCase() : null; };
 function prSessionsOf(it){ const k = prSame(it.url); if (!k) return [];
   return DATA.filter(s => (s.prs || []).some(u => prSame(u) === k) || (s.prActs || []).some(a => prSame(a.ref) === k)).sort((a, b) => b.end - a.end); }
 function prsRow(it, i){
-  const ses = prSessionsOf(it), tasks = prTasks(it), T = PR_TASK(), ok = PR_URL.test(it.url || ""), num = `#${it.number}`, [owner, name] = String(it.repo).split("/");
+  const ses = prSessionsOf(it), tasks = prTasks(it), T = PR_TASK(), ok = PR_URL.test(it.url || ""), num = `#${it.number}`, [owner, name] = String(it.repo).split("/"), now = nowMs() / 1000;
+  // 指示 1 つにボタン 1 つ。ボタンの名前が指示（押すと、その指示だけのプロンプトをコピーする）
+  const cp = k => `<button type="button" class="pill ai-copy prcp" data-pr="${i}" data-task="${k}" title="${esc(t("Copy a prompt that asks your AI agent to do this"))}">${ico("copy")}<span>${esc(T[k])}</span><span class="sr"> (${esc(t("Copy prompt"))})</span></button>`;
   const sesB = s => `<button type="button" class="prsl" data-id="${esc(s.id)}" title="${esc(`${s.title} · ${md(s.start)} ${hm(s.start)} · ${s.source}`)}">${agMark(s.source)}<span>${esc(s.title)}</span></button>`;
   return `<tr>
     <td class="prrepo" data-l="${esc(t("Repository"))}"><span class="prown">${esc(owner)}/</span><span class="prname">${esc(name || "")}</span></td>
     <td class="prwhat" data-l="${esc(t("Pull request"))}"><span class="prno">${ok ? ext(it.url, `${esc(num)} ↗`) : esc(num)}</span> <span class="prt">${esc(it.title || t("(no title)"))}</span>${it.author && !(it.why || []).includes("author") ? `<span class="prby">${esc(t("by {name}", {name: it.author}))}</span>` : ""}</td>
     <td class="prses" data-l="${esc(t("Sessions"))}">${ses.length ? ses.slice(0, 3).map(sesB).join("") + (ses.length > 3 ? `<span class="prmore">${esc(t("+{n} more", {n: ses.length - 3}))}</span>` : "") : PR_NONE}</td>
-    <td class="prst" data-l="${esc(t("Status"))}" title="${esc(prStateFull(it))}">${prState(it)}<span class="sr"> (${esc(prStateFull(it))})</span></td>
+    <td class="prst" data-l="${esc(`${t("Status")} (${PR_STAGES.map(k => PR_STAGE_NAME()[k]).join(" → ")})`)}">${prState(it, now)}</td>
     <td class="prup" data-l="${esc(t("Updated"))}">${it.updated ? `<span>${esc(md(it.updated))}</span> <span>${esc(hm(it.updated))}</span>` : "—"}</td>
-    <td class="pract" data-l="${esc(t("Next step"))}">${ok ? `<span class="prnext">${esc(tasks.map(k => T[k]).join(" · "))}</span>${promptBtn("prp" + i, t("Copy a prompt that asks your AI agent to do this"))}` : ""}</td>
+    <td class="pract" data-l="${esc(t("Copy a prompt"))}">${ok ? tasks.map(cp).join("") : PR_NONE}</td>
   </tr>`;
 }
 function prsBody(){
@@ -99,12 +134,14 @@ function prsBody(){
     : t("Couldn't ask GitHub. See the terminal where kiroku serve runs for details, then press Refresh.")));
   const G = [["author", t("Opened by you")], ["review", t("Waiting for your review")], ["mention", t("Mentioning you")]];
   const first = it => G.find(([k]) => (it.why || []).includes(k)), items = d.items || [];
-  const th = l => `<th scope="col">${esc(l)}</th>`;
+  const th = l => `<th scope="col">${esc(l)}</th>`, N = PR_STAGE_NAME();
+  // 状況の見出しには、行の図と同じ並びで段の名前を添える（図の 4 つの枠が何の段かを、どの行でも読めるように）
+  const thSt = `<th scope="col" class="prsth">${esc(t("Status"))}<span class="prsteps prleg" aria-hidden="true">${PR_STAGES.map(k => `<span>${esc(N[k])}</span>`).join("")}</span></th>`;
   // グループごとに 1 つの表。リポジトリの順（同じリポジトリの PR が並ぶ）、その中は更新の新しい順
   const secs = G.map(([k, label]) => { const xs = items.map((it, i) => [it, i]).filter(([it]) => (first(it) || [])[0] === k)
       .sort(([a], [b]) => String(a.repo).localeCompare(String(b.repo)) || (b.updated || 0) - (a.updated || 0));
-    return xs.length ? `<section class="prsec"><h3>${esc(label)} · ${xs.length}</h3><div class="prscroll"><table class="prtable"><thead><tr>${[t("Repository"), t("Pull request"), t("Sessions"), t("Status"), t("Updated"), t("Next step")].map(th).join("")}</tr></thead><tbody>${xs.map(([it, i]) => prsRow(it, i)).join("")}</tbody></table></div>${d.more && d.more[k] ? `<p class="note">${esc(t("Only the 50 most recently updated are shown."))}</p>` : ""}</section>` : ""; }).join("");
-  return (secs || noneH(esc(t("No open pull requests involve you right now.")))) + (d.partial ? `<p class="note">${esc(t("GitHub answered only in part, so some pull requests or their status may be missing."))}</p>` : "");
+    return xs.length ? `<section class="prsec"><h3>${esc(label)} · ${xs.length}</h3><div class="prscroll"><table class="prtable"><thead><tr>${[t("Repository"), t("Pull request"), t("Sessions")].map(th).join("")}${thSt}${[t("Updated"), t("Copy a prompt")].map(th).join("")}</tr></thead><tbody>${xs.map(([it, i]) => prsRow(it, i)).join("")}</tbody></table></div>${d.more && d.more[k] ? `<p class="note">${esc(t("Only the 50 most recently updated are shown."))}</p>` : ""}</section>` : ""; }).join("");
+  return (secs ? prOverview(items, nowMs() / 1000) + secs : noneH(esc(t("No open pull requests involve you right now.")))) + (d.partial ? `<p class="note">${esc(t("GitHub answered only in part, so some pull requests or their status may be missing."))}</p>` : "");
 }
 function prsDraw(){
   const V = $("#prsv"), d = PRS.data, hadRe = document.activeElement && document.activeElement.id === "prsre";
@@ -118,8 +155,8 @@ function prsDraw(){
   $("#prsre").onclick = () => prsLoad(true);
   if (hadRe) $("#prsre").focus();
   V.querySelectorAll(".prsl[data-id]").forEach(b => b.onclick = () => select(b.dataset.id));
-  V.querySelectorAll(".ai-copy").forEach(b => b.onclick = () => { const it = d && (d.items || [])[+b.id.slice(3)]; if (!it) return;
-    const p = prPrompt(it, d.fetched || Date.now() / 1000); if (p) copyPrompt(b, p); });
+  V.querySelectorAll(".prcp").forEach(b => b.onclick = () => { const it = d && (d.items || [])[+b.dataset.pr]; if (!it) return;
+    const p = prPrompt(it, d.fetched || Date.now() / 1000, b.dataset.task); if (p) copyPrompt(b, p); });
 }
 // prsLoad は /prs を読んで描き直す。force は「更新」（POST。kiroku serve が、ほかのサイトからの POST を断れるよう X-Kiroku を付ける）
 async function prsLoad(force){

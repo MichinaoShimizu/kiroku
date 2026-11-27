@@ -20,7 +20,7 @@ import (
 
 const prsAnswer = `{"data":{"viewer":{"login":"me-dev"},
 "author":{"issueCount":70,"nodes":[
- {"url":"https://github.com/o/r/pull/12","title":"  Fix\u001b[31m the \u202ething\n","isDraft":false,"createdAt":"2026-11-25T02:00:00Z","updatedAt":"2026-11-27T01:10:00Z","reviewDecision":"CHANGES_REQUESTED","mergeable":"CONFLICTING","author":{"login":"me-dev"},"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"FAILURE"}}}]}},
+ {"url":"https://github.com/o/r/pull/12","title":"  Fix\u001b[31m the \u202ething\n","isDraft":false,"createdAt":"2026-11-25T02:00:00Z","updatedAt":"2026-11-27T01:10:00Z","reviewDecision":"CHANGES_REQUESTED","mergeable":"CONFLICTING","author":{"login":"me-dev"},"commits":{"nodes":[{"commit":{"committedDate":"2026-11-26T03:00:00Z","statusCheckRollup":{"state":"FAILURE"}}}]},"reviews":{"nodes":[{"submittedAt":"2026-11-26T09:30:00Z"}]}},
  {"url":"https://ghe.acme.internal/platform/web-app/pull/7","title":"<img src=x onerror=alert(1)>","isDraft":true,"reviewDecision":"SOMETHING_NEW","mergeable":"UNKNOWN","author":{"login":"bad login"},"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"WEIRD"}}}]}}]},
 "review":{"issueCount":1,"nodes":[
  {"url":"https://github.com/o/other/pull/3","title":"t","reviewDecision":"REVIEW_REQUIRED","author":{"login":"dependabot[bot]"},"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"SUCCESS"}}}]}}]},
@@ -65,11 +65,11 @@ func TestParsePRs(t *testing.T) {
 	}
 	a := res.Items[0]
 	if a.Title != "Fix[31m the thing" || a.Repo != "o/r" || a.Number != 12 || a.Review != "changes" || a.Checks != "failing" || !a.Conflict || a.Draft ||
-		a.Author != "me-dev" || strings.Join(a.Why, ",") != "author,mention" || a.Updated != 1795741800 {
+		a.Author != "me-dev" || strings.Join(a.Why, ",") != "author,mention" || a.Updated != 1795741800 || a.Pushed != 1795662000 || a.Reviewed != 1795685400 {
 		t.Errorf("first = %+v", a)
 	}
 	b := res.Items[1] // 知らない語は出さない。名前の形でない作者は出さない。題名はそのまま（画面がエスケープする）
-	if b.Repo != "platform/web-app" || b.Number != 7 || b.Review != "" || b.Checks != "" || b.Conflict || !b.Draft || b.Author != "" || b.Created != 0 || b.Title != "<img src=x onerror=alert(1)>" {
+	if b.Repo != "platform/web-app" || b.Number != 7 || b.Review != "" || b.Checks != "" || b.Conflict || !b.Draft || b.Author != "" || b.Created != 0 || b.Pushed != 0 || b.Reviewed != 0 || b.Title != "<img src=x onerror=alert(1)>" {
 		t.Errorf("second = %+v", b)
 	}
 	if c := res.Items[2]; c.Review != "required" || c.Checks != "passing" || c.Author != "dependabot[bot]" || strings.Join(c.Why, ",") != "review" {

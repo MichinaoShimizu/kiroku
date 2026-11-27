@@ -226,13 +226,29 @@ It needs the [GitHub CLI](https://cli.github.com/) (`gh`), installed and logged 
 | Waiting for your review | Open pull requests where a review is requested from you |
 | Mentioning you | Open pull requests that mention you |
 
-Each row has these columns: Repository (owner above the name), Pull request (the number, a link to GitHub, and the title; for other people's, who opened it), Sessions (your sessions whose history records that they created this pull request, or merged or reviewed it by its address; click one to open it), Status, Updated, and Next step with "Copy prompt". Status is one short phrase: what needs fixing (Checks failing, Changes requested, Merge conflicts, each shown when it applies), or else what it is waiting for (Draft, Checks running, Review required) or Ready to merge (approved, with no checks failing or running and no conflicts). Hover it for the checks, review and merge state in full. A dash means GitHub reported nothing. The three tables share the same column positions; below 1280px wide each row becomes a card with the same fields named. Rows are ordered by repository, then by the most recently updated. The page shows what is open now, so it has no week or month.
+Each row has these columns: Repository (owner above the name), Pull request (the number, a link to GitHub, and the title; for other people's, who opened it), Sessions (your sessions whose history records that they created this pull request, or merged or reviewed it by its address; click one to open it), Status, Updated, and Copy a prompt.
 
-"Copy prompt" copies a prompt for the row's next step, which the row names:
+Status draws the way to merging as four steps, Draft → Checks → Review → Merge, the same order as the names under the column heading. Filled steps are done, the thick one is where the pull request is stopped (the first step not done), red ones need a fix, and dashed ones are not reached yet. Below it are the step's state and how long it has been stopped there:
 
-| Situation | The prompt asks the agent to |
+| Stopped at | Shown as | Time counted from |
+|---|---|---|
+| Draft | Draft | When it was opened |
+| Checks | Checks failing, Checks running | The last commit |
+| Review | Changes requested | The last review |
+| Review | Review required | The last commit |
+| Merge | Merge conflicts | The last update |
+| Merge | Ready to merge (approved) | The last review |
+| Merge | Waiting to merge (no review decision) | The last commit |
+
+GitHub doesn't say when a pull request reached a step, so these times are estimates. Hover the status for every step's state. Above the tables, "Where your pull requests are stopped" shows your own pull requests in four columns, one per step, each as a bar as long as the time it has been stopped there (longest first, on a square-root scale).
+
+Rows are ordered by repository, then by the most recently updated. The page shows what is open now, so it has no week or month.
+
+Copy a prompt has one button per instruction, named after it (for example "Fix the failing checks"). Each button copies a prompt that asks for that one thing only:
+
+| Buttons shown when | The prompt asks the agent to |
 |---|---|
-| Yours, with failing checks, requested changes or conflicts | Fix the failing checks, address each review comment, and resolve the conflicts (whichever apply) |
+| Yours, with failing checks, requested changes or conflicts (one button for each that applies) | Fix the failing checks; or address each review comment; or resolve the conflicts |
 | Yours, approved, not a draft, no checks running | Check that nothing is left and say whether it is ready to merge, without merging |
 | Yours, otherwise | Say what it is waiting for and the next step |
 | A review is requested from you | Review it and draft the review comments, without submitting the review |

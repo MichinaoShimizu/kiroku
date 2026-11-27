@@ -649,9 +649,9 @@ body[data-view="prs"] .wk .nav,body[data-view="prs"] .wk .nav .view-controls{mar
 .prtable td{line-height:1.55}
 .prtable tbody tr:hover td{background:color-mix(in srgb,var(--ink) 3%,transparent)}
 @media (min-width:1280px){ /* 3 つの表で欄の位置をそろえる。札の欄と右の 2 つは決まった幅、残りはタイトルに */
-  .prtable{table-layout:fixed}.prtable th:nth-child(1){width:170px}.prtable th:nth-child(3){width:200px}.prtable th:nth-child(4){width:150px}.prtable th:nth-child(5){width:110px}.prtable th:nth-child(6){width:200px}
+  .prtable{table-layout:fixed}.prtable th:nth-child(1){width:160px}.prtable th:nth-child(3){width:190px}.prtable th:nth-child(4){width:198px}.prtable th:nth-child(5){width:104px}.prtable th:nth-child(6){width:220px}
 }
-@media (min-width:1500px){.prtable th:nth-child(1){width:210px}.prtable th:nth-child(3){width:260px}}
+@media (min-width:1500px){.prtable th:nth-child(1){width:200px}.prtable th:nth-child(3){width:250px}}
 .prrepo{font-family:var(--mono);overflow-wrap:anywhere}.prown{display:block;font-size:var(--fs-xs);color:var(--ink-3)}.prname{font-weight:600}
 .prwhat{overflow-wrap:anywhere}.prno{font-family:var(--mono);font-weight:600;white-space:nowrap}
 .prby{display:block;margin-top:2px;font-size:var(--fs-xs);color:var(--ink-3)}
@@ -663,7 +663,29 @@ body[data-view="prs"] .wk .nav,body[data-view="prs"] .wk .nav .view-controls{mar
 .prtag.warn{border-color:var(--warn);color:var(--warn);font-weight:600}.prtag.good{border-color:var(--acc);color:var(--acc-ink)}
 .prnone{color:var(--ink-3)}
 .prup{color:var(--ink-2);font-variant-numeric:tabular-nums}.prup span{white-space:nowrap}
-.pract .prnext{display:block;margin-bottom:8px;color:var(--ink)}.pract .pill{max-width:100%}
+.pract .prcp{display:flex;width:100%;height:auto;min-height:30px;padding:5px 10px;white-space:normal;text-align:left;line-height:1.35}.pract .prcp+.prcp{margin-top:6px}.pract .prcp .ic{flex:none}
+/* 状況：マージまでの 4 段の図。済んだ段は塗り、止まっている段は太い枠（直すものは注意の色）、まだの段は枠だけ */
+.prflow{display:flex;flex-direction:column;gap:6px}
+.prsteps{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;max-width:176px}
+.prleg{margin-top:4px;font-weight:400;font-size:var(--fs-2xs);color:var(--ink-3);letter-spacing:-.02em}.prleg span{overflow:hidden;white-space:nowrap;text-overflow:clip}
+.prstep{height:8px;border-radius:2px;border:1px solid var(--rule-2);background:transparent}
+.prstep.done{background:color-mix(in srgb,var(--acc) 55%,transparent);border-color:transparent}.prstep.todo{border-style:dashed}
+.prstep.fix{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 35%,transparent)}
+.prstep.cur{height:12px;margin-top:-2px;border-width:2px;border-color:var(--ink)}.prstep.cur.fix{border-color:var(--warn);background:var(--warn)}.prstep.cur.ready{border-color:var(--acc);background:var(--acc)}
+.prstop{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;line-height:1.4}.prstop b{font-weight:600}.prstop span{font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.prstop.fix b{color:var(--warn)}.prstop.ready b{color:var(--acc-ink)}
+/* 表の上の図：段ごとの列に、止まっている PR を時間の長さの棒で */
+.prov{margin:18px 0 6px}.prov h3{margin:0 0 10px}
+.prcols{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--rule-2)}
+.prcol{padding:10px 12px;min-width:0;border-left:1px solid var(--rule-2);position:relative}.prcol:first-child{border-left:0}
+.prcol:not(:last-child)::after{content:"";position:absolute;right:-6px;top:14px;width:10px;height:10px;border-top:1px solid var(--rule-2);border-right:1px solid var(--rule-2);transform:rotate(45deg);background:var(--surface);z-index:1}
+.prcolh{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:var(--fs-xs);color:var(--ink-2)}.prcolh b{font-size:var(--fs-lg);color:var(--ink);font-variant-numeric:tabular-nums}
+.prbars{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.prbars li{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px;font-size:var(--fs-xs)}
+.prbn{font-family:var(--mono);color:var(--ink-2)}.prba{font-variant-numeric:tabular-nums;color:var(--ink-2);min-width:2.5em;text-align:right}
+.prbt{height:8px;background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:2px;overflow:hidden}.prbt i{display:block;height:100%;background:var(--ink-3)}
+.prbars li.fix .prbt i{background:var(--warn)}.prbars li.ready .prbt i{background:var(--acc)}.prbars li.fix .prba{color:var(--warn);font-weight:600}
+@media (max-width:820px){.prcols{grid-template-columns:repeat(2,minmax(0,1fr))}.prcol:nth-child(3){border-left:0}.prcol:nth-child(n+3){border-top:1px solid var(--rule-2)}.prcol::after{display:none}}
 @media (max-width:1279px){ /* 表の欄が収まらない幅では、1 行を 1 枚のカードに。リポジトリとタイトルとセッションは上に、状況と更新は名前つきで横に並べる */
   .prtable thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
   .prtable{border:0}.prtable,.prtable tbody{display:block}
