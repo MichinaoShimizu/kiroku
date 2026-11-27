@@ -801,7 +801,7 @@ func TestLeftOff(t *testing.T) {
 	}
 	text := strings.ReplaceAll(string(src), "\r\n", "\n")
 	var code []string
-	for _, re := range []string{`(?m)^const PICK_DAYS = .*$`, `(?m)^const pickPath = .*$`, `(?ms)^function leftOff\(.*?^\}$`} {
+	for _, re := range []string{`(?m)^const PICK_DAYS = .*$`, `(?ms)^function pickPath\(.*?^\}$`, `(?ms)^function leftOff\(.*?^\}$`} {
 		m := regexp.MustCompile(re).FindString(text)
 		if m == "" {
 			t.Fatalf("js/pickup.js に %s が見つからない", re)

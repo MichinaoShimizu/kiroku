@@ -284,7 +284,7 @@ async function run(env) {
     if (want.length) {
       check("何を数えたかを帯の頭に書く", /none of your commits/.test(await pick.locator(".pkh").innerText()));
       check("出すファイルは、その後のどのコミットにも入っていない", await p.evaluate(() => leftOff(pickNow(), DATA, META.git || []).every(({s, files}) => files.every(f =>
-        !META.git.some(c => c.project === s.project && c.t >= s.start - 60 && c.files.some(x => f.endsWith("/" + x.path))))))); // ダミーデータのプロジェクトはリポジトリのルート
+        !META.git.some(c => c.project === s.project && c.t >= s.start - 60 && c.files.some(x => f === c.repo + "/" + x.path)))))); // コミットのパスはリポジトリのルートから
       check("今日のセッションは出さない", await p.evaluate(() => { const t0 = new Date(today0()); t0.setHours(0, 0, 0, 0); return leftOff(pickNow(), DATA, META.git || []).every(x => x.s.end < t0 / 1000); }));
       const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
       check("帯が横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
