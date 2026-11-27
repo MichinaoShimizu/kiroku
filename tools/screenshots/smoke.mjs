@@ -479,7 +479,7 @@ async function run(env) {
       }
       { // パネルの切り替え：押すと別の選択肢のタイル（とグラフ）になり、開き直しても覚えている
         const sws = await p.evaluate(() => [...document.querySelectorAll("#review .insh .iksw")].map(g => ({sw: g.dataset.sw, vs: [...g.querySelectorAll("[data-v]")].map(b => b.dataset.v), on: [...g.querySelectorAll('[data-v]:not([hidden])')].map(b => b.dataset.v), cur: g.querySelector('[aria-pressed="true"]').dataset.v})));
-        const want = {cost: ["cost", "credits", "tokens", "active"], out: ["commit", "push", "pr"], unitN: ["cost", "credits", "tokens"], unitD: ["commit", "push", "pr", "edit"], uinN: ["cost", "credits", "tokens"], uinD: ["Hour", "Day", "Ses", "Ask"]};
+        const want = {cost: ["cost", "credits", "tokens", "active"], out: ["commit", "push", "pr", "merge", "review", "approve"], unitN: ["cost", "credits", "tokens"], unitD: ["commit", "push", "pr", "merge", "review"], uinN: ["cost", "credits", "tokens"], uinD: ["Hour", "Day", "Ses", "Ask"]};
         check("どのパネルにも切り替えがあり（単価は量と割る数の 2 つ）、選択肢はいつも同じ並びで、数字のあるものだけ", Object.keys(want).every(k => { const x = sws.find(z => z.sw === k); return x && x.on.length > 0 && x.vs.join() === want[k].filter(v => x.vs.includes(v)).join() && x.on.includes(x.cur); }), JSON.stringify(sws));
         const shown = sw => p.evaluate(sw => { const g = document.querySelector(`#review .iksw[data-sw="${sw}"]`), sec = g.closest(".ikg"), v = [...sec.querySelectorAll(".ikrow > [data-ch]")].filter(x => x.checkVisibility());
           return {n: v.length, ch: v[0] && v[0].dataset.ch, svg: v[0] ? (v[0].querySelector(".tspk svg") || {}).innerHTML || "" : "", label: v[0] ? (v[0].querySelector(".il") || v[0]).textContent : ""}; }, sw);
@@ -641,9 +641,9 @@ async function run(env) {
     const rwk = await p.evaluate(() => { const {ws, we} = period(); return reworkOf(ws, we).n > 0; }); // やり直しは 3 日たった AI のコミットがある期間だけ
     for (const id of ["lines", ...(rwk ? ["rework"] : []), "kept", "aiLines", "aiFiles"])
       check(`パネルから外した ${id} は成果のカードにある`, await oc.locator(`.hb[data-help="${id}"]`).count() === 1 && await p.locator(`#review .insh .hb[data-help="${id}"]`).count() === 0);
-    { // 100 行あたりは産出単価、時間・日・セッション・プロンプトあたりは投入単価のパネルに（単価の表のカードはない）。HELP のある指標は、どれもサマリーのどこかに「?」がある
-      const miss = await p.evaluate(() => [...["costPerEdit", "tokensPerEdit"].map(k => ["unit", k]), ...["costPerHour", "costPerDay", "costPerSes", "costPerAsk", "tokensPerHour", "tokensPerDay", "tokensPerSes", "tokensPerAsk", "creditsPerHour", "creditsPerSes", "creditsPerAsk"].map(k => ["uin", k])].filter(([g, k]) => !document.querySelector(`#review .insh .ik-${g} .hb[data-help="${k}"]`)).map(x => x.join(":")));
-      check("産出単価のパネルに 100 行あたり、投入単価のパネルに時間・日・セッション・プロンプトあたりの単価がある", miss.length === 0, miss.join(","));
+    { // 時間・日・セッション・プロンプトあたりは投入単価のパネルに（単価の表のカードはない）。HELP のある指標は、どれもサマリーのどこかに「?」がある
+      const miss = await p.evaluate(() => [...["costPerHour", "costPerDay", "costPerSes", "costPerAsk", "tokensPerHour", "tokensPerDay", "tokensPerSes", "tokensPerAsk", "creditsPerHour", "creditsPerSes", "creditsPerAsk"].map(k => ["uin", k])].filter(([g, k]) => !document.querySelector(`#review .insh .ik-${g} .hb[data-help="${k}"]`)).map(x => x.join(":")));
+      check("投入単価のパネルに時間・日・セッション・プロンプトあたりの単価がある", miss.length === 0, miss.join(","));
       const none = await p.evaluate(rwk => ["cost", "credits", "tokens", "active", "gitCommits", "lines", "prs", "pushes", "aiLines", "aiFiles", ...(rwk ? ["rework"] : []), "kept", "outSessions", "costPerCommit", "tokensPerCommit", "perPush", "perPr", "prompts", "cache", "subagents", "fix", "limits", "focus", "switches", "wait", "bigPrompts", "repeats", "friction", "compactions"].filter(k => !document.querySelector(`#review .hb[data-help="${k}"]`)), rwk);
       check("HELP のある指標は、サマリーのどこかに「?」がある", none.length === 0, none.join(","));
     }
@@ -959,13 +959,30 @@ async function run(env) {
       const hr = h.getBoundingClientRect(), fr = f.getBoundingClientRect(), kr = k.getBoundingClientRect(), between = [...document.querySelectorAll("#review .insg, #review .insrow")].every(x => x.getBoundingClientRect().top >= fr.bottom - 1);
       const side = f.classList.contains("two") && innerWidth >= 1300;
       return fr.top >= hr.bottom - 1 && Math.abs(fr.left - hr.left) < 2 && Math.abs(fr.right - hr.right) < 2 && Math.abs(kr.left - hr.left) < 2 && (side || Math.abs(kr.right - hr.right) < 2) && between && document.querySelectorAll("#review .isk").length === 1 && !k.closest(".insrow"); }));
-    { // サンキーの 1 文は、全体がどこへ行ったかを言い切る：コミットか PR あり・なし（None）・記録しないエージェントの分のうち 0 でないものを全部、全体に対する割合で。割合は足して 100
-      const sk = await p.evaluate(() => { const c = document.querySelector("#review .isk"); if (!c) return null; const say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay"), out = [...c.querySelectorAll(".sklist .skcol:last-child .skn2")].map(x => x.textContent);
-        return {unk: out.some(x => /^(Not recorded|記録なし)$/.test(x)), none: out.some(x => /^(None|なし)$/.test(x)), fil: out.some(x => /^(Files changed only|ファイルの変更だけ)$/.test(x)), yes: out.some(x => /^(Commit or PR|コミットか PR)$/.test(x)), txt: say ? say.textContent : "", list: [...c.querySelectorAll(".sklist .skcol")].map(g => [...g.querySelectorAll("li b")].reduce((a, b) => a + parseInt(b.textContent), 0))}; });
+    { // 投入から産出の流れ：エージェント → プロジェクト → GitHub に反映したか の 3 列。右の列は、そのセッションで AI が実行して成功したことだけで、
+      // その順（GitHub に反映・手元の変更だけ・変更なし・記録なし）に並ぶ。1 文は、そのどれも全体に対する割合で言い（足して 100）、一覧の割合は列ごとに足して 100
+      const sk = await p.evaluate(() => { const c = document.querySelector("#review .isk"); if (!c) return null; const say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay");
+        const out = [...c.querySelectorAll(".sklist .skcol:last-child .skn2")].map(x => x.textContent);
+        return {out, txt: say ? say.textContent : "", list: [...c.querySelectorAll(".sklist .skcol")].map(g => [...g.querySelectorAll("li b")].reduce((a, b) => a + parseInt(b.textContent), 0))}; });
+      const ORD = [["Changed GitHub", "GitHub に反映"], ["Local changes only", "手元の変更だけ"], ["No changes", "変更なし"], ["Not recorded", "記録なし"]];
+      const idx = sk ? sk.out.map(x => ORD.findIndex(o => o.includes(x))) : [];
       const pcs = sk ? [...sk.txt.matchAll(/(\d+)%/g)].map(m => +m[1]) : [];
-      check("サンキーの 1 文は、産出の部分（コミットか PR あり・ファイルの変更だけ・なし・記録しないエージェントの分）を全部言い、その割合は足して 100", !sk || (!sk.yes && !sk.none && !sk.fil ? pcs.length === 0 : pcs.length === sk.yes + sk.fil + sk.none + sk.unk && pcs.reduce((a, v) => a + v, 0) === 100
-        && (!sk.fil || /changed files|ファイルを変えた/.test(sk.txt)) && (!sk.none || /without|no files|もない|ファイルも変えなかった/.test(sk.txt)) && (!sk.unk || /don't record commits|記録しないエージェント/.test(sk.txt)) && (!sk.yes || /with a commit or PR|PR のあった/.test(sk.txt))), JSON.stringify({sk, pcs}));
+      const onlyUnk = sk && idx.every(i => i === ORD.length - 1);
+      check("サンキーの右の列は「GitHub に反映したか」の 4 つだけで、決まった順に並び、1 文はその全部を割合（足して 100）で言う", !sk || (idx.every(i => i >= 0) && idx.every((v, i) => i === 0 || idx[i - 1] < v)
+        && (onlyUnk ? pcs.length === 0 : pcs.length === idx.length && pcs.reduce((a, v) => a + v, 0) === 100)), JSON.stringify({sk, pcs}));
       check("サンキーの一覧の割合は、列ごとに足して 100", !sk || sk.list.every(v => v === 100), JSON.stringify(sk && sk.list));
+    }
+    if (await p.locator('#review [data-skm]').count()){ // 「手動の push も含める」（既定はオン）：押すと切り替わり、オンのときは 1 文がそう言う。手動の分を足すので、オンの方が変更を残した割合は減らない。もう一度押すと戻る
+      const st0 = () => p.evaluate(() => { const c = document.querySelector("#review .isk"), say = c.closest(".inscol, .insg, .ikg, section, div").querySelector(".isay");
+        const li = [...c.querySelectorAll(".sklist .skcol:last-child li")].map(l => [l.querySelector(".skn2").textContent, parseInt(l.querySelector("b").textContent)]);
+        return {txt: say.textContent, up: li.filter(([n]) => /^(Changed GitHub|Local changes only|GitHub に反映|手元の変更だけ)$/.test(n)).reduce((a, x) => a + x[1], 0),
+          on: document.querySelector("#review [data-skm]").getAttribute("aria-pressed") === "true"}; });
+      const a = await st0(); await p.locator('#review [data-skm]').click(); await pause(); const b = await st0();
+      const [on, off] = a.on ? [a, b] : [b, a];
+      check("「手動の push も含める」は既定でオンで、押すと切り替わる。オンのときは 1 文がそう言い、変更を残した割合はオフより減らない",
+        a.on && !b.on && /by hand|手動/.test(on.txt) && !/by hand|手動/.test(off.txt) && on.up >= off.up - 2, JSON.stringify({a, b}));
+      await p.locator('#review [data-skm]').click(); await pause();
+      check("もう一度押すと元に戻る", (await st0()).on === a.on);
     }
     { // サンキーの名前は、どれもカードの地の色の札の上（色の帯に直接乗らない）
       const lb = await p.evaluate(() => { const ts = [...document.querySelectorAll("#review .isk text.skt")].filter(x => x.checkVisibility());
@@ -974,9 +991,9 @@ async function run(env) {
         return {n: ts.length, bad, narrow: innerWidth <= 600}; });
       check("サンキーの名前と量は、どれも不透明な札の上にある（狭い画面では図の名前を出さず、下の一覧）", lb.narrow ? lb.n === 0 : lb.n > 0 && lb.bad.length === 0, JSON.stringify(lb));
     }
-    { // サンキーの色：エージェントから出る帯はエージェントの色、プロジェクトは左右 2 本の節の間を、そのプロジェクトの色の帯が埋め、プロジェクトから出る帯もプロジェクトの色
+    { // サンキーの色：エージェントから出る帯はエージェントの色、プロジェクト（data-p）は左右 2 本の節の間を、そのプロジェクトの色の帯が埋め、プロジェクトから出る帯もプロジェクトの色
       const sc = await p.evaluate(() => { const f = document.querySelector("#review .isk svg"); if (!f || !f.checkVisibility()) return null; /* 狭い画面では図を出さない（一覧だけ） */ const fill = e => e.getAttribute("fill"), r = e => e.getBoundingClientRect(), near = (x, y) => Math.abs(x - y) < 1.5;
-        const sk = [...f.querySelectorAll("rect.skp")], L = [...f.querySelectorAll("rect.skn:not(.o)")], O = [...f.querySelectorAll("rect.skn.o")], cvar = /^var\(--(c[0-7]|other)\)$/;
+        const sk = [...f.querySelectorAll("rect.skp[data-p]")], L = [...f.querySelectorAll("rect.skn:not(.o)")], O = [...f.querySelectorAll("rect.skn.o[data-p]")], cvar = /^var\(--(c[0-7]|other)\)$/;
         const band = sk.filter(e => { const b = r(e), l = L.find(x => near(r(x).right, b.left) && near(r(x).top, b.top)), o = O.find(x => near(r(x).left, b.right) && near(r(x).top, b.top));
           return !!l && !!o && near(r(l).height, b.height) && near(r(o).height, b.height) && b.width > 40 && fill(e) === fill(l) && fill(e) === fill(o) && cvar.test(fill(e)) && +getComputedStyle(e).opacity >= +getComputedStyle(f.querySelector("path.skl")).opacity; }).length;
         const ps = [...f.querySelectorAll("path.skl")], ag = ps.filter(e => e.dataset.l === "0"), po = ps.filter(e => e.dataset.l === "1"), pc = new Map(sk.map(e => [e.dataset.p, fill(e)]));
@@ -987,7 +1004,7 @@ async function run(env) {
         check("サンキーのプロジェクトから出る帯は、プロジェクトの色", sc.proj >= 2 && sc.projOk === sc.proj, JSON.stringify(sc));
       }
     }
-    check("サンキーは、エージェント・プロジェクト・成果の 3 列", await p.evaluate(() => document.querySelectorAll("#review .isk .skh").length === 3 && document.querySelectorAll("#review .isk .skl").length >= 2));
+    check("サンキーは、エージェント・プロジェクト・GitHub に反映したか の 3 列", await p.evaluate(() => document.querySelectorAll("#review .isk .skh").length === 3 && document.querySelectorAll("#review .isk .skl").length >= 2));
     await view("cal");
     await p.keyboard.press("m"); await pause();
     const opts = await p.locator("#calk option").evaluateAll(xs => xs.map(x => x.value));

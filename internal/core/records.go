@@ -12,17 +12,18 @@ import "slices"
 //   - compactions: 会話のコンパクション
 //   - files: AI が編集したファイル
 //   - subagents: サブエージェント
-//   - outputs: AI が実行したコミット・PR 作成・変更した行
+//   - outputs: AI が実行したコミット・PR 作成・変更した行（コミットまで含めて記録するのは Claude Code だけ）
+//   - prs: AI が作った PR（gh pr create・create_pull_request の呼び出しと、成功した結果）
 //
 // Kiro Crew の会話は kiro-cli の履歴にあるものとないもの（Crew の使用量の記録と会話ログだけのもの）があり、
 // ないものは編集したファイルを記録しないので、files に入れない（あるものは、編集があればそのまま見せる）。
 var Records = map[string][]string{
-	"Claude Code":         {"interrupts", "limits", "compactions", "files", "subagents", "outputs"},
-	"Codex":               {"interrupts", "limits", "compactions", "files", "subagents"},
-	"Kiro IDE / CLI (V3)": {"files"},
+	"Claude Code":         {"interrupts", "limits", "compactions", "files", "subagents", "outputs", "prs"},
+	"Codex":               {"interrupts", "limits", "compactions", "files", "subagents", "prs"},
+	"Kiro IDE / CLI (V3)": {"files", "prs"},
 	"Kiro CLI (V2)":       {"files"},
 	"Kiro Crew":           {"limits", "subagents"},
-	"Kiro CLI (SQLite)":   {"interrupts", "compactions", "files"},
+	"Kiro CLI (SQLite)":   {"interrupts", "compactions", "files", "prs"},
 }
 
 // RecordsOf は、source の履歴が what（Records の説明の名前）を記録するか。

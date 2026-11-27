@@ -402,3 +402,33 @@ func TestCacheRemembersWorkingDirs(t *testing.T) {
 		t.Errorf("TopTTL を過ぎたあと: rev-parse %d, want 2", calls["rev-parse"])
 	}
 }
+
+// Codex や Kiro が実行したコミット（rancommit）にも、AI の印をつける。Claude Code のように commit と rancommit の両方があるセッションでは、
+// rancommit を重ねて数えない（同じコミットに 2 つの印をつけない）。
+func TestCollectRanCommit(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git がない")
+	}
+	dir := t.TempDir()
+	run(t, dir, nil, "init", "-q")
+	run(t, dir, nil, "config", "user.email", "me@example.com")
+	run(t, dir, nil, "config", "user.name", "me")
+	base := time.Now().Add(-2 * time.Hour).Unix()
+	commit := func(file, msg string, at int64) {
+		os.WriteFile(filepath.Join(dir, file), []byte("a\n"), 0o644)
+		run(t, dir, nil, "add", file)
+		date := time.Unix(at, 0).Format(time.RFC3339)
+		run(t, dir, []string{"GIT_AUTHOR_DATE=" + date, "GIT_COMMITTER_DATE=" + date}, "commit", "-q", "-m", msg)
+	}
+	commit("a.txt", "by codex", base+600)
+	commit("b.txt", "by claude", base+1800)
+	codexAt, claudeAt := float64(base+595), float64(base+1795)
+	codex := &core.Session{ID: "cx", Source: "Codex", Project: filepath.Base(dir), ProjectPath: dir, Start: float64(base), End: float64(base + 900),
+		OEv: []core.Output{{T: &codexAt, Kind: "rancommit", V: 1}}}
+	claude := &core.Session{ID: "cc", Source: "Claude Code", Project: filepath.Base(dir), ProjectPath: dir, Start: float64(base + 1200), End: float64(base + 2400),
+		OEv: []core.Output{{T: &claudeAt, Kind: "commit", V: 1}, {T: &claudeAt, Kind: "rancommit", V: 1}}}
+	cs, _, _ := NewCache().Collect([]*core.Session{codex, claude})
+	if len(cs) != 2 || !cs[0].AI || cs[0].Session != "cx" || !cs[1].AI || cs[1].Session != "cc" {
+		t.Errorf("コミット = %+v, want 2 つとも AI（cx・cc）", cs)
+	}
+}

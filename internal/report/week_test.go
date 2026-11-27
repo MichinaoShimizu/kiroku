@@ -79,10 +79,14 @@ func TestOutputsOnlyFromTrackedSessions(t *testing.T) {
 		OEv: []core.Output{{T: &start, Kind: "commit", V: 1}}}
 	idle := &core.Session{ID: "i", Source: "Claude Code", Project: "app", Start: start, End: start + 600, Segs: seg, Prompts: []core.Prompt{}, OutTracked: true}
 	other := &core.Session{ID: "o", Source: "Codex", Project: "app", Start: start, End: start + 600, Segs: seg, Prompts: []core.Prompt{},
-		UEv: []core.Event{{T: &start, Model: "m", U: core.Tokens{In: 1}, Cost: &c2}}}
+		UEv: []core.Event{{T: &start, Model: "m", U: core.Tokens{In: 1}, Cost: &c2}},
+		OEv: []core.Output{{T: &start, Kind: "pr", V: 1}}} // Codex も PR は記録する。PR の数には入れ、割合の分子には入れない
 	w := Summarize([]*core.Session{claude, idle, other}, ws, ws.AddDate(0, 0, 7))
 	if w.Sessions != 3 || w.OutBase != 2 || w.OutSessions != 1 {
 		t.Errorf("sessions/outBase/outSessions = %d %d %d, want 3 2 1", w.Sessions, w.OutBase, w.OutSessions)
+	}
+	if w.Outputs.PRs != 1 {
+		t.Errorf("PR = %v, want 1（Codex の PR も数える）", w.Outputs.PRs)
 	}
 	if w.CostPerCommit == nil || *w.CostPerCommit != 2 {
 		t.Errorf("1 コミットあたり = %v, want 2（Codex のコストは入れない）", w.CostPerCommit)

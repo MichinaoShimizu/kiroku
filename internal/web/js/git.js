@@ -110,11 +110,11 @@ function pushDetail(p){
   bindGitEvents(P); bindCopy(P);
 }
 function prDetail(s, r){
-  const P = $("#panel"), m = /github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/.exec(r.url || "");
+  const P = $("#panel"), m = ghPull(r.url) // ホストを github.com に固定（session.js）;
   const cs = commitsOf(s).filter(c => c.t <= r.t + 60); // PR を作るまでにそのセッションでしたコミット
   const ps = (META.push || []).filter(p => p.project === s.project && p.t >= s.start - 60 && p.t <= r.t + 60);
   P.innerHTML = `<div style="--c:${colorOf(keyOf(s))}">
-    ${dHead(ico("pr") + esc(t("Pull request")), m ? `${m[1]} #${m[2]}` : r.url ? prName(r.url) : t("Pull request"), esc(t("Created {time}", {time: `${md(r.t)} ${hm(r.t)}`})), [projTag(s.project), branchTag(s.branch)])}
+    ${dHead(ico("pr") + esc(t("Pull request")), m ? `${m[1]}/${m[2]} #${m[3]}` : r.url ? prName(r.url) : t("Pull request"), esc(t("Created {time}", {time: `${md(r.t)} ${hm(r.t)}`})), [projTag(s.project), branchTag(s.branch)])}
     <div class="dcols"><div class="dcol">
     ${r.url ? `<p class="dact">${ext(r.url, esc(t("Open this pull request ↗")), "pill")}</p>` : ""}
     <p class="note">${esc(t("Recorded when an agent created it in this session (gh pr create or GitHub tools). kiroku never asks GitHub, so its title, status and reviews are not shown here."))}</p>

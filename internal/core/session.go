@@ -540,7 +540,7 @@ func (s *Builder) HideText(text string) {
 		s.LimitResets[i] = ""
 	}
 	for i := range s.Outputs {
-		s.Outputs[i].URL = ""
+		s.Outputs[i].URL, s.Outputs[i].Ref = "", ""
 	}
 	for i := range s.Subagents {
 		s.Subagents[i].Desc = ""
@@ -575,8 +575,14 @@ func (s *Session) Hidden(text, title string) *Session {
 	}
 	c.OEv = make([]Output, len(s.OEv))
 	for i, o := range s.OEv {
-		o.URL = ""
+		o.URL, o.Ref = "", ""
 		c.OEv[i] = o
+	}
+	if s.PRActs != nil {
+		c.PRActs = make([]PRAct, len(s.PRActs))
+		for i, a := range s.PRActs {
+			c.PRActs[i] = PRAct{T: a.T, K: a.K} // どの PR か（リポジトリの名前）は出さない
+		}
 	}
 	c.Subagents = make([]Subagent, len(s.Subagents))
 	for i, a := range s.Subagents {
@@ -772,14 +778,23 @@ type Session struct {
 	// PrivateFiles は、中身を出さない会話（Kiro Crew の incognito・temporary と、その写し）の履歴のファイル。
 	// HTML・JSON には入れない（json:"-"）。中身を出さない会話を見分けて調べるために持つ
 	PrivateFiles []string  `json:"-"`
-	PRs          []string  `json:"prs"`  // AI が作った PR の URL（わかったもの）
-	PRAt         []PRAt    `json:"prAt"` // AI が PR を作った時刻（依頼の流れに出す）
-	UEv          []Event   `json:"-"`    // 週ごとの集計用（HTML には入れない）
+	PRs          []string  `json:"prs"`              // AI が作った PR の URL（わかったもの）
+	PRAt         []PRAt    `json:"prAt"`             // AI が PR を作った時刻（依頼の流れに出す）
+	PRActs       []PRAct   `json:"prActs,omitempty"` // AI が PR をマージ・レビュー・アプルーブした時刻（依頼の流れに出す）
+	UEv          []Event   `json:"-"`                // 週ごとの集計用（HTML には入れない）
 	CEv          []Credit  `json:"-"`
 	OEv          []Output  `json:"-"`
 	Fix          []float64 `json:"-"`
 	Meas         []Measure `json:"-"`
 	OutTracked   bool      `json:"-"` // アウトプットを記録できるエージェントのセッション（Records の outputs）
+}
+
+// PRAct は AI が PR にした操作（K: merge・review・approve）と時刻、わかれば相手の PR（Ref: 「#11」か「repo#11」）。
+// 承認は approve だけ（review と重ねない）。
+type PRAct struct {
+	T   float64 `json:"t"`
+	K   string  `json:"k"`
+	Ref string  `json:"ref,omitempty"`
 }
 
 // PRAt は AI が PR を作った時刻と、わかれば URL。
@@ -914,7 +929,20 @@ func (s *Builder) Finish(gapMin int) *Session {
 	}
 	var outs OutputTotal
 	prs, prAt := []string{}, []PRAt{}
+	var prActs []PRAct
 	for _, o := range s.Outputs {
+		if t := o.T; t != nil && *t != 0 {
+			switch o.Kind {
+			case "merge", "review":
+				prActs = append(prActs, PRAct{T: *t, K: o.Kind, Ref: o.Ref})
+			case "approve": // 同じ呼び出しの review を、承認に置き換える
+				if n := len(prActs); n > 0 && prActs[n-1].K == "review" && prActs[n-1].T == *t && prActs[n-1].Ref == o.Ref {
+					prActs[n-1].K = "approve"
+				} else {
+					prActs = append(prActs, PRAct{T: *t, K: "approve", Ref: o.Ref})
+				}
+			}
+		}
 		outs.Add(o)
 		if o.Kind == "pr" && o.URL != "" {
 			prs = append(prs, o.URL)
@@ -942,7 +970,7 @@ func (s *Builder) Finish(gapMin int) *Session {
 		Prompts: prompts, Notes: s.Notes, NPrompts: len(s.Prompts), Tools: tools, Files: files, FileEdits: fileEdits, NFiles: nFiles, EditAdded: editAdded, EditRemoved: editRemoved, Resume: strOrNil(s.Resume),
 		Waits: s.Waits(), Interrupts: s.Interrupts, InterruptsAt: interrupts, Limits: limits(s.Limits), LimitResets: limitResets(s.LimitResets), LimitResetAt: limitResetAt(s.LimitResetAt), Compactions: compactions, CompactKinds: compactKinds, Ctx: ctx, CtxWindow: s.CtxWindow, Corrections: s.Corrections(), Models: models, Tiers: tiers,
 		Usage: mainSum, Subagents: subs, Credits: Round(credits, 3), Cost: Round(cost, 4),
-		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: reported, File: s.File, PrivateFiles: s.PrivateFiles, PRs: prs, PRAt: prAt,
+		UEv: uev, CEv: s.Credits, OEv: s.Outputs, Outputs: outs, Fix: s.FixTS, CostReported: reported, File: s.File, PrivateFiles: s.PrivateFiles, PRs: prs, PRAt: prAt, PRActs: prActs,
 		Meas: s.Measures, OutTracked: RecordsOf(s.Source, "outputs"),
 	}
 }

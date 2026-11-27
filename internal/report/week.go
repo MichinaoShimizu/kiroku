@@ -497,7 +497,7 @@ func Summarize(data []*core.Session, wsT, weT time.Time, commits ...gitlog.Commi
 				shipped = shipped || o.Kind == "commit" || o.Kind == "pr"
 			}
 		}
-		if shipped {
+		if shipped && d.OutTracked { // 分母（outBase）と同じく Claude Code のセッションだけ（Codex・Kiro も PR は記録するが、コミットは記録しない）
 			outSes++
 		}
 	}

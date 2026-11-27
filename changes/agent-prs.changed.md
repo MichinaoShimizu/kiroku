@@ -1,0 +1,8 @@
+- "Claude Code sessions that reached a commit or PR" counts only Claude Code sessions in its numerator as well as its denominator, so pull requests from other agents don't raise it
+- The Output panel's and unit cost's pull request choices are named "PRs opened" (PR 作成), "PR merges", "PR reviews" and "PR approvals", and the pull request tile is "Pull requests created", so it is clear that "PRs" counts pull requests AI opened
+- From input to output's right column is the output type (see Added) instead of "Commit or PR" / "Files changed only" / "None" / "Not recorded", which also counted commits made by hand during a session
+- From input to output shows each band's amount, its share of all and its share of the node it leaves, each named, at its start, where the band has room, and its right column is headed "Output type"
+- A figure whose past periods were all 0 says "the first in your past N weeks" (or months) instead of "far above your usual 0–0", without amber or an arrow
+- Session details list pull requests AI opened, merged and reviewed under their own GitHub group ("from the agent's history") instead of under Git, and name the merged and reviewed ones
+- Pull requests on other hosts (such as GitHub Enterprise) are named "host repo#12" instead of the full URL; the host stays so the name always matches where the link goes
+- The pull request figures use the same names everywhere: PRs opened, PR merges, PR reviews, PR approvals, Per PR merge and Per PR review

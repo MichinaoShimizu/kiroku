@@ -536,6 +536,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		var lastInfo, lastLimits, lastLast string // lastLast: 前の token_count の last_token_usage
 		var prevTotal core.Tokens
 		records := map[string]bool{}
+		prs := newPRCalls() // PR の操作（作成・マージ・レビュー）の呼び出し（gh pr create・create_pull_request）。結果（*_call_output）が成功なら数える
 		var fromCounts, fromRecords []core.Event
 		var countMeas, recordMeas []core.Measure
 		// cutEvents・cutMeas は、最初の token_usage_record を読んだときの fromCounts・countMeas の長さ（-1 はまだ無い）。
@@ -698,11 +699,14 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					json.Unmarshal([]byte(core.Str(p["arguments"])), &args)
 					s.Tool(core.Str(p["name"]), args)
 					codexEdited(s, core.Str(p["name"]), args)
+					prs.call(core.Str(p["call_id"]), core.Str(p["name"]), args, t)
 					s.Measure("tool_calls", t, 1)
 					s.Agent(t)
 				case "custom_tool_call":
 					s.Tool(core.Str(p["name"]), nil)
 					codexEdited(s, core.Str(p["name"]), core.Str(p["input"]))
+					// 自由形式の入力（apply_patch のパッチなど）はコマンドとは限らないので、名前（create_pull_request）だけで見る
+					prs.call(core.Str(p["call_id"]), core.Str(p["name"]), nil, t)
 					s.Measure("tool_calls", t, 1)
 					s.Agent(t)
 				case "local_shell_call":
@@ -710,12 +714,20 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 					action := core.Map(p["action"])
 					s.Tool("local_shell", nil)
 					codexEdited(s, "local_shell", action)
+					prs.call(core.Str(p["call_id"]), "local_shell", action, t)
 					s.Measure("tool_calls", t, 1)
 					s.Agent(t)
 				case "web_search_call", "tool_search_call", "image_generation_call":
 					// サーバーやクライアントで動くツール（ウェブ検索・ツールの検索・画像の生成）。function_call とは別の項目で残る
 					s.Tool(strings.TrimSuffix(core.Str(p["type"]), "_call"), nil)
 					s.Measure("tool_calls", t, 1)
+					s.Agent(t)
+				case "function_call_output", "custom_tool_call_output":
+					// ツールの結果。PR の操作の呼び出しなら、成功したか（終了コード）を見て、出力から PR の URL を探す
+					if id := core.Str(p["call_id"]); prs.waiting(id) {
+						text, ok := codexCallOutput(p["output"])
+						prs.result(s, id, ok, text, t)
+					}
 					s.Agent(t)
 				case "message":
 					var parts []string
@@ -957,6 +969,7 @@ func (c *Codex) LoadUnit(u Unit, emit func(*core.Builder)) error {
 		}
 		parent := byID[cf.parent].b
 		parent.Measures = append(parent.Measures, cf.b.Measures...) // サブエージェントの分も親のセッションの数字に入れる
+		parent.Outputs = append(parent.Outputs, cf.b.Outputs...)    // サブエージェントが作った・マージした・レビューした PR も、親のセッションのアウトプット
 		parent.Limits = append(parent.Limits, cf.b.Limits...)       // サブエージェントが上限に当たっても、止まったのは親のセッションの作業
 		parent.LimitResets = append(parent.LimitResets, cf.b.LimitResets...)
 		parent.LimitResetAt = append(parent.LimitResetAt, cf.b.LimitResetAt...)
@@ -1050,9 +1063,9 @@ var (
 	// codexItems の 1 段めは読むもの、残りはわざと読まないもの
 	codexItems = map[string]bool{
 		"message": true, "function_call": true, "custom_tool_call": true, "local_shell_call": true, "web_search_call": true,
-		"tool_search_call": true, "image_generation_call": true,
+		"tool_search_call": true, "image_generation_call": true, "function_call_output": true, "custom_tool_call_output": true,
 
-		"reasoning": true, "function_call_output": true, "custom_tool_call_output": true, "tool_search_output": true,
+		"reasoning": true, "tool_search_output": true,
 		"ghost_snapshot": true, "compaction": true, "compaction_summary": true, "other": true,
 		// agent_message はエージェントどうしのメッセージ（author・recipient つき）で、あなたのプロンプトでも返事でもない
 		"agent_message": true, "additional_tools": true, "configuration_update": true, "context_compaction": true,
@@ -1415,4 +1428,30 @@ func codexPatchFiles(patch string) []string {
 		}
 	}
 	return files
+}
+
+// codexCallOutput は、ツールの結果（function_call_output・custom_tool_call_output の output）の文と、
+// 失敗でなかったかを返す。output は文か、内容の並び（{type, text}）か、{content, success}。
+// 古い版のシェルは {"output": …, "metadata": {"exit_code": N}} の JSON を文にして書く。失敗の見分けは core.ResultFailed。
+func codexCallOutput(output any) (string, bool) {
+	var text string
+	switch o := output.(type) {
+	case string:
+		text = o
+	case []any:
+		var parts []string
+		for _, b := range o {
+			if t := core.Str(core.Map(b)["text"]); t != "" {
+				parts = append(parts, t)
+			}
+		}
+		text = strings.Join(parts, "\n")
+	default:
+		m := core.Map(output)
+		text = core.Str(m["content"])
+		if core.Falsy(m["success"]) {
+			return text, false
+		}
+	}
+	return text, !core.ResultFailed(text)
 }
