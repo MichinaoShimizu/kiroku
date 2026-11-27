@@ -966,9 +966,9 @@ async function run(env) {
         return {cols, heads: [...c.querySelectorAll("text.skh")].map(x => x.textContent), txt: say ? say.textContent : "", paths: c.querySelectorAll("path.skl").length,
           sum0: [...c.querySelectorAll(".sklist .skcol:first-child li b")].reduce((a, b) => a + parseInt(b.textContent), 0)}; });
       check("投入から産出の流れは、エージェント → プロジェクト → 変更 → コミット → PR の 5 列で、1 文はどこまで進んだかを全体に対する割合で言う",
-        !fl || fl.cols.length >= 3 && fl.heads.length === 5 && fl.paths > 0 && (/as far as|まで進んだ/.test(fl.txt) || /don't record|記録しない/.test(fl.txt)), JSON.stringify(fl));
+        !fl || fl.cols.length >= 3 && fl.heads.length === 5 && fl.paths > 0 && (/reached a commit|コミットに至った/.test(fl.txt) || /don't record|記録しない/.test(fl.txt)), JSON.stringify(fl));
       check("流れの変更の列は、ファイル変更と、ファイルを変えなかったセッションの中身（GitHub のコメント・操作・ファイル変更なし・チャットのみ・記録なし）だけ",
-        !fl || (fl.cols[2] || []).every(x => /^(Changed files|GitHub comments and actions|No file changes|Chat only|Not recorded|ファイル変更|GitHub のコメント・操作|ファイル変更なし|チャットのみ|記録なし)$/.test(x)), JSON.stringify(fl && fl.cols));
+        !fl || (fl.cols[2] || []).every(x => /^(Changed files|Committed or opened a PR only|GitHub comments and actions|No file changes|Chat only|Not recorded|ファイル変更|コミット・PR だけ|GitHub のコメント・操作|ファイル変更なし|チャットのみ|記録なし)$/.test(x)), JSON.stringify(fl && fl.cols));
       check("流れの一覧で、エージェントの列の割合は足して 100 前後（どれも全体に対する割合）", !fl || Math.abs(fl.sum0 - 100) <= 2, JSON.stringify(fl && fl.sum0));
     }
     { // サンキーの名前は、どれもカードの地の色の札の上（色の帯に直接乗らない）
