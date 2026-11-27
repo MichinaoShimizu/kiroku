@@ -1132,8 +1132,10 @@ const JA_TEXT = {
   "waiting": "待ち",
   "needs a fix": "要対応",
   "Copy a prompt": "プロンプトをコピー（指示ごと）",
-  "Where your pull requests are stopped": "自分の PR がどこで止まっているか",
-  "Each bar is one of your pull requests, at the first step it hasn't passed; its length is how long it has been there (longest first, square-root scale). Times are estimates from the last commit, review or update GitHub reports.": "棒は自分の PR 1 つで、まだ通っていない最初の段に置いています。長さは、その段で止まっている時間です（長い順、平方根の目盛り）。時間は GitHub が返す最後のコミット・レビュー・更新の時刻からの目安です。",
+  "Needs a fix": "要対応",
+  "Waiting": "待ち",
+  "Show only": "絞り込み",
+  "Showing {n} of {total}": "{total} 件中 {n} 件を表示",
   "not yet": "まだ",
 };
 // t は英語の文 s を今の言語にする。{name} は vars の値で埋める（日本語では語順が変わるので、文ごと鍵にする）
