@@ -28,6 +28,47 @@ Status: proposed · adopted #<issue> · declined <reason> · deferred <until / w
 - <mismatch for /source-audit, /price-update or /quality-audit>
 ```
 
+## 2026-11-27 — literacy (theme: is the harness working?) at 9bf371b (v5.3.0)
+
+Theme from the maintainer: help people see whether their harness (CLAUDE.md / AGENTS.md, skills, hooks, subagents, CI) works, from history: sessions that finish, fewer interventions, cost per outcome, rework, before and after a harness change. There is no single "harness level" to measure; the proposals show the signals next to each other without scoring them. Most measures already exist: "Claude Code sessions that reached a commit or PR", "Prompts with corrections or interruptions", "Possible friction", cost per AI commit, "AI commits changed again within 3 days", subagents, and 13-period trends with the usual range. What is missing is a way to see when the harness changed, and which skills run.
+
+### Upstream versions seen
+| Agent | Version | Changes that matter to users |
+|---|---|---|
+| Claude Code | 2.1.332 (docs/upstream/agents.md) | Skills, hooks and subagents are documented. Hook-injected text is saved in the transcript. `permission-mode` / `mode` lines exist but their values are not documented |
+| Codex | 0.172.0 | `turn_context` keeps `collaboration_mode` and `approval_policy`. Hook and approval events are not persisted (rollout policy.rs) |
+| Kiro IDE / CLI | IDE 1.5, CLI 3.6 | Steering, hooks and specs docs say nothing about what is written to history |
+| Kiro Crew | 0.13.1 | No change relevant to the theme |
+
+### Proposals
+| ID | Title | Axes | Score | Size | Status |
+|---|---|---|---|---|---|
+| P-202611-6 | Mark commits that changed agent instruction or skill files, per project | literacy, dx | 1.5 | M | proposed |
+| P-202611-7 | Skill runs by name in the session view and day report (Claude Code) | literacy, dx | 1.5 | S | proposed (needs a `/source-audit` row first) |
+| P-202611-8 | Tool calls that returned an error, per session | literacy | 0.25 | M | proposed (candidate) |
+| P-202611-9 | Codex collaboration mode (plan / default) per session | literacy | 0.25 | M | proposed (candidate; goes with P-202611-4) |
+
+Notes:
+- P-202611-6: commits already carry file paths (`META.git`, `c.files`; internal/web/js/review.js:77). Decide in Go, before the 40-file cap (internal/gitlog/gitlog.go:75, 565), whether a commit touches `CLAUDE.md`, `AGENTS.md`, `.claude/**`, `.codex/**` or `.kiro/steering/**` at any depth, and send a flag. Handle rename paths (`dir/{a => b}`). Show it per project (e.g. in "What changed from the last period" or the project's row), not on the all-repo trends, and show no before/after difference: a marker is a date, not a cause. Name it "commits that changed agent instructions or skills": only the user's own non-merge commits are read (gitlog.go:522-526), and user-level files (`~/.claude/CLAUDE.md`, `~/.claude/skills`, `settings.json` hooks, `~/.codex/AGENTS.md`), `CLAUDE.local.md` and uncommitted edits are not in git. Paths are already escaped (internal/web/js/git.js:37). Needs a decision: decision log 0003 asks whether commits may show inside a private Crew conversation's time span. All agents (git).
+- P-202611-7: `core.Builder.Tool` counts tools by name only (internal/core/session.go:450), so every skill is "Skill". Keep only the skill name, never its `args` (they can hold prompt text), and escape it (`plugin:skill`). Skills typed as slash commands are already prompts of kind `command` (internal/core/kind.go:57-65); show both or say "run by the model". Settle where a skill run inside a subagent counts. The `Skill` input field is not in testdata, and older versions used another tool (`SlashCommand`), so `/source-audit` adds the row and testdata first; older versions are "?". Codex and Kiro have skills too: "?" until checked, not "not recorded". Needs a decision: whether skill names show for private sessions, where tool names are kept (docs/sources.md:123). Certainty ×0.5 (shape not confirmed on disk).
+- P-202611-8: Claude Code `is_error` also covers permission denials, hook blocks and interruptions; non-zero exits include `grep` with no match and expected failing tests; `core.ResultFailed` treats Codex "Process running" as a failure (internal/core/output.go:329). Word it "returned an error", never rework or quality. Needs a `core.Records` key (internal/core/records.go:20-27) so agents without results show "not recorded".
+- P-202611-9: read only the mode value from `turn_context.collaboration_mode` (internal/source/codex.go:558-564 reads model and cwd), never its developer instructions; unknown values are "other" and a missing value is "not recorded", not "default". Claude Code's `mode` lines are not read (claude.go:940), so say it is Codex only. Do it together with P-202611-4 (effort, same `turn_context`).
+
+### Updates to earlier proposals
+- None checked in this run (theme run). P-202611-3, 4 and 5 are still proposed as far as this file shows.
+
+### Not proposed
+- A single "harness level" score — puts good or bad on numbers (the Worth a look policy) and mixes measures that differ by agent.
+- Hook pass / block / fail — Codex does not persist hook events (rollout policy.rs); Claude Code keeps hook text but not a status kiroku can rely on (precondition 3).
+- Permission prompts and denials — Codex approvals are not persisted; Claude Code's shape is unknown (precondition 3).
+- Whether CLAUDE.md / AGENTS.md exists in a repo — a static check of files, not history; it shows that a file exists, not that it works.
+- Test or CI runs guessed from shell commands — guessing from command text, different per agent and project.
+- A commit/PR outcome share for Codex and Kiro — v5.3.0 keeps "sessions that reached a commit or PR" for Claude Code only on purpose.
+- Comparing two chosen date ranges — overlaps the period comparison and usual range; P-202611-6 gives the dates to read the existing trends against.
+
+### Passed on
+- `/source-audit`: add rows for skills (Claude Code `Skill` tool input, older `SlashCommand`; Codex and Kiro skills), Claude Code `permission-mode` / `mode` values, Codex `collaboration_mode` and `approval_policy`, and what "saved in the transcript" means for Claude Code hook output (2.1.277 stop hook summary, 2.1.193 auto-mode denial reasons, 2.1.292 instruction-file line).
+
 ## 2026-11-24 — all at 1a5487b (v5.1.1)
 
 First run; no earlier proposals to update.
