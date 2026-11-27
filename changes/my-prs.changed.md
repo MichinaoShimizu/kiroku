@@ -1,0 +1,1 @@
+- With `kiroku serve --prs`, kiroku asks GitHub about pull requests that involve you; without it, as before, the only network access is checking for and downloading kiroku's own releases. The limits are recorded in SECURITY.md, and the wording "kiroku never asks GitHub" in the view and the guide now says that the counts and the pull request details never ask GitHub

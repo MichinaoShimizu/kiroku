@@ -828,7 +828,7 @@ func TestServeArchiveRequiresOrigin(t *testing.T) {
 
 // serveLive は、言語と追加で見張る場所を指定しない serveLiveWith（テスト用）。
 func serveLive(addr string, allow []string, every time.Duration, picked []source.Source, load func() snapshot, keep func() error, open bool) error {
-	return serveLiveWith(addr, allow, every, picked, load, keep, open, "", nil)
+	return serveLiveWith(addr, allow, every, picked, load, keep, open, "", nil, false)
 }
 
 // ポートを握るほかのプログラムがリダイレクトを返しても、looksLikeServe はたどらない（kiroku からほかの URL を取りに行かない）

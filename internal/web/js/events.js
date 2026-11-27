@@ -40,6 +40,7 @@ function setView(v, focus){ if (v === st.view) return; st.view = v; showView();
   if (focus && v === "sum"){ const r = $("#review"); r.tabIndex = -1; r.focus({preventScroll: true}); } }
 document.querySelectorAll("#view button[data-v]").forEach(b => b.onclick = e => { setView(b.dataset.v); if (e.detail) b.blur(); });
 $("#skipcal").onclick = e => { e.preventDefault(); setView("sum", true); };
+$("#prbtn").onclick = e => openPRs(e.currentTarget); // kiroku serve --prs のときだけ出る（prs.js）
 $("#prev").onclick = () => go(-1); $("#next").onclick = () => go(1); $("#today").onclick = () => go(null);
 $("#q").oninput = e => { st.q = e.target.value.trim().toLowerCase(); st.srN = st.scN = 0; st.srP = st.srA = ""; render(); }; // 言葉が変わったら、結果はまた先頭の数件から
 // 検索欄で Enter か ↓：最初の結果へフォーカスを移す（結果はカレンダーの上）。結果の中では ↑↓ で隣へ、最初の結果で ↑ なら検索欄へ
@@ -78,7 +79,7 @@ const ARROW_OWN = "input, select, textarea, [contenteditable], #sres, .segc, [ro
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT"){ if (e.key === "Escape") e.target.blur(); return; }
   // ダイアログ（AI 分析も）のあいだは、うしろの画面を動かさない（Escape はダイアログだけを閉じる）
-  if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open || $("#wk").open || $("#md").open) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || $("#keys").open || $("#wk").open || $("#md").open || $("#prs").open) return;
   const k = e.key;
   if (k === "Escape" && closeHint()) return; // 開いた説明（?）があれば、それだけ閉じる
   const ses = st.sel && DATA.find(x => x.id === st.sel); // セッションの詳細を開いているとき

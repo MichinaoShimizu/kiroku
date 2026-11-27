@@ -68,6 +68,7 @@ var baseline = []exception{
 	{Rule: "js-html", File: "internal/web/js/git.js", Count: 3, Reason: "commit, PR and push panels; git strings go through esc()"},
 	{Rule: "js-html", File: "internal/web/js/metric.js", Count: 1, Reason: "the metric breakdown dialog; history strings go through esc()"},
 	{Rule: "js-html", File: "internal/web/js/panels.js", Count: 1, Reason: "search results; history strings go through esc() and the highlighter"},
+	{Rule: "js-html", File: "internal/web/js/prs.js", Count: 1, Reason: "the pull request dialog (kiroku serve --prs); titles, logins and names from GitHub go through esc(), and the link through ext() with the address kiroku serve checked"},
 	{Rule: "js-html", File: "internal/web/js/review.js", Count: 3, Reason: "the Worth a look dialog and its markers, built from t() and esc()"},
 	{Rule: "js-html", File: "internal/web/js/session.js", Count: 1, Reason: "the session panel; history strings go through esc() and md()"},
 	{Rule: "js-html", File: "internal/web/js/summary.js", Count: 3, Reason: "the period summary, Worth a look and metric hints; history strings go through esc()"},

@@ -630,6 +630,23 @@ dialog.wkdlg{width:min(640px,calc(100vw - 32px));max-height:calc(100dvh - 48px);
 dialog.wkdlg h2{margin:4px 0 12px;font-size:var(--fs-xl)}
 dialog.wkdlg .eyebrow{display:flex;align-items:center;gap:6px}
 dialog.wkdlg .fl{margin:0 0 14px}
+/* 自分に関係するプルリクエスト（kiroku serve --prs。js/prs.js） */
+.prbtn{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px}.prbtn[hidden]{display:none}
+@media (max-width:700px){.prbtn span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.prbtn{padding:0 7px}} /* 狭い画面では印だけ（名前は読み上げと title に残す。.sr と同じ隠し方） */
+dialog.prdlg{width:min(720px,calc(100vw - 32px))}
+.prbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 6px}.prwhen{font-size:var(--fs-xs);color:var(--ink-3);min-width:0;overflow-wrap:anywhere}
+.prsec h3{margin:18px 0 8px}.prlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.prrow{border:1px solid var(--rule);border-radius:12px;padding:12px 14px;min-width:0}
+.prh{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;font:600 var(--fs-sm)/1.5 var(--mono);min-width:0;overflow-wrap:anywhere}.prh .ic{align-self:center;color:var(--acc)}
+.prup{margin-left:auto;font:var(--fs-xs)/1.5 var(--sans);color:var(--ink-3);white-space:nowrap}
+.prt{margin:4px 0 8px;font-size:var(--fs-md);overflow-wrap:anywhere}
+.prm{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.prm:empty{display:none}
+.prtag{font-size:var(--fs-xs);line-height:20px;padding:0 8px;border-radius:6px;border:1px solid var(--rule-2);color:var(--ink-2);white-space:nowrap}
+.prtag.warn{border-color:var(--warn);color:var(--warn);font-weight:600}.prtag.good{border-color:var(--acc);color:var(--acc-ink)}
+.prby{font-size:var(--fs-xs);color:var(--ink-3)}
+.prses{margin-top:10px;display:flex;flex-direction:column;min-width:0}
+.pract{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--rule)}
+.prnext{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--ink-2);min-width:0}.prnext .ic{color:var(--acc)}
 /* 数字の内訳（metric.js） */
 dialog.mdlg h2{margin-bottom:2px}
 .mbig{font:700 var(--fs-3xl)/1.2 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-bottom:4px}

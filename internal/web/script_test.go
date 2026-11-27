@@ -787,3 +787,45 @@ func TestPRName(t *testing.T) {
 		t.Errorf("PR の名前が違う:\n%s", out)
 	}
 }
+
+// 自分に関係する PR（kiroku serve --prs）のプロンプト：何を頼むかは状況で決まり、入れるのは形を確かめた URL と状況だけ。
+// GitHub から来た題名・名前は入れず、形の合わない URL ではプロンプトを作らない。
+func TestPRPrompt(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	read := func(name string) string {
+		b, err := jsFiles.ReadFile("js/" + name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return strings.ReplaceAll(string(b), "\r\n", "\n")
+	}
+	prs, mdjs := read("prs.js"), read("markdown.js")
+	var parts []string
+	for _, x := range []struct{ src, re string }{
+		{prs, `(?m)^const PR_URL = .*;$`},
+		{prs, `(?ms)^function prTasks\(it\)\{.*?^\}$`},
+		{prs, `(?ms)^function prPrompt\(it, ses, at\)\{.*?^\}$`},
+		{mdjs, `(?ms)^function mdCode\(s\)\{.*?^  return f \+ pad \+ s \+ pad \+ f; \}$`},
+		{mdjs, `(?ms)^function oneLine\(s\)\{.*?\.trim\(\); \}$`},
+	} {
+		m := regexp.MustCompile(x.re).FindString(x.src)
+		if m == "" {
+			t.Fatalf("%s が見つからない", x.re)
+		}
+		parts = append(parts, m)
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "prprompt_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "prprompt.js")
+	if err := os.WriteFile(f, append([]byte(strings.Join(parts, "\n")+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(node, f).CombinedOutput(); err != nil {
+		t.Errorf("PR のプロンプトが違う:\n%s", out)
+	}
+}
