@@ -1288,7 +1288,7 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 /* どこへ流れたか（サンキー）：投入と出力の 2×2 のすぐ下に、幅いっぱいの 1 枚（サマリーで唯一の全幅のカード）。狭いカードでは文字を座標の上で大きく */
 .inscol.iskw{container-type:inline-size}
 .isflow{display:grid;gap:16px;margin:16px 0 12px}
-@media (min-width:1300px){.isflow.two{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}} /* 広い画面では、流れ（サンキー）の右に費用と産出の推移。狭ければ下に積む */
+@media (min-width:1300px){.isflow.two{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}.isflow.two .inscol.iskw{display:flex;flex-direction:column}.isflow.two .iskw .insfig.isk{flex:1;display:flex;flex-direction:column}.isflow.two .iskw .insfig.isk>svg{margin-block:auto}} /* 隣の推移の図に合わせて高くなったカードで、図を上下の真ん中に（下にだけ空きが出ないように） */ /* 広い画面では、流れ（サンキー）の右に費用と産出の推移。狭ければ下に積む */
 .iskw .skgh{padding:0;margin:0}.iskw .skgh::before{background:linear-gradient(var(--in),var(--out))} /* 投入から出力へ：パネルの見出しと同じ大きさで、左の線は投入の青から出力の紫へ */
 .iskw .skgh{flex-wrap:nowrap} /* 狭い画面で名前が折り返しても、左の線と「ƒx」を名前の横に（名前だけの行や、「ƒx」だけの行を作らない） */
 @container (max-width:900px){.iskw .isk .skt,.iskw .isk .skh{font-size:14px}}

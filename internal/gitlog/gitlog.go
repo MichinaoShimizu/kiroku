@@ -321,8 +321,14 @@ func (c *Cache) Collect(data []*core.Session) (commits []Commit, pushes []Push, 
 			r.project, r.rootProject = d.Project, top
 		}
 		r.since = math.Min(r.since, d.Start)
+		// AI が実行したコミット：Claude Code は commit で記録する。ほかのエージェント（Codex・Kiro）は、成功した git commit の呼び出しを
+		// rancommit で記録する（Claude Code も同じ呼び出しを rancommit にも持つので、commit があるセッションでは rancommit を使わない）
+		hasCommit := false
 		for _, o := range d.OEv {
-			if o.Kind == "commit" && o.T != nil {
+			hasCommit = hasCommit || o.Kind == "commit"
+		}
+		for _, o := range d.OEv {
+			if (o.Kind == "commit" || o.Kind == "rancommit" && !hasCommit) && o.T != nil {
 				r.ai = append(r.ai, aiCommit{*o.T, d.ID})
 			}
 		}

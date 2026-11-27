@@ -1,1 +1,4 @@
 - Claude Code: a `gh pr create` that only appears inside another command's arguments (such as `rg gh pr create` or a commit message), or with `--help`, is no longer counted as a pull request
+- "Copy as Markdown" of the prompt flow includes what happened between the messages (commits, pushes, pull requests, interruptions, compactions, usage limit hits, subagents), in time order
+- Trend charts no longer repeat the same y-axis label when the range is very narrow (a single point)
+- On wide screens, From input to output no longer leaves the empty space of the card under the chart
