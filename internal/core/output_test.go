@@ -18,8 +18,8 @@ func TestOutputs(t *testing.T) {
 		input any
 		want  OutputTotal
 	}{
-		{"Bash", Obj{"command": `git add -A && git commit -m "fix"`}, OutputTotal{Commits: 1}},
-		{"Bash", Obj{"command": `git -C /repo commit -qm x && git push && gh pr create --title t`}, OutputTotal{Commits: 1, PRs: 1}},
+		{"Bash", Obj{"command": `git add -A && git commit -m "fix"`}, OutputTotal{Commits: 1, RanCommits: 1}},
+		{"Bash", Obj{"command": `git -C /repo commit -qm x && git push && gh pr create --title t`}, OutputTotal{Commits: 1, PRs: 1, RanCommits: 1, RanPushes: 1}},
 		{"Bash", Obj{"command": `git commit --dry-run`}, OutputTotal{}},
 		{"Bash", Obj{"command": `git log --oneline | grep commit`}, OutputTotal{}},
 		{"Bash", Obj{"command": `echo "git commit"`}, OutputTotal{}},
@@ -58,11 +58,11 @@ func TestPRActions(t *testing.T) {
 		{"Bash", cmd("gh pr review 12 --comment -b hi"), "review:#12"},
 		{"Bash", cmd("gh pr view 12 && gh pr checks 12"), ""},
 		{"Bash", cmd("echo gh-pr-merge; rg gh pr create docs"), ""},
-		{"Bash", cmd(`git commit -m "docs: explain gh pr create"`), ""},
+		{"Bash", cmd(`git commit -m "docs: explain gh pr create"`), "rancommit"}, // コミットはしたが、PR は作っていない
 		{"Bash", cmd("gh pr create --help"), ""},
 		// 書いた順（承認してからマージ）。--auto は、そのコマンドだけに効く
 		{"Bash", cmd("gh pr review 55 --approve && gh pr merge 55 --squash"), "review:#55 approve:#55 merge:#55"},
-		{"Bash", cmd("git push && GH_PROMPT_DISABLED=1 gh pr create --fill && gh pr merge --auto --squash; gh pr merge 3"), "pr merge:#3"},
+		{"Bash", cmd("git push && GH_PROMPT_DISABLED=1 gh pr create --fill && gh pr merge --auto --squash; gh pr merge 3"), "pr merge:#3 ranpush"},
 		{"notes__save", cmd("gh pr create"), ""}, // シェルでないツール
 		{"mcp__github__create_pull_request", nil, "pr"},
 		{"github__merge_pull_request", map[string]any{"owner": "o", "repo": "app", "pullNumber": 38.0}, "merge:app#38"},
@@ -83,6 +83,13 @@ func TestPRActions(t *testing.T) {
 		{"Bash", cmd("gh issue create --title x --body y && gh pr close 3"), "ghop ghop"},
 		{"Bash", cmd("gh issue view 3; gh issue list"), ""},
 		{"Bash", cmd("gh pr comment --help"), ""},
+		// AI が実行した git commit・git push（コマンドの頭にあるものだけ）
+		{"Bash", cmd("git add -A && git commit -m 'fix: login' && git push -u origin feat/x"), "rancommit ranpush"},
+		{"shell", cmd([]any{"bash", "-lc", "git -C repo commit -am x"}), "rancommit"},
+		{"Bash", cmd("git commit --dry-run"), ""},
+		{"Bash", cmd("git push -n origin x"), ""},
+		{"Bash", cmd("echo git commit; git log"), ""},
+		{"Bash", cmd(`gh pr create --body "run git push first"`), "pr"},
 	} {
 		var got []string
 		for _, a := range PRActions(c.name, c.input) {

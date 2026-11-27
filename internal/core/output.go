@@ -25,9 +25,12 @@ type OutputTotal struct {
 	Merges    float64 `json:"merges,omitempty"`    // AI がマージした PR
 	Reviews   float64 `json:"reviews,omitempty"`   // AI が出したレビュー（アプルーブ・変更の依頼・コメント）
 	Approvals float64 `json:"approvals,omitempty"` // そのうちアプルーブ
-	GitHubOps float64 `json:"ghOps,omitempty"`     // そのほかの GitHub の書き込み（PR・issue のコメント、issue の作成、PR・issue を閉じる・編集するなど）
-	Added     float64 `json:"added"`               // 追加した行（編集の前後を比べた目安）
-	Removed   float64 `json:"removed"`             // 削除した行
+	GitHubOps float64 `json:"ghOps,omitempty"`
+	// AI がそのセッションで実行して成功した git commit・git push（どのエージェントでも。Commits は Claude Code が実行を記録したコミットで、別に数える）
+	RanCommits float64 `json:"ranCommits,omitempty"`
+	RanPushes  float64 `json:"ranPushes,omitempty"` // そのほかの GitHub の書き込み（PR・issue のコメント、issue の作成、PR・issue を閉じる・編集するなど）
+	Added      float64 `json:"added"`               // 追加した行（編集の前後を比べた目安）
+	Removed    float64 `json:"removed"`             // 削除した行
 }
 
 func (o *OutputTotal) Add(x Output) {
@@ -44,6 +47,10 @@ func (o *OutputTotal) Add(x Output) {
 		o.Approvals += x.V
 	case "ghop":
 		o.GitHubOps += x.V
+	case "rancommit":
+		o.RanCommits += x.V
+	case "ranpush":
+		o.RanPushes += x.V
 	case "added":
 		o.Added += x.V
 	case "removed":
@@ -180,6 +187,10 @@ func PRActions(name string, input any) []PRAction {
 		if m := ghWriteCmd.FindStringSubmatch(seg); m != nil && !helpRe.MatchString(" "+m[1]) {
 			out = append(out, PRAction{"ghop", ""})
 		}
+		// git commit・git push（コマンドの頭にあるものだけ。--dry-run・-n と --help は除く）
+		if m := gitRunCmd.FindStringSubmatch(seg); m != nil && !dryRe.MatchString(" "+m[2]) && !helpRe.MatchString(" "+m[2]) && !(m[1] == "push" && pushDryRe.MatchString(" "+m[2])) {
+			out = append(out, PRAction{"ran" + m[1], ""})
+		}
 	}
 	return out
 }
@@ -200,6 +211,10 @@ var (
 	cmdSplit = regexp.MustCompile(`&&|\|\||[;|&\n()]`)
 	// ghPRCmd は、1 つのコマンドの頭の gh pr create・merge・review（VAR=値 の前置きは可）と、その引数
 	// ghWriteCmd は、1 つのコマンドの頭の gh pr・gh issue のうち、GitHub に書き込むもの（作成・マージ・レビューは上で数える）
+	// gitRunCmd は、1 つのコマンドの頭の git commit・git push（-C と -c の前置きは可）と、その引数
+	gitRunCmd  = regexp.MustCompile(`^\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*git(?:\s+-[Cc]\s+\S+)*\s+(commit|push)\b(.*)$`)
+	dryRe      = regexp.MustCompile(`\s--dry-run\b`)
+	pushDryRe  = regexp.MustCompile(`\s-n\b`)
 	ghWriteCmd = regexp.MustCompile(`^\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*gh\s+(?:pr\s+(?:comment|close|reopen|edit|ready)|issue\s+(?:create|comment|close|reopen|edit))\b(.*)$`)
 	ghPRCmd    = regexp.MustCompile(`^\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*gh\s+pr\s+(create|merge|review)\b(.*)$`)
 	prNumRe    = regexp.MustCompile(`^#?(\d{1,9})$`)
