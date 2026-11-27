@@ -24,6 +24,7 @@ function render(){
   const inRange = DATA.filter(s => s.end >= ws && s.start < we);
   const shown = inRange.filter(matches);
   kpis();
+  pickup(); // 前回の続き（今日を含む期間を見ているときだけ）
   // legend（この期間にあるものを、作業時間の多い順に。数はサマリーの「① By project」の配分と同じ作業時間）
   const cnt = {}; inRange.forEach(s => cnt[keyOf(s)] = (cnt[keyOf(s)]||0)+1);
   const mins = legendMinutes();

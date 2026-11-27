@@ -35,6 +35,7 @@ Each scenario has the user's goal and a success condition. No steps are given. A
 | 7 | Someone looking back on one session | Review a session that went badly with an AI | Opens the details and copies the review prompt with "Copy prompt" under Session review, which says kiroku runs and sends nothing |
 | 8 | Someone viewing on a phone | Glance at this week while on the move | Nothing overflows sideways, and can read the key figures, "Worth a look" and the calendar |
 | 9 | Someone using only the keyboard | Move between weeks, open session details and close them | Can do it without a mouse, and can see where they are |
+| 10 | Someone starting their day | Pick up what they left unfinished yesterday | From "Pick up where you left off" above the calendar, can say which session to continue and which files are not committed yet, copies its resume command, and hides one they consider done. Can say in their own words what the list counts |
 
 ## Criteria
 

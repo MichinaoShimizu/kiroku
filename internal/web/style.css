@@ -1318,3 +1318,22 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 .tlg .lg.bnow.sg::before{background:linear-gradient(90deg,var(--ink-2) 0 50%,color-mix(in oklab,var(--ink-2) 45%,var(--surface)) 50%)} /* 積み上げの棒：色はエージェント（グラフの下の凡例）。ここは濃い＝表示中・淡い＝過去だけを、エージェントの色に似ない灰色で */
 /* 履歴から来る名前（プロジェクト・題）の右から左の制御文字（U+202E など）が、まわりの文字（数字や時刻）の並びまで変えないよう、名前ごとに閉じる */
 .chip .cn, .run > *, .rlab, .srow b, .srow span{unicode-bidi:isolate}
+/* 前回の続き（pickup.js）：カレンダーの上の帯。広い画面では 3 件まで横に並べ、狭い画面では縦に積む。検索の最中とサマリーでは出さない */
+.pick{margin:0 0 14px;padding:16px 18px 14px;border-radius:16px;background:var(--s-cont)}
+.pick[hidden],body.srch .pick,body[data-view="sum"] .pick{display:none}
+.pick .pkh{display:flex;align-items:baseline;gap:4px 12px;flex-wrap:wrap;margin-bottom:12px}
+.pick .pkh h2{font:700 var(--fs-lg)/1.3 var(--sans);margin:0}
+.pick .pkh p{font-size:var(--fs-xs);color:var(--ink-3);margin:0;line-height:1.6}
+.pick .pks{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.pick .pki{min-width:0;display:flex;flex-direction:column;gap:6px}
+.pick .pki .card{margin-bottom:0}
+.pick .pkl{margin:0;font-size:var(--fs-xs);color:var(--ink-2);line-height:1.6;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px;overflow-wrap:anywhere}
+.pick .pkk{color:var(--ink-3)}.pick .pkk::after{content:":"}
+.pick .pkl code{font:var(--fs-xs) var(--mono);padding:0 5px;border-radius:4px;background:var(--surface-2)}
+.pick .pkm{color:var(--ink-3)}
+.pick .pkq{margin:0;font-size:var(--fs-xs);color:var(--ink-2);line-height:1.6;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.pick .pklim{color:var(--odd-ink);align-items:center}.pick .pklim .ic{width:13px;height:13px}
+.pick .pka{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:2px}
+.pick .pkf{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pick .pks+.pkf:not(:empty){margin-top:12px}
+.pick .pkn{font-size:var(--fs-xs);color:var(--ink-3)}

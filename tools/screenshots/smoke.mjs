@@ -273,6 +273,46 @@ async function run(env) {
     }
   });
 
+  await step("前回の続き", async () => {
+    // 今週（今日を含む期間）を見ているときだけ、カレンダーの上に出す。ダミーデータの「今」によっては 1 件もないことがある（そのときは帯ごと出さない）
+    const wk = await p.evaluate(() => st.week.getTime());
+    await p.evaluate(() => { try { localStorage.removeItem("kiroku:pickHidden"); } catch (e) {} go(null); }); await pause();
+    const want = await p.evaluate(() => leftOff(pickNow(), DATA, META.git || []).map(x => x.s.id));
+    const cap = env.viewport.width <= 1000 ? 1 : 3, pick = p.locator("#pick");
+    check("今週を開くと、コミットに入っていない変更のあるセッションを新しい順に出す（広い画面は 3 件、狭い画面は 1 件まで）",
+      JSON.stringify(await pick.locator(".card[data-id]").evaluateAll(es => es.map(e => e.dataset.id))) === JSON.stringify(want.slice(0, cap)) && await pick.isVisible() === want.length > 0, `${want.length} 件`);
+    if (want.length) {
+      check("何を数えたかを帯の頭に書く", /none of your commits/.test(await pick.locator(".pkh").innerText()));
+      check("出すファイルは、その後のどのコミットにも入っていない", await p.evaluate(() => leftOff(pickNow(), DATA, META.git || []).every(({s, files}) => files.every(f =>
+        !META.git.some(c => c.project === s.project && c.t >= s.start - 60 && c.files.some(x => f.endsWith("/" + x.path))))))); // ダミーデータのプロジェクトはリポジトリのルート
+      check("今日のセッションは出さない", await p.evaluate(() => { const t0 = new Date(today0()); t0.setHours(0, 0, 0, 0); return leftOff(pickNow(), DATA, META.git || []).every(x => x.s.end < t0 / 1000); }));
+      const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
+      check("帯が横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
+      if (want.length > cap) { await pick.locator("#pkmore").click(); await pause();
+        check("「残りを表示」で全部出し、フォーカスは増えた最初のカードへ", await pick.locator(".card[data-id]").count() === want.length && await p.evaluate(c => document.activeElement === document.querySelectorAll("#pick .card[data-id]")[c], cap)); }
+      await pick.locator(".card[data-id]").first().click(); await pause();
+      check("カードを押すと、そのセッションの詳細が開く", await drawerOpen() && await p.evaluate(id => st.sel === id, want[0]));
+      await p.keyboard.press("Escape"); await pause();
+      check("閉じると、押したカードへフォーカスが戻る", await p.evaluate(id => document.activeElement?.closest?.("#pick") && document.activeElement.dataset.id === id, want[0]));
+      if (await pick.locator(".pka .cp").count()) { await ctx.grantPermissions(["clipboard-read", "clipboard-write"]).catch(() => {});
+        await pick.locator(".pka .cp").first().click(); await pause();
+        const clip = await p.evaluate(() => navigator.clipboard.readText()).catch(() => null);
+        if (clip != null) check("再開のコマンドをコピーできる", await p.evaluate(c => DATA.some(s => s.resume === c), clip), clip); }
+      await pick.locator("[data-pkd]").first().click(); await pause();
+      check("「隠す」で一覧から消え、隠した数と戻すボタンが出る（この端末の localStorage に覚える）", await p.evaluate(id => !document.querySelector(`#pick .card[data-id="${CSS.escape(id)}"]`) && !!document.querySelector("#pkback")
+        && JSON.parse(localStorage.getItem("kiroku:pickHidden")).includes(id) && !!document.activeElement?.closest?.("#pick"), want[0]));
+      await pick.locator("#pkback").click(); await pause();
+      check("「もう一度表示」で戻る", await p.evaluate(id => !!document.querySelector(`#pick .card[data-id="${CSS.escape(id)}"]`) && !document.querySelector("#pkback"), want[0]));
+      await view("sum"); check("サマリーでは出さない", await pick.isHidden()); await view("cal");
+      await p.locator("#q").evaluate(e => { e.value = "a"; e.dispatchEvent(new Event("input")); }); await pause();
+      check("検索の最中は出さない", await pick.isHidden());
+      await p.locator("#q").evaluate(e => { e.value = ""; e.dispatchEvent(new Event("input")); }); await pause();
+      await p.keyboard.press("ArrowLeft"); await pause();
+      check("前の週では出さない", await pick.isHidden());
+    }
+    await p.evaluate(w => { st.pickAll = false; st.week = new Date(w); st.month = monthOf(st.week); render(); scrollToWork(); }, wk); await pause();
+  });
+
   await step("前の週のサマリーは「今週」と言わない", async () => {
     await p.keyboard.press("ArrowLeft"); await pause();
     await view("sum"); const subs = await p.evaluate(() => document.querySelector("#review .insight").innerText); await view("cal");

@@ -89,3 +89,14 @@ const copyBtn = (label, attrs, cls = "pill") => `<button class="${cls} cp" ${att
 const projTag = p => `<span class="tg" title="${esc(t("Project"))}">${ico("folder")}<span class="sr">${esc(t("Project"))}: </span>${esc(p)}</span>`;
 const branchTag = b => b ? `<span class="tg" title="${esc(t("Branch"))}">${ico("branch")}<span class="sr">${esc(t("Branch"))}: </span>${esc(b)}</span>` : "";
 function norecStat(k, srcs, h){ return `<div class="stat norec"><div class="k">${k}${hb(h)}</div><div class="v">${esc(t("Not recorded"))}</div><div class="s">${esc(srcs.length > 1 ? t("{agents} don't record this", {agents: srcs.join(LSEP())}) : t("{agents} doesn't record this", {agents: srcs.join(LSEP())}))}</div></div>`; }
+/* DOM で作る部品。新しい画面は innerHTML を使わず（tools/seclint の js-html）、履歴の文字を textContent で入れる。形は上の HTML の部品と同じ
+   elx: 要素（cls はクラス、text は文字）、icoEl: 印（ICON_PATH の決まった値だけを SVG として読む）、
+   sesCardEl: セッションのカード（sesCardH と同じ。me は題の下の行、v は右に出す値。どちらも文字）、copyBtnEl: コピーのボタン（copyBtn と同じ。text は写す文字） */
+const elx = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const icoEl = (k, cls = "") => document.importNode(new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg" class="ic${cls ? " " + cls : ""}" viewBox="0 0 16 16" aria-hidden="true">${ICON_PATH[k] || ""}</svg>`, "image/svg+xml").documentElement, true);
+function sesCardEl(s, me, v){
+  const b = elx("button", "card ag"), ti = elx("span", "ti"), m = elx("i", "agm", AG_MARK[s.source] || String(s.source).slice(0, 2).toUpperCase()), line = elx("span", "me", me);
+  b.type = "button"; b.dataset.id = s.id; b.style.setProperty("--ag", agColor(s.source)); m.style.setProperty("--ag", agColor(s.source)); m.setAttribute("aria-hidden", "true");
+  ti.append(m, elx("span", "", s.title)); if (v != null) line.append(elx("b", "", v)); b.append(ti, line); return b;
+}
+function copyBtnEl(label, text, cls = "pill"){ const b = elx("button", `${cls} cp`); b.type = "button"; b.dataset.copy = text; b.append(icoEl("copy", "cpi"), icoEl("check", "cpok"), label); return b; }

@@ -787,3 +787,38 @@ func TestPRName(t *testing.T) {
 		t.Errorf("PR の名前が違う:\n%s", out)
 	}
 }
+
+// 「前回の続き」（leftOff）。コミットに入ったファイル・今日のセッションが続きをしたファイル・git を読めていないプロジェクトを出さないこと。
+// pickup.js はほかのファイルに頼るので、PICK_DAYS・pickPath・leftOff だけを取り出して Node で動かす。
+func TestLeftOff(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node がないので省略")
+	}
+	src, err := jsFiles.ReadFile("js/pickup.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := strings.ReplaceAll(string(src), "\r\n", "\n")
+	var code []string
+	for _, re := range []string{`(?m)^const PICK_DAYS = .*$`, `(?m)^const pickPath = .*$`, `(?ms)^function leftOff\(.*?^\}$`} {
+		m := regexp.MustCompile(re).FindString(text)
+		if m == "" {
+			t.Fatalf("js/pickup.js に %s が見つからない", re)
+		}
+		code = append(code, m)
+	}
+	cases, err := os.ReadFile(filepath.Join("testdata", "pickup_test.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "pickup.js")
+	if err := os.WriteFile(f, append([]byte(strings.Join(code, "\n")+"\n"), cases...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(node, f)
+	cmd.Env = append(os.Environ(), "TZ=UTC")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("leftOff の確かめに失敗:\n%s", out)
+	}
+}

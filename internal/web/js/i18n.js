@@ -1079,6 +1079,16 @@ const JA_TEXT = {
   "{pc}% so far": "ここまで {pc}%",
   "{n} pts": "{n} ポイント",
   "{so} so far, estimated {v} by the end": "ここまで {so}、期間の終わりの推定 {v}",
+  "Pick up where you left off": "前回の続き",
+  "Sessions since {date} where AI changed files that are in none of your commits since then. Today's sessions are left out.": "{date} 以降のセッションのうち、AI が変えたファイルが、その後のあなたのコミットのどれにも入っていないもの。今日のセッションは除きます。",
+  "Not in a commit yet": "まだコミットに入っていない",
+  "Last prompt": "最後のプロンプト",
+  "The session ended at a usage limit": "利用上限に当たって終わりました",
+  "Hide {title} from this list": "{title} をこの一覧から隠す",
+  "Hide": "隠す",
+  "{n} hidden": "{n} 件を隠しています",
+  "Show them again": "もう一度表示",
+  "Copy the resume command": "再開のコマンドをコピー",
 };
 // t は英語の文 s を今の言語にする。{name} は vars の値で埋める（日本語では語順が変わるので、文ごと鍵にする）
 function t(s, vars){

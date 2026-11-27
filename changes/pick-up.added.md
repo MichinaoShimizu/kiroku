@@ -1,0 +1,3 @@
+- "Pick up where you left off", a strip above the calendar while you look at this week or this month: sessions that ended before today in which AI changed files that are in none of your commits since, newest first, each with the files not committed yet, your last prompt and a button that copies the resume command
+  - It goes back to the last day before today that had a session, or seven days, whichever is earlier. Today's sessions, files a later session changed again, files outside the project folder and projects where kiroku read no commit of yours are left out
+  - "Hide" takes a session off the list (kept in this browser, session IDs only); "Show them again" brings the hidden ones back
