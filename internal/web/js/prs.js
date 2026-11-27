@@ -56,11 +56,25 @@ function prPrompt(it, at){
 // 行に出す一言（何を頼むプロンプトか）
 const PR_TASK = () => ({checks: t("Fix the failing checks"), changes: t("Address the review"), conflict: t("Resolve the conflicts"), merge: t("Check that it is ready to merge"),
   status: t("See what it is waiting for"), review: t("Review it"), mention: t("Reply to the mention")});
-// 状況は、チェック・レビュー・マージの 3 つの欄に分ける（縦に見比べられるように）。色だけに頼らず、文字で言う。warn は手を入れるもの、なければ「—」
+// 状況は 1 つの欄に、いまの様子を短く。手を入れるもの（チェックの失敗・変更の依頼・コンフリクト）があれば、それだけを並べる（warn）。
+// なければ、いちばん先に進むのを止めているもの 1 つ（ドラフト・チェック実行中・レビュー待ち）か、マージできそうなら「マージ可」。
+// 色だけに頼らず、文字で言う。チェック・レビュー・マージのそれぞれは、title（とカードの読み上げ）で全部言う
 const prTag = (label, cls) => `<span class="prtag${cls ? " " + cls : ""}">${esc(label)}</span>`, PR_NONE = `<span class="prnone">—</span>`;
-const prChecks = it => it.checks === "failing" ? prTag(t("Failing"), "warn") : it.checks === "pending" ? prTag(t("Running")) : it.checks === "passing" ? prTag(t("Passing"), "good") : PR_NONE;
-const prReview = it => it.review === "changes" ? prTag(t("Changes requested"), "warn") : it.review === "approved" ? prTag(t("Approved"), "good") : it.review === "required" ? prTag(t("Review required")) : PR_NONE;
-const prMerge = it => [it.conflict && prTag(t("Conflicts"), "warn"), it.draft && prTag(t("Draft"))].filter(Boolean).join("") || PR_NONE;
+function prState(it){
+  const fix = [it.checks === "failing" && t("Checks failing"), it.review === "changes" && t("Changes requested"), it.conflict && t("Merge conflicts")].filter(Boolean);
+  if (fix.length) return fix.map(l => prTag(l, "warn")).join("");
+  if (it.draft) return prTag(t("Draft"));
+  if (it.checks === "pending") return prTag(t("Checks running"));
+  if (it.review === "approved") return prTag(t("Ready to merge"), "good");
+  if (it.review === "required") return prTag(t("Review required"));
+  return it.checks === "passing" ? prTag(t("Checks passing")) : PR_NONE;
+}
+// prStateFull は、状況の欄の title：チェック・レビュー・マージを全部、短い言葉で
+function prStateFull(it){
+  const C = {passing: t("passing"), failing: t("failing"), pending: t("running")}, R = {approved: t("approved"), changes: t("changes requested"), required: t("required")};
+  return [t("Checks: {v}", {v: C[it.checks] || "—"}), t("Review: {v}", {v: R[it.review] || "—"}),
+    t("Merge: {v}", {v: [it.conflict && t("conflicts"), it.draft && t("draft")].filter(Boolean).join(LSEP()) || "—"})].join(" · ");
+}
 // prSessionsOf は、その PR と関係するセッション：履歴に、同じ URL の PR を作った記録か、その URL を名指ししてマージ・レビューした記録があるもの（新しい順）
 const prSame = u => { const m = /^https:\/\/([^/\s]+)\/([^/\s]+)\/([^/\s]+)\/pull\/(\d+)(?:[/?#]|$)/.exec(String(u || "")); return m ? `${m[1]}/${m[2]}/${m[3]}#${m[4]}`.toLowerCase() : null; };
 function prSessionsOf(it){ const k = prSame(it.url); if (!k) return [];
@@ -72,9 +86,7 @@ function prsRow(it, i){
     <td class="prrepo" data-l="${esc(t("Repository"))}"><span class="prown">${esc(owner)}/</span><span class="prname">${esc(name || "")}</span></td>
     <td class="prwhat" data-l="${esc(t("Pull request"))}"><span class="prno">${ok ? ext(it.url, `${esc(num)} ↗`) : esc(num)}</span> <span class="prt">${esc(it.title || t("(no title)"))}</span>${it.author && !(it.why || []).includes("author") ? `<span class="prby">${esc(t("by {name}", {name: it.author}))}</span>` : ""}</td>
     <td class="prses" data-l="${esc(t("Sessions"))}">${ses.length ? ses.slice(0, 3).map(sesB).join("") + (ses.length > 3 ? `<span class="prmore">${esc(t("+{n} more", {n: ses.length - 3}))}</span>` : "") : PR_NONE}</td>
-    <td class="prst" data-l="${esc(t("Checks"))}">${prChecks(it)}</td>
-    <td class="prst" data-l="${esc(t("Review"))}">${prReview(it)}</td>
-    <td class="prst" data-l="${esc(t("Merge"))}">${prMerge(it)}</td>
+    <td class="prst" data-l="${esc(t("Status"))}" title="${esc(prStateFull(it))}">${prState(it)}<span class="sr"> (${esc(prStateFull(it))})</span></td>
     <td class="prup" data-l="${esc(t("Updated"))}">${it.updated ? `<span>${esc(md(it.updated))}</span> <span>${esc(hm(it.updated))}</span>` : "—"}</td>
     <td class="pract" data-l="${esc(t("Next step"))}">${ok ? `<span class="prnext">${esc(tasks.map(k => T[k]).join(" · "))}</span>${promptBtn("prp" + i, t("Copy a prompt that asks your AI agent to do this"))}` : ""}</td>
   </tr>`;
@@ -91,7 +103,7 @@ function prsBody(){
   // グループごとに 1 つの表。リポジトリの順（同じリポジトリの PR が並ぶ）、その中は更新の新しい順
   const secs = G.map(([k, label]) => { const xs = items.map((it, i) => [it, i]).filter(([it]) => (first(it) || [])[0] === k)
       .sort(([a], [b]) => String(a.repo).localeCompare(String(b.repo)) || (b.updated || 0) - (a.updated || 0));
-    return xs.length ? `<section class="prsec"><h3>${esc(label)} · ${xs.length}</h3><div class="prscroll"><table class="prtable"><thead><tr>${[t("Repository"), t("Pull request"), t("Sessions"), t("Checks"), t("Review"), t("Merge"), t("Updated"), t("Next step")].map(th).join("")}</tr></thead><tbody>${xs.map(([it, i]) => prsRow(it, i)).join("")}</tbody></table></div>${d.more && d.more[k] ? `<p class="note">${esc(t("Only the 50 most recently updated are shown."))}</p>` : ""}</section>` : ""; }).join("");
+    return xs.length ? `<section class="prsec"><h3>${esc(label)} · ${xs.length}</h3><div class="prscroll"><table class="prtable"><thead><tr>${[t("Repository"), t("Pull request"), t("Sessions"), t("Status"), t("Updated"), t("Next step")].map(th).join("")}</tr></thead><tbody>${xs.map(([it, i]) => prsRow(it, i)).join("")}</tbody></table></div>${d.more && d.more[k] ? `<p class="note">${esc(t("Only the 50 most recently updated are shown."))}</p>` : ""}</section>` : ""; }).join("");
   return (secs || noneH(esc(t("No open pull requests involve you right now.")))) + (d.partial ? `<p class="note">${esc(t("GitHub answered only in part, so some pull requests or their status may be missing."))}</p>` : "");
 }
 function prsDraw(){

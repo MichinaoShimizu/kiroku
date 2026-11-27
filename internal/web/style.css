@@ -649,9 +649,9 @@ body[data-view="prs"] .wk .nav,body[data-view="prs"] .wk .nav .view-controls{mar
 .prtable td{line-height:1.55}
 .prtable tbody tr:hover td{background:color-mix(in srgb,var(--ink) 3%,transparent)}
 @media (min-width:1280px){ /* 3 つの表で欄の位置をそろえる。札の欄と右の 2 つは決まった幅、残りはタイトルに */
-  .prtable{table-layout:fixed}.prtable th:nth-child(1){width:150px}.prtable th:nth-child(3){width:150px}.prtable th:nth-child(4){width:76px}.prtable th:nth-child(5){width:130px}.prtable th:nth-child(6){width:112px}.prtable th:nth-child(7){width:100px}.prtable th:nth-child(8){width:190px}
+  .prtable{table-layout:fixed}.prtable th:nth-child(1){width:170px}.prtable th:nth-child(3){width:200px}.prtable th:nth-child(4){width:150px}.prtable th:nth-child(5){width:110px}.prtable th:nth-child(6){width:200px}
 }
-@media (min-width:1500px){.prtable th:nth-child(1){width:200px}.prtable th:nth-child(3){width:220px}}
+@media (min-width:1500px){.prtable th:nth-child(1){width:210px}.prtable th:nth-child(3){width:260px}}
 .prrepo{font-family:var(--mono);overflow-wrap:anywhere}.prown{display:block;font-size:var(--fs-xs);color:var(--ink-3)}.prname{font-weight:600}
 .prwhat{overflow-wrap:anywhere}.prno{font-family:var(--mono);font-weight:600;white-space:nowrap}
 .prby{display:block;margin-top:2px;font-size:var(--fs-xs);color:var(--ink-3)}
@@ -664,10 +664,10 @@ body[data-view="prs"] .wk .nav,body[data-view="prs"] .wk .nav .view-controls{mar
 .prnone{color:var(--ink-3)}
 .prup{color:var(--ink-2);font-variant-numeric:tabular-nums}.prup span{white-space:nowrap}
 .pract .prnext{display:block;margin-bottom:8px;color:var(--ink)}.pract .pill{max-width:100%}
-@media (max-width:1279px){ /* 表の欄が収まらない幅では、1 行を 1 枚のカードに。リポジトリとタイトルは上に、チェック・レビュー・マージ・更新は名前つきで横に並べる */
+@media (max-width:1279px){ /* 表の欄が収まらない幅では、1 行を 1 枚のカードに。リポジトリとタイトルとセッションは上に、状況と更新は名前つきで横に並べる */
   .prtable thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
   .prtable{border:0}.prtable,.prtable tbody{display:block}
-  .prtable tr{display:grid;grid-template-columns:repeat(4,minmax(0,170px));justify-content:start;gap:8px 20px;border:1px solid var(--rule-2);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+  .prtable tr{display:grid;grid-template-columns:repeat(2,minmax(0,240px));justify-content:start;gap:8px 20px;border:1px solid var(--rule-2);border-radius:12px;padding:12px 14px;margin-bottom:10px}
   .prtable td{display:block;border:0;padding:0}.prtable tbody tr:hover td{background:none}
   .prtable td.prrepo,.prtable td.prwhat,.prtable td.prses,.prtable td.pract{grid-column:1/-1}
   .prtable td.prses::before,.prtable td.prst::before,.prtable td.prup::before,.prtable td.pract::before{content:attr(data-l);display:block;margin-bottom:2px;font-size:var(--fs-2xs);color:var(--ink-3)}
@@ -675,6 +675,7 @@ body[data-view="prs"] .wk .nav,body[data-view="prs"] .wk .nav .view-controls{mar
   .prtable td.pract{padding-top:10px;border-top:1px solid var(--rule-2)}
 }
 @media (max-width:480px){.prtable tr{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.prst .prtag:last-of-type{margin-right:0}
 /* 数字の内訳（metric.js） */
 dialog.mdlg h2{margin-bottom:2px}
 .mbig{font:700 var(--fs-3xl)/1.2 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-bottom:4px}
