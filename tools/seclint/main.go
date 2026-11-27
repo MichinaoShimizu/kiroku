@@ -65,7 +65,6 @@ var allow = []exception{
 var baseline = []exception{
 	{Rule: "js-html", File: "internal/web/js/boot.js", Count: 1, Reason: "the scope note, built from t() and esc()"},
 	{Rule: "js-html", File: "internal/web/js/calendar.js", Count: 10, Reason: "period heading, legend, KPIs, week calendar, tooltips, Journey and Project views; history strings go through esc()"},
-	{Rule: "js-html", File: "internal/web/js/home.js", Count: 1, Reason: "the Home page cards; session titles and projects go through esc() (sesCardH, sesMeta), and the PR counts are numbers"},
 	{Rule: "js-html", File: "internal/web/js/git.js", Count: 3, Reason: "commit, PR and push panels; git strings go through esc()"},
 	{Rule: "js-html", File: "internal/web/js/metric.js", Count: 1, Reason: "the metric breakdown dialog; history strings go through esc()"},
 	{Rule: "js-html", File: "internal/web/js/panels.js", Count: 1, Reason: "search results; history strings go through esc() and the highlighter"},

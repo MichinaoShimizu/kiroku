@@ -34,11 +34,8 @@ async function clickableRun(p) {
   return p.locator(".run[data-sid]").nth(Math.max(i, 0));
 }
 
-// loaded は、開いたページが期間の見出しとサマリーを描き終えるまで待ち（決まった時間だけ待つ代わりに）、セッション履歴のページ（#/sessions）へ移る。
-// # なしで開くとホームなので、カレンダーとサマリーを確かめる流れは、ここからセッション履歴で始める（ホームとメニューは「ページとメニュー」で確かめる）
-const loaded = async p => { await p.waitForFunction(() => document.querySelector("#rd") && document.querySelector("#rd").textContent.trim() !== "" && document.querySelector("#review .stat"));
-  await p.evaluate(() => { if (document.body.dataset.page !== "sessions") location.hash = "#/sessions"; });
-  await p.waitForFunction(() => document.body.dataset.page === "sessions"); };
+// loaded は、開いたページが期間の見出しとサマリーを描き終えるまで待つ（決まった時間だけ待つ代わりに）
+const loaded = p => p.waitForFunction(() => document.querySelector("#rd") && document.querySelector("#rd").textContent.trim() !== "" && document.querySelector("#review .stat"));
 
 // openContext は、画面の幅 env・言語 locale のブラウザを開く。スクリプトのエラーは errors に、CSP に止められたものは csp にためる
 async function openContext(env, locale, csp) {
@@ -133,23 +130,20 @@ async function run(env) {
   await loaded(p);
 
   await step("ページとメニュー", async () => {
-    // # なしで開くとホーム。上のメニュー（ロゴの横）にセッション履歴があり、HTML ファイルには PRトリアージを出さない（kiroku serve --prs だけ）
-    await p.goto(url); await p.waitForFunction(() => document.body.dataset.page === "home" && document.querySelector("#homev .hmcard"));
-    check("# なしで開くとホームで、カレンダーと期間の行は出さない", await p.evaluate(() => document.querySelector("#homev").checkVisibility() && !document.querySelector("#tl").checkVisibility() && !document.querySelector(".week").checkVisibility()));
+    // # なしで開くとセッション履歴。上のメニュー（ロゴの横）にセッション履歴があり、HTML ファイルには PRトリアージを出さない（kiroku serve --prs だけ）
+    await p.goto(url); await p.waitForFunction(() => document.body.dataset.page === "sessions" && document.querySelector("#tl .calscroll"));
+    check("# なしで開くとセッション履歴のカレンダーで、メニューがいまのページを示す", await p.evaluate(() => document.querySelector("#tl").checkVisibility() && document.querySelector("#gnav a[data-page=sessions]").getAttribute("aria-current") === "page" && /^Session history · kiroku$/.test(document.title)));
     check("メニューはロゴの右にあり、検索欄に重ならない", await p.evaluate(() => { const n = document.querySelector("#gnav").getBoundingClientRect(), l = document.querySelector(".brand .word").getBoundingClientRect(), q = document.querySelector(".search").getBoundingClientRect();
       return innerWidth <= 820 ? n.top >= l.bottom - 1 : n.left >= l.right && n.right <= q.left; }));
-    check("HTML ファイルのメニューに PRトリアージは出さず、ホームのカードが使い方を言う", await p.locator("#gnav a[data-page=prs]").isHidden() && /--prs/.test(await p.locator("#homev .hmcard.off").innerText()));
-    check("ホームの最近のセッションを押すと、その詳細が開く", await (async () => { await p.locator("#homev .card[data-id]").first().click(); await pause(); const ok = await drawerOpen(); await p.keyboard.press("Escape"); await pause(); return ok; })());
-    check("ホームでは ← → V で期間や表示を変えない", await p.evaluate(() => [key(st.week), st.view].join()) === await (async () => { await p.keyboard.press("ArrowLeft"); await p.keyboard.press("v"); return p.evaluate(() => [key(st.week), st.view].join()); })());
-    await p.locator("#homev a[data-view=sum]").first().click();
-    await p.waitForFunction(() => document.body.dataset.page === "sessions" && document.body.dataset.view === "sum");
-    check("ホームの「サマリーを開く」でセッション履歴のサマリーへ移り、メニューがいまのページを示す", await p.evaluate(() => location.hash === "#/sessions" && document.querySelector("#gnav a[data-page=sessions]").getAttribute("aria-current") === "page" && document.activeElement.id === "sesh"));
-    await p.goBack(); await p.waitForFunction(() => document.body.dataset.page === "home");
-    check("ブラウザの「戻る」でホームへ戻る", true);
+    check("HTML ファイルのメニューに PRトリアージは出さない", await p.locator("#gnav a[data-page=prs]").isHidden());
     await p.evaluate(() => { location.hash = "#/prs"; }); await p.waitForFunction(() => document.body.dataset.page === "prs");
-    check("--prs なしで #/prs を開くと、GitHub に問い合わせずに使い方だけを出す", /--prs/.test(await p.locator("#prsv").innerText()) && await p.locator("#prsv table").count() === 0);
-    await p.locator("#home").click(); await p.waitForFunction(() => document.body.dataset.page === "home");
-    await p.evaluate(() => { location.hash = "#/sessions"; }); await p.waitForFunction(() => document.body.dataset.page === "sessions");
+    check("--prs なしで #/prs を開くと、GitHub に問い合わせずに使い方だけを出す", /--prs/.test(await p.locator("#prsv").innerText()) && await p.locator("#prsv table").count() === 0 && !(await p.locator("#tl").isVisible()));
+    check("PRトリアージでは ← → V で期間や表示を変えない", await p.evaluate(() => [key(st.week), st.view].join()) === await (async () => { await p.keyboard.press("ArrowLeft"); await p.keyboard.press("v"); return p.evaluate(() => [key(st.week), st.view].join()); })());
+    await p.locator("#home").click(); await p.waitForFunction(() => document.body.dataset.page === "sessions");
+    check("ロゴでセッション履歴へ戻る", await p.evaluate(() => location.hash === "#/sessions" && document.activeElement.id === "sesh"));
+    await p.goBack(); await p.waitForFunction(() => document.body.dataset.page === "prs");
+    check("ブラウザの「戻る」で前のページへ", true);
+    await p.goForward(); await p.waitForFunction(() => document.body.dataset.page === "sessions");
     await view("cal"); // 下の流れはカレンダーから
   });
 
@@ -159,7 +153,7 @@ async function run(env) {
     const [sw, iw] = await p.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
     check("横にはみ出さない", sw <= iw + 1, `${sw} > ${iw}`);
     check("絞り込んでいないときは、凡例に件数（20 / 20 sessions）を出さない", await p.locator("#legend .count").count() === 0);
-    check("ロゴはホームへのリンク（#/。読み込み直さず、/ のようにディスクの一番上へも行かない）", await p.evaluate(() => document.querySelector("#home").getAttribute("href") === "#/"));
+    check("ロゴはセッション履歴へのリンク（#/sessions。読み込み直さず、/ のようにディスクの一番上へも行かない）", await p.evaluate(() => document.querySelector("#home").getAttribute("href") === "#/sessions"));
     check("ロゴが検索欄に隠れない", await p.evaluate(() => document.querySelector(".brand .word").getBoundingClientRect().right <= document.querySelector(".search").getBoundingClientRect().left));
     check("ロゴの下に kiroku が何かを 1 行で出し、検索欄に重ならない（とても狭い画面では出さない）", await p.evaluate(w => { const g = document.querySelector(".tagline"), r = g.getBoundingClientRect();
       return w < 375 ? !g.checkVisibility() : g.checkVisibility() && r.height < 20 && r.right <= document.querySelector(".search").getBoundingClientRect().left; }, env.viewport.width));

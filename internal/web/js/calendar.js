@@ -19,7 +19,7 @@ function render(){
   $("#prev").setAttribute("aria-label", M ? t("Previous month") : t("Previous week")); $("#next").setAttribute("aria-label", M ? t("Next month") : t("Next week"));
   document.querySelectorAll("#mode button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.mode));
   prsSync(); // 上のメニューの「PRトリアージ」（kiroku serve --prs のときだけ）と、開いていればその表
-  showPage(); homeSync(); // どのページか（ホームを開いていれば、その中身も描き直す）
+  showPage(); // どのページか（上のメニューとタブの名前）
   showView(); // カレンダーかサマリーか（画面いっぱいに 1 つだけ）
   document.body.classList.toggle("srch", !!st.q); // 検索の最中は、結果だけを見せる（期間の行・凡例・カレンダー・サマリーは隠す。結果はどれも全期間から）
 

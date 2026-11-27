@@ -32,19 +32,18 @@ function setMode(m){ if (m === "month" && META.scope && META.scope.mode === "wee
   if (m === "week" && st.mode === "month" && monthOf(st.week).getTime() !== st.month.getTime()) st.week = mondayOf(st.month);
   st.mode = m; st.sel = null; st.animate = true; render(); scrollToWork(); }
 document.querySelectorAll("#mode button[data-v]").forEach(b => b.onclick = e => { setMode(b.dataset.v); if (e.detail) b.blur(); }); // マウスで押したら、フォーカスを外す（←→ で期間を動かせるように）
-/* ページ：ホーム（# なし・#/）、セッション履歴（#/sessions）、PRトリアージ（#/prs）。どのページかは URL の # だけで決める
+/* ページ：セッション履歴（# なし・#/sessions）、PRトリアージ（#/prs）。どのページかは URL の # だけで決める
    （kiroku serve でも HTML ファイルでもデモでも同じで、読み込み直さずに移り、ブラウザの戻る・進むで行き来できる）。
-   ほかの # は（以前の版のリンクなども）ホーム。PRトリアージは kiroku serve --prs のときだけ上のメニューに出す。
+   ほかの # は（以前の版のリンクなども）セッション履歴。PRトリアージは kiroku serve --prs のときだけ上のメニューに出す。
    ないときに #/prs を開いたら、ページはそのまま開いて、使い方の案内だけを出す（gh も /prs も使わない） */
-const PAGES = {"": "home", "/": "home", "/sessions": "sessions", "/prs": "prs"};
-const PAGE_HASH = {home: "#/", sessions: "#/sessions", prs: "#/prs"};
-const pageName = p => ({home: t("Home"), sessions: t("Session history"), prs: t("PR triage")})[p];
+const PAGES = {"": "sessions", "/": "sessions", "/sessions": "sessions", "/prs": "prs"};
+const pageName = p => ({sessions: t("Session history"), prs: t("PR triage")})[p];
 function pageOfHash(){ let h = ""; try { h = decodeURIComponent(String(location.hash || "").replace(/^#/, "")); } catch(e){}
-  return Object.prototype.hasOwnProperty.call(PAGES, h) ? PAGES[h] : "home"; }
+  return Object.prototype.hasOwnProperty.call(PAGES, h) ? PAGES[h] : "sessions"; }
 // showPage は、いまのページを body の data-page と上のメニュー（aria-current）と題（タブの名前）に映す（render が呼ぶ）
 function showPage(){ const b = document.body; b.dataset.page = st.page;
-  document.querySelectorAll("#gnav a[data-page], #home").forEach(a => { if ((a.dataset.page || "home") === st.page) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); }); // ロゴはホーム
-  document.title = st.page === "home" ? "kiroku" : `${pageName(st.page)} · kiroku`; }
+  document.querySelectorAll("#gnav a[data-page]").forEach(a => { if (a.dataset.page === st.page) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  document.title = `${pageName(st.page)} · kiroku`; }
 // setPage は、ページを移る（# が変わったとき）。移った先の頭から見せ、フォーカスはそのページの見出しへ（メニューから移ったとき、読み上げがどこにいるかわかるように）
 function setPage(p, focus){ const ask = PRS.ask; PRS.ask = false; // ページの中のリンクを押して移ったときだけ true（prsShow）。毎回ここで消す
   if (p === st.page) return; st.page = p; tipOff(); closeHint();
@@ -52,13 +51,8 @@ function setPage(p, focus){ const ask = PRS.ask; PRS.ask = false; // ページ�
   render(); scrollTo(0, 0); const m = $("main"); if (m) m.scrollTop = 0;
   if (p === "sessions"){ if (st.view === "cal") scrollToWork(); else skBack($("#review")); }
   else if (p === "prs") prsShow(ask);
-  if (focus){ const h = $(p === "home" ? "#homeh" : p === "prs" ? "#prsh" : "#sesh"); if (h){ h.tabIndex = -1; h.focus({preventScroll: true}); } } }
+  if (focus){ const h = $(p === "prs" ? "#prsh" : "#sesh"); if (h){ h.tabIndex = -1; h.focus({preventScroll: true}); } } }
 addEventListener("hashchange", () => setPage(pageOfHash(), true));
-// ページの中から別のページへ移るリンク（ホームのカードのボタンなど）。data-go はページ、data-view はセッション履歴で開く表示
-document.addEventListener("click", e => { const a = e.target.closest && e.target.closest("a[data-go]"); if (!a) return;
-  const v = a.dataset.view === "cal" || a.dataset.view === "sum" ? a.dataset.view : null;
-  if (st.page === a.dataset.go){ e.preventDefault(); if (v) setView(v); return; }
-  if (v) st.view = v; }); // # が変わると setPage が描き直す
 /* 表示：カレンダーかサマリー（セッション履歴のページの中）。広い画面ではページ全体を画面に固定し、選んだほうだけが中でスクロールする（ページとカレンダーの二重のスクロールをなくす） */
 function showView(){ document.body.dataset.view = st.view;
   document.querySelectorAll("#view button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === st.view)); }
@@ -77,7 +71,7 @@ $("#sres").addEventListener("keydown", e => { if ((e.key !== "ArrowDown" && e.ke
   const rows = [...$("#sres").querySelectorAll(".srow, .srmore")], i = rows.indexOf(e.target), to = i < 0 ? null : rows[i + (e.key === "ArrowDown" ? 1 : -1)];
   e.preventDefault(); // 最後の結果で ↓ を押しても、ページはスクロールしない
   if (to) to.focus(); else if (e.key === "ArrowUp" && i <= 0) $("#q").focus(); });
-// ロゴはホームへ（#/。読み込み直さない。HTML ファイルやデモでも、"/" のようにディスクやサイトの一番上へ行かない）
+// ロゴはセッション履歴へ（#/sessions。読み込み直さない。HTML ファイルやデモでも、"/" のようにディスクやサイトの一番上へ行かない）
 
 // ダイアログ（ショートカット・Worth a look など）は、枠の外を押すと閉じる（詳細のパネルの #scrim と同じ）。
 // 押し始めも外だったときだけ（枠の中で文字を選んで、外で離したときには閉じない）

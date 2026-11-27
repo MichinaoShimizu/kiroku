@@ -5,8 +5,8 @@ const PRS = {data: null, busy: false, failed: false, ask: false};
 const prsOn = () => LIVE && !!META && META.prs === true;
 // prsSync は、上のメニューに「PRトリアージ」を出すかどうかと、開いていれば表の描き直し（render が呼ぶ。履歴が変わると、作ったセッションの欄が変わる）
 function prsSync(){ const b = $("#prtab"), on = prsOn(); if (b) b.hidden = !on && st.page !== "prs"; // --prs なしでも、#/prs を開いているあいだは、いまのページとして出す
-  if (st.page === "prs") prsDraw(); else { const V = $("#prsv"); if (V && !V.hidden){ V.hidden = true; V.textContent = ""; } } } // ほかのページでは表を残さない（ホームと同じわけ）
-// prsOffH は、--prs なしで PRトリアージを開いたとき（以前の # のリンクなど）と、ホームのカードに出す使い方。GitHub には何も問い合わせない
+  if (st.page === "prs") prsDraw(); else { const V = $("#prsv"); if (V && !V.hidden){ V.hidden = true; V.textContent = ""; } } } // ほかのページでは表を残さない（隠れた要素が同じ data-id の検索結果より先に見つかり、閉じたときのフォーカスが隠れた要素へ行くため）
+// prsOffH は、--prs なしで PRトリアージを開いたとき（#/prs のリンクなど）に出す使い方。GitHub には何も問い合わせない
 const prsOffH = () => `<p class="note">${esc(LIVE ? t("Start kiroku serve with --prs to use this page. It is off by default.") : t("This page works in kiroku serve started with --prs, not in a saved HTML file."))}</p>${codeH("kiroku serve --prs")}`;
 // PR の URL の形（kiroku serve が確かめたものと同じ）。プロンプトのコマンドに入れるので、ここでも確かめる
 const PR_URL = /^https:\/\/([A-Za-z0-9][A-Za-z0-9.-]*(?::\d{1,5})?)\/([A-Za-z0-9][A-Za-z0-9_.-]*)\/(?!\.{1,2}\/)([A-Za-z0-9_.][A-Za-z0-9_.-]*)\/pull\/([1-9]\d{0,8})$/;
@@ -175,10 +175,9 @@ async function prsLoad(force){
   } catch(e){ PRS.failed = true; }
   PRS.busy = false;
   if (st.page === "prs") prsDraw();
-  else if (st.page === "home") homeSync(); // ホームのカードの数（問い合わせはしない。PRトリアージで読んだ答えを使う）
 }
 // prsShow は、PRトリアージのページを開いたとき（setPage・boot）。kiroku serve は、新しい結果があるうちは GitHub に問い合わせ直さない。
-// 問い合わせるのは、このページの中で PRトリアージへのリンクを押して移ったとき（ask）だけ。URL（#/prs）で開いたとき・戻る・進むでは問い合わせず、
+// 問い合わせるのは、このページの中でメニューの PRトリアージを押して移ったとき（ask）だけ。URL（#/prs）で開いたとき・戻る・進むでは問い合わせず、
 // 前の答えか「再取得を押す」を出す。ほかのサイトが localhost:PORT/#/prs へ移らせても（リンク・window.open した窓の location）、gh を動かせないように
 function prsShow(ask){ prsDraw(); if (prsOn() && ask) prsLoad(false); }
 // PRS.ask は、このページの中で #/prs へのリンクが押されたこと（押した操作だけが立てる。スクリプトや外からの移動では立たない）

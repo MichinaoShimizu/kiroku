@@ -53,7 +53,7 @@ header{position:sticky;top:0;z-index:15;background:var(--bg);border-bottom:1px s
 .gnav a[hidden]{display:none}
 .brand{flex-wrap:wrap;row-gap:1px}.tagline{flex-basis:100%;margin:0;font:var(--fs-2xs)/1.3 var(--sans);color:var(--ink-3);white-space:nowrap} /* ロゴの下に、kiroku が何かを 1 行で（小さく。とても狭い画面では出さない） */
 @media (max-width:374px){.tagline{display:none}}
-.home{display:flex;align-items:center;gap:10px;flex:none;color:inherit;text-decoration:none;border-radius:8px} /* ロゴと名前は最初の画面へのリンク */
+.home{display:flex;align-items:center;gap:10px;flex:none;color:inherit;text-decoration:none;border-radius:8px} /* ロゴと名前はセッション履歴へのリンク */
 .mark{width:28px;height:28px;flex:none}
 .word{font:700 var(--fs-xl)/1 var(--sans);letter-spacing:-.01em;margin:0} /* h1。見た目は文字のまま */
 .ver{font:600 var(--fs-2xs)/1 var(--mono);color:var(--ink-3);margin-left:6px;white-space:nowrap;align-self:center} /* ロゴの隣の版。狭い画面でも出す */
@@ -638,13 +638,10 @@ dialog.wkdlg h2{margin:4px 0 12px;font-size:var(--fs-xl)}
 dialog.wkdlg .eyebrow{display:flex;align-items:center;gap:6px}
 dialog.wkdlg .fl{margin:0 0 14px}
 /* 自分に関係するプルリクエストの表（kiroku serve --prs。js/prs.js）。期間によらない「いま」の一覧なので、期間の行・カレンダー・サマリーは出さない */
-/* ページ（body の data-page）：セッション履歴の部品（期間の行・凡例・カレンダー・サマリー）は、そのページでだけ。
-   ホームでは、ページの下（データソース・版・問題の報告）だけを出す。検索の最中は、どのページでも結果だけ */
-#prsv,#homev{display:none}body[data-page="prs"]:not(.srch) #prsv:not([hidden]),body[data-page="home"]:not(.srch) #homev:not([hidden]){display:block}
+/* ページ（body の data-page）：セッション履歴の部品（期間の行・凡例・カレンダー・サマリー）は、そのページでだけ。検索の最中は、どのページでも結果だけ */
+#prsv{display:none}body[data-page="prs"]:not(.srch) #prsv:not([hidden]){display:block}
 body:not([data-page="sessions"]) .week,body:not([data-page="sessions"]) #legend,body:not([data-page="sessions"]) #fnote,body:not([data-page="sessions"]) #tl,body:not([data-page="sessions"]) #skipcal,body:not([data-page="sessions"]) #sesh{display:none}
 body[data-page="prs"] #review{display:none}
-body[data-page="home"] #review>.rvhead,body[data-page="home"] #review>.insight,body[data-page="home"] #review .rvgrid>:not(.metap){display:none!important}
-body[data-page="home"] #review .rvgrid{display:block}
 .prsub{margin:4px 0 0;font-size:var(--fs-sm);color:var(--ink-2)}
 #prtab[hidden]{display:none}
 .prpanel{margin-bottom:40px}
@@ -1401,25 +1398,4 @@ body.open .drawer.flowfull{width:100vw;height:100dvh;max-height:none;border-radi
 /* 履歴から来る名前（プロジェクト・題）の右から左の制御文字（U+202E など）が、まわりの文字（数字や時刻）の並びまで変えないよう、名前ごとに閉じる */
 .chip .cn, .run > *, .rlab, .srow b, .srow span{unicode-bidi:isolate}
 
-/* ── ホーム（home.js）：ページごとのカード ── */
-#homev,#prsv{padding:28px 0 8px}
-.hmgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
-@media (max-width:1000px){.hmgrid{grid-template-columns:minmax(0,1fr)}}
-.hmcard{display:flex;flex-direction:column;gap:6px}
-.hmh{display:flex;align-items:center;gap:10px;margin:0;font-size:var(--fs-xl)}.hmh .ic{width:20px;height:20px;color:var(--acc)}
-.hmh a{color:var(--ink);text-decoration:none}.hmh a:hover{text-decoration:underline;text-underline-offset:4px}
-.hmabout{margin:0 0 6px;color:var(--ink-2);font-size:var(--fs-sm);line-height:1.7}
-.hmsub{margin:14px 0 6px;font-size:var(--fs-xs);font-weight:600;color:var(--ink-3);letter-spacing:.02em}
-.hmstats{display:flex;flex-wrap:wrap;gap:8px 28px}
-.hmstat .k{font-size:var(--fs-xs);color:var(--ink-3)}.hmstat .v{font:600 var(--fs-2xl)/1.25 var(--sans);font-variant-numeric:tabular-nums;color:var(--ink)}.hmstat .v small{font-size:.6em;font-weight:500;color:var(--ink-2)}
-.hmstat .v .hmfix{display:block;font-size:var(--fs-xs);font-weight:500;color:var(--warn)}
-.hmdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;height:96px;margin-top:12px}
-.hmday{display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;gap:4px;min-width:0}
-.hmday i{display:block;align-self:center;width:min(100%,48px);border-radius:4px 4px 2px 2px;background:color-mix(in oklab,var(--acc) 45%,var(--surface-2));min-height:0}
-.hmday.today i{background:var(--acc)}
-.hmday b{font-size:var(--fs-2xs);font-weight:500;color:var(--ink-3);text-align:center;flex:none}.hmday.today b{color:var(--ink);font-weight:700}
-.hmday::before{content:"";flex:1 1 auto} /* 棒を下にそろえる */
-.hmv{font-size:var(--fs-2xs);color:var(--ink-2);text-align:center;white-space:nowrap;flex:none;font-variant-numeric:tabular-nums} /* 棒の上に時間（ホバーしなくても読めるように） */
-.hmrecent .card{margin-bottom:6px}
-.hmgo{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-.hmcard.off .hmh{color:var(--ink-2)}.hmcard.off .hmh .ic{color:var(--ink-3)}
+#prsv{padding:28px 0 8px}
