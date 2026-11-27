@@ -812,6 +812,10 @@ func TestPRPrompt(t *testing.T) {
 		{prs, `(?m)^const PR_STAGES = .*;$`},
 		{prs, `(?ms)^function prFlow\(it\)\{.*?^\}$`},
 		{prs, `(?m)^function prAge\(since, now\)\{.*\n.*\}$`},
+		{prs, `(?m)^const PR_STAGE_NAME = .*;$`},
+		{prs, `(?ms)^function prSteps\(it, F\)\{.*?^\}$`},
+		{prs, `(?m)^const PR_KINDS = .*;$`},
+		{prs, `(?m)^const prOrder = .*;$`},
 	} {
 		m := regexp.MustCompile(x.re).FindString(x.src)
 		if m == "" {

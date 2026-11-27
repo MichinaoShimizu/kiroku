@@ -1,7 +1,7 @@
 // 自分に関係する、開いているプルリクエストの表（kiroku serve --prs のときだけ。なければ表示の切り替えにも出さない）。
 // kiroku serve が GitHub CLI（gh）で GitHub に問い合わせた結果を /prs から読む。問い合わせるのは、この表示を開いたときと「更新」を押したときだけ。
 // 題名・名前・URL は、ほかの人が書ける文字。どれも esc を通して出し、AI に渡すプロンプトには URL（形を確かめたもの）しか入れない
-const PRS = {data: null, busy: false, failed: false};
+const PRS = {data: null, busy: false, failed: false, filter: null}; // filter: 自分の PR を種類（fix・ready・wait）で絞り込んでいるとき
 const prsOn = () => LIVE && !!META && META.prs === true;
 // prsSync は、表示の切り替えに「プルリクエスト」を出すかどうかと、開いていれば表の描き直し（render が呼ぶ。履歴が変わると、作ったセッションの欄が変わる）
 function prsSync(){ const b = $("#prtab"), on = prsOn(); if (b) b.hidden = !on;
@@ -84,45 +84,50 @@ function prFlow(it){
 // prAge は、止まってからの時間を短く（1 時間未満・N 時間・N 日）。now は秒
 function prAge(since, now){ if (!since || now < since) return ""; const h = (now - since) / 3600;
   return h < 1 ? t("<1h") : h < 48 ? t("{n}h", {n: Math.floor(h)}) : t("{n}d", {n: Math.floor(h / 24)}); }
-// prState は、状況の欄：4 つの段の図と、止まっている段の名前と時間
+// prSteps は、状況の欄の図：4 つの段を線でつないだ点と、その下の段の名前。
+// 点の形は 3 つだけ：済み（塗り）・いま止まっている（大きな点）・まだ（小さな白抜き）。色は、直すもの＝警告、マージ可＝アクセント。
+// 止まっている段より後ろは、済んだとわかるもの（チェック成功・承認済み）を「済み」、ほかを「まだ」にする（直すものは警告の色の白抜き）
+function prSteps(it, F){
+  const N = PR_STAGE_NAME(), at = PR_STAGES.indexOf(F.at), known = {checks: it.checks === "passing", review: it.review === "approved"};
+  // レビューの判断がない（必須でない）PR は、レビューを「済み」と描かない（誰も見ていないので）
+  const noRev = !it.review;
+  const V = Object.fromEntries(PR_STAGES.map((k, i) => [k, i === at ? "cur" : k === "review" && noRev ? "todo" : i < at || known[k] ? "done" : "todo"]));
+  const say = k => V[k] === "done" ? t("done") : F.S[k] === "fix" ? t("needs a fix") : V[k] === "cur" ? (F.kind === "ready" ? t("ready") : t("waiting"))
+    : k === "review" && noRev && PR_STAGES.indexOf(k) < at ? t("no review decision") : t("not yet");
+  const cls = k => V[k] === "done" ? "" : F.S[k] === "fix" ? " fix" : V[k] === "cur" && F.kind === "ready" ? " ready" : "";
+  return {V, text: PR_STAGES.map(k => `${N[k]}: ${say(k)}`).join(LSEP()),
+    html: `<ol class="prsteps" aria-hidden="true">${PR_STAGES.map(k => `<li class="prstep ${V[k]}${cls(k)}"><i></i><span>${esc(N[k])}</span></li>`).join("")}</ol>`};
+}
+// prState は、状況の欄：段の図と、止まっている段の名前と時間
 function prState(it, now){
-  const F = prFlow(it), N = PR_STAGE_NAME(), age = prAge(F.since, now);
-  // 止まっている段より後ろは、直すもの（fix）と、済んだとわかるもの（チェック成功・承認済み）だけを塗り、ほかは「まだ」（todo）
-  const after = k => PR_STAGES.indexOf(k) > PR_STAGES.indexOf(F.at), known = {checks: it.checks === "passing", review: it.review === "approved"};
-  const V = Object.fromEntries(PR_STAGES.map(k => [k, after(k) && F.S[k] === "done" && !known[k] ? "todo" : F.S[k]]));
-  const full = `${PR_STAGES.map(k => `${N[k]}: ${({done: t("done"), wait: t("waiting"), fix: t("needs a fix"), todo: t("not yet")})[V[k]]}`).join(" → ")}. ${F.label}${age ? ` · ${age} ${F.basis}` : ""}`;
-  const step = k => { const cur = k === F.at;
-    return `<span class="prstep ${V[k]}${cur ? " cur" : ""}${cur && F.kind === "ready" ? " ready" : ""}"></span>`; };
-  return `<div class="prflow" role="img" aria-label="${esc(full)}" title="${esc(full)}"><div class="prsteps">${PR_STAGES.map(step).join("")}</div>
+  const F = prFlow(it), age = prAge(F.since, now), P = prSteps(it, F);
+  const full = `${P.text}${isJA() ? "。" : ". "}${F.label}${age ? ` · ${age} ${F.basis}` : ""}`;
+  return `<div class="prflow" role="img" aria-label="${esc(full)}" title="${esc(full)}">${P.html}
     <div class="prstop ${F.kind}"><b>${esc(F.label)}</b>${age ? `<span>${esc(age)}</span>` : ""}</div></div>`;
 }
-// prOverview は、表の上の図：自分の PR が流れのどの段で止まっているか。段ごとに PR を、止まっている時間の長い順に棒で（長さは時間）。
-// 棒の名前は org/repo と番号（番号だけでは、どのリポジトリの PR かわからない）。長い名前は折り返し、番号はいつも名前の右に見せる
-function prOverview(items, now){
-  const mine = items.filter(it => (it.why || []).includes("author")); if (!mine.length) return "";
-  const N = PR_STAGE_NAME(), rows = mine.map(it => ({it, F: prFlow(it)})).map(x => ({...x, h: x.F.since && now > x.F.since ? (now - x.F.since) / 3600 : 0}));
-  const max = Math.max(24, ...rows.map(x => x.h));
-  const col = k => { const xs = rows.filter(x => x.F.at === k).sort((a, b) => b.h - a.h), shown = xs.slice(0, 5);
-    return `<li class="prcol"><div class="prcolh"><span>${esc(N[k])}</span><b>${xs.length}</b></div>
-      ${xs.length ? `<ul class="prbars">${shown.map(x => `<li class="${x.F.kind}" title="${esc(`${x.it.repo} #${x.it.number} · ${x.F.label} · ${prAge(x.F.since, now)} ${x.F.basis}`)}"><span class="prbn"><span class="prbr">${String(x.it.repo).split("/").map((p, j, a) => `<span>${esc(p)}${j < a.length - 1 ? "/" : ""}</span>`).join("")}</span><span class="prbno">#${esc(x.it.number)}</span></span><span class="prbt"><i style="width:${Math.max(4, Math.round(100 * Math.sqrt(x.h / max)))}%"></i></span><span class="prba">${esc(prAge(x.F.since, now) || "—")}</span></li>`).join("")}</ul>${xs.length > shown.length ? `<p class="prmore">${esc(t("+{n} more", {n: xs.length - shown.length}))}</p>` : ""}` : `<p class="prnone">—</p>`}</li>`; };
-  return `<section class="prov" aria-labelledby="provh"><h3 id="provh">${esc(t("Where your pull requests are stopped"))}</h3>
-    <ol class="prcols">${PR_STAGES.map(col).join("")}</ol>
-    <p class="note">${esc(t("Each bar is one of your pull requests, at the first step it hasn't passed; its length is how long it has been there (longest first, square-root scale). Times are estimates from the last commit, review or update GitHub reports."))}</p></section>`;
+// 自分の PR を、いま何をすればよいかで 3 つに分ける（prFlow の kind）。表はこの順に、同じ種類の中は止まっている時間の長い順に並べる
+const PR_KINDS = ["fix", "ready", "wait"];
+const PR_KIND_NAME = () => ({fix: t("Needs a fix"), ready: t("Ready to merge"), wait: t("Waiting")});
+const prOrder = (mine, now) => (a, b) => (mine ? PR_KINDS.indexOf(a.kind) - PR_KINDS.indexOf(b.kind) : 0) || (a.since || now) - (b.since || now) || (b.updated || 0) - (a.updated || 0);
+// prSum は、自分の PR の表の上の、種類ごとの数。押すとその種類だけを出し、もう一度押すと全部に戻す
+function prSum(kinds){
+  const K = PR_KIND_NAME(), n = Object.fromEntries(PR_KINDS.map(k => [k, kinds.filter(x => x === k).length]));
+  return `<div class="prsum" role="group" aria-labelledby="prsuml"><span class="prsuml" id="prsuml">${esc(t("Show only"))}</span>${PR_KINDS.map(k => `<button type="button" class="prk ${k}" data-k="${k}" aria-pressed="${PRS.filter === k}"${n[k] ? "" : " disabled"}><span>${esc(K[k])}</span><b>${n[k]}</b></button>`).join("")}</div>`;
 }
 // prSessionsOf は、その PR と関係するセッション：履歴に、同じ URL の PR を作った記録か、その URL を名指ししてマージ・レビューした記録があるもの（新しい順）
 const prSame = u => { const m = /^https:\/\/([^/\s]+)\/([^/\s]+)\/([^/\s]+)\/pull\/(\d+)(?:[/?#]|$)/.exec(String(u || "")); return m ? `${m[1]}/${m[2]}/${m[3]}#${m[4]}`.toLowerCase() : null; };
 function prSessionsOf(it){ const k = prSame(it.url); if (!k) return [];
   return DATA.filter(s => (s.prs || []).some(u => prSame(u) === k) || (s.prActs || []).some(a => prSame(a.ref) === k)).sort((a, b) => b.end - a.end); }
-function prsRow(it, i){
+function prsRow(it, i, hide){
   const ses = prSessionsOf(it), tasks = prTasks(it), T = PR_TASK(), ok = PR_URL.test(it.url || ""), num = `#${it.number}`, [owner, name] = String(it.repo).split("/"), now = nowMs() / 1000;
   // 指示 1 つにボタン 1 つ。ボタンの名前が指示（押すと、その指示だけのプロンプトをコピーする）
   const cp = k => `<button type="button" class="pill ai-copy prcp" data-pr="${i}" data-task="${k}" title="${esc(t("Copy a prompt that asks your AI agent to do this"))}">${ico("copy")}<span>${esc(T[k])}</span><span class="sr"> (${esc(t("Copy prompt"))})</span></button>`;
   const sesB = s => `<button type="button" class="prsl" data-id="${esc(s.id)}" title="${esc(`${s.title} · ${md(s.start)} ${hm(s.start)} · ${s.source}`)}">${agMark(s.source)}<span>${esc(s.title)}</span></button>`;
-  return `<tr>
+  return `<tr${hide ? " hidden" : ""}>
     <td class="prrepo" data-l="${esc(t("Repository"))}"><span class="prown">${esc(owner)}/</span><span class="prname">${esc(name || "")}</span></td>
     <td class="prwhat" data-l="${esc(t("Pull request"))}"><span class="prno">${ok ? ext(it.url, `${esc(num)} ↗`) : esc(num)}</span> <span class="prt">${esc(it.title || t("(no title)"))}</span>${it.author && !(it.why || []).includes("author") ? `<span class="prby">${esc(t("by {name}", {name: it.author}))}</span>` : ""}</td>
     <td class="prses" data-l="${esc(t("Sessions"))}">${ses.length ? ses.slice(0, 3).map(sesB).join("") + (ses.length > 3 ? `<span class="prmore">${esc(t("+{n} more", {n: ses.length - 3}))}</span>` : "") : PR_NONE}</td>
-    <td class="prst" data-l="${esc(`${t("Status")} (${PR_STAGES.map(k => PR_STAGE_NAME()[k]).join(" → ")})`)}">${prState(it, now)}</td>
+    <td class="prst" data-l="${esc(t("Status"))}">${prState(it, now)}</td>
     <td class="prup" data-l="${esc(t("Updated"))}">${it.updated ? `<span>${esc(md(it.updated))}</span> <span>${esc(hm(it.updated))}</span>` : "—"}</td>
     <td class="pract" data-l="${esc(t("Copy a prompt"))}">${ok ? tasks.map(cp).join("") : PR_NONE}</td>
   </tr>`;
@@ -135,17 +140,24 @@ function prsBody(){
     : t("Couldn't ask GitHub. See the terminal where kiroku serve runs for details, then press Refresh.")));
   const G = [["author", t("Opened by you")], ["review", t("Waiting for your review")], ["mention", t("Mentioning you")]];
   const first = it => G.find(([k]) => (it.why || []).includes(k)), items = d.items || [];
-  const th = l => `<th scope="col">${esc(l)}</th>`, N = PR_STAGE_NAME();
-  // 状況の見出しには、行の図と同じ並びで段の名前を添える（図の 4 つの枠が何の段かを、どの行でも読めるように）
-  const thSt = `<th scope="col" class="prsth">${esc(t("Status"))}<span class="prsteps prleg" aria-hidden="true">${PR_STAGES.map(k => `<span>${esc(N[k])}</span>`).join("")}</span></th>`;
-  // グループごとに 1 つの表。リポジトリの順（同じリポジトリの PR が並ぶ）、その中は更新の新しい順
-  const secs = G.map(([k, label]) => { const xs = items.map((it, i) => [it, i]).filter(([it]) => (first(it) || [])[0] === k)
-      .sort(([a], [b]) => String(a.repo).localeCompare(String(b.repo)) || (b.updated || 0) - (a.updated || 0));
-    return xs.length ? `<section class="prsec"><h3>${esc(label)} · ${xs.length}</h3><div class="prscroll"><table class="prtable"><thead><tr>${[t("Repository"), t("Pull request"), t("Sessions")].map(th).join("")}${thSt}${[t("Updated"), t("Copy a prompt")].map(th).join("")}</tr></thead><tbody>${xs.map(([it, i]) => prsRow(it, i)).join("")}</tbody></table></div>${d.more && d.more[k] ? `<p class="note">${esc(t("Only the 50 most recently updated are shown."))}</p>` : ""}</section>` : ""; }).join("");
-  return (secs ? prOverview(items, nowMs() / 1000) + secs : noneH(esc(t("No open pull requests involve you right now.")))) + (d.partial ? `<p class="note">${esc(t("GitHub answered only in part, so some pull requests or their status may be missing."))}</p>` : "");
+  const th = l => `<th scope="col">${esc(l)}</th>`, now = nowMs() / 1000;
+  // グループごとに 1 つの表。自分の PR は、直すもの → マージ可 → 待ちの順。どのグループも、同じ中は止まっている時間の長い順
+  const secs = G.map(([k, label]) => { const mine = k === "author";
+    const xs = items.map((it, i) => { const F = prFlow(it); return {it, i, kind: F.kind, since: F.since, updated: it.updated}; })
+      .filter(x => (first(x.it) || [])[0] === k).sort(prOrder(mine, now));
+    const f = mine && PRS.filter && xs.some(x => x.kind === PRS.filter) ? PRS.filter : null, shown = f ? xs.filter(x => x.kind === f).length : xs.length;
+    // 再取得でその種類（か自分の PR そのもの）がなくなったら、絞り込みをやめる（あとで戻ってきたときに、黙って絞り込まない）
+    if (mine && !f) PRS.filter = null;
+    if (!xs.length) return "";
+    return `<section class="prsec"><h3>${esc(label)} · ${xs.length}</h3>${mine ? prSum(xs.map(x => x.kind)) : ""}
+      ${f ? `<p class="prfil" role="status">${esc(t("Showing {n} of {total}", {n: shown, total: xs.length}))} · <button type="button" class="prall">${esc(t("Show all"))}</button></p>` : ""}
+      <div class="prscroll"><table class="prtable"><thead><tr>${[t("Repository"), t("Pull request"), t("Sessions"), t("Status"), t("Updated"), t("Copy a prompt")].map(th).join("")}</tr></thead><tbody>${xs.map(x => prsRow(x.it, x.i, f && x.kind !== f)).join("")}</tbody></table></div>${d.more && d.more[k] ? `<p class="note">${esc(t("Only the 50 most recently updated are shown."))}</p>` : ""}</section>`; }).join("");
+  return (secs || noneH(esc(t("No open pull requests involve you right now.")))) + (d.partial ? `<p class="note">${esc(t("GitHub answered only in part, so some pull requests or their status may be missing."))}</p>` : "");
 }
 function prsDraw(){
-  const V = $("#prsv"), d = PRS.data, hadRe = document.activeElement && document.activeElement.id === "prsre";
+  const V = $("#prsv"), d = PRS.data, A = document.activeElement, hadRe = A && A.id === "prsre";
+  // 絞り込みのボタンか「すべて表示」にフォーカスがあれば、描き直したあとも同じもの（なくなっていれば、押せる絞り込みのボタンか「再取得」）に戻す
+  const hadK = A && A.matches && A.matches("#prsv .prk[data-k]") ? A.dataset.k : null, hadAll = A && A.matches && A.matches("#prsv .prall");
   V.hidden = false;
   V.innerHTML = `<div class="panel prpanel"><div class="prhead"><div><h2 id="prsh">${ico("pr")}${esc(t("Pull requests that involve you"))}</h2>
       <p class="prwhen" role="status">${d && d.fetched ? esc(t("From GitHub (through gh) as of {time}", {time: hm(d.fetched)})) + (d.login ? ` · @${esc(d.login)}` : "") : ""}${d && PRS.busy ? ` · ${esc(t("Asking GitHub…"))}` : ""}</p>
@@ -155,6 +167,10 @@ function prsDraw(){
     <p class="note">${esc(t("kiroku asks GitHub only when you open or refresh this list, through the GitHub CLI on this computer. It sends the fixed question \"open pull requests that involve me\" and nothing from your history. Titles and names come from GitHub and can be written by other people."))}</p></div>`;
   $("#prsre").onclick = () => prsLoad(true);
   if (hadRe) $("#prsre").focus();
+  else if (hadK || hadAll){ const n = (hadAll && V.querySelector(".prall")) || (hadK && V.querySelector(`.prk[data-k="${hadK}"]:not(:disabled)`)) || V.querySelector(".prk:not(:disabled)") || $("#prsre"); n.focus(); }
+  V.querySelectorAll(".prk[data-k]").forEach(b => b.onclick = () => { const k = b.dataset.k; PRS.filter = PRS.filter === k ? null : k; prsDraw(); });
+  // 「すべて表示」は押すと消えるので、絞り込んでいた種類のボタンにフォーカスを移す
+  const all = V.querySelector(".prall"); if (all) all.onclick = () => { const k = PRS.filter; PRS.filter = null; prsDraw(); const n = $(`#prsv .prk[data-k="${k}"]`); if (n) n.focus(); };
   V.querySelectorAll(".prsl[data-id]").forEach(b => b.onclick = () => select(b.dataset.id));
   V.querySelectorAll(".prcp").forEach(b => b.onclick = () => { const it = d && (d.items || [])[+b.dataset.pr]; if (!it) return;
     const p = prPrompt(it, d.fetched || Date.now() / 1000, b.dataset.task); if (p) copyPrompt(b, p); });

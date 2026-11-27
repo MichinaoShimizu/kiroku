@@ -228,7 +228,7 @@ It needs the [GitHub CLI](https://cli.github.com/) (`gh`), installed and logged 
 
 Each row has these columns: Repository (as `org/repo`), Pull request (the number, a link to GitHub, and the title; for other people's, who opened it), Sessions (your sessions whose history records that they created this pull request, or merged or reviewed it by its address; click one to open it), Status, Updated, and Copy a prompt.
 
-Status draws the way to merging as four steps, Draft → Checks → Review → Merge, the same order as the names under the column heading. Filled steps are done, the thick one is where the pull request is stopped (the first step not done), red ones need a fix, and dashed ones are not reached yet. Below it are the step's state and how long it has been stopped there:
+Status draws the way to merging as four dots joined by a line, each named under it: Draft → Checks → Review → Merge. A filled dot is done, the large dot is where the pull request is stopped (the first step not done: red when it needs a fix, filled with the accent color when it is ready to merge, and a hollow ring when it is waiting) and a small hollow dot is not done yet. When nobody has to review a pull request and nobody has, Review stays a small hollow dot. Below it are the step's state and how long it has been stopped there:
 
 | Stopped at | Shown as | Time counted from |
 |---|---|---|
@@ -240,9 +240,9 @@ Status draws the way to merging as four steps, Draft → Checks → Review → M
 | Merge | Ready to merge (approved) | The last review |
 | Merge | Waiting to merge (no review decision) | The last commit |
 
-GitHub doesn't say when a pull request reached a step, so these times are estimates. Hover the status for every step's state. Above the tables, "Where your pull requests are stopped" shows your own pull requests in four columns, one per step, each named by its repository (`org/repo`) and number with a bar as long as the time it has been stopped there (longest first, on a square-root scale).
+GitHub doesn't say when a pull request reached a step, so these times are estimates. Hover the status for every step's state in words.
 
-Rows are ordered by repository, then by the most recently updated. The page shows what is open now, so it has no week or month.
+Above the table of your own pull requests, three buttons after "Show only" count them by what they need now: Needs a fix (failing checks, changes requested or conflicts), Ready to merge (approved) and Waiting (a draft, checks still running, a review not given yet, or no review decision). Press one to show only those; press it again or "Show all" to show every row. Your own pull requests are ordered the same way, Needs a fix first, and within each, the one stopped the longest comes first. The other tables are ordered by how long each has been stopped, longest first. The page shows what is open now, so it has no week or month.
 
 Copy a prompt has one button per instruction, named after it (for example "Fix the failing checks"). Each button copies a prompt that asks for that one thing only:
 
