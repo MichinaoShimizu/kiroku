@@ -7,8 +7,10 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/MichinaoShimizu/kiroku/internal/core"
 	"github.com/MichinaoShimizu/kiroku/internal/report"
@@ -184,7 +186,7 @@ func TestDiskCacheRejects(t *testing.T) {
 	// 別の実行ファイルのもの
 	b, _ := os.ReadFile(filepath.Join(dir, diskCacheFile))
 	other := &diskCache{path: filepath.Join(dir, diskCacheFile), build: "other", gap: 15}
-	if _, err := other.read(); err == nil {
+	if _, _, err := other.read(); err == nil {
 		t.Error("used a cache saved by another kiroku")
 	}
 	if runtime.GOOS != "windows" {
@@ -251,5 +253,129 @@ func TestDiskCacheSkipsCrewPrivate(t *testing.T) {
 		data, _ := collectCached(all, want, 15, c2)
 		assertPrivate(t, data, "Claude Code", "c-priv")
 		assertVisible(t, data, "Claude Code", "c-pub", "VISIBLE-CLAUDE")
+	}
+}
+
+// あとから中身を残さないことにした（persistent から incognito にした）Crew の会話の写しは、前に残したファイルからも消える。
+// 隠すものを調べきれないとき（session_map.json が壊れている）は、前に残したファイルを消す。
+func TestDiskCacheDropsLaterPrivate(t *testing.T) {
+	quietLog(t)
+	all := crewPrivateSources(t)
+	crew := all[1].(*source.KiroCLI).CrewHome
+	transcript := filepath.Join(crew, "sessions", "dashboard_chat-1-100.jsonl")
+	orig, err := os.ReadFile(transcript)
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(transcript, bytes.Replace(orig, []byte(`"incognito"`), []byte(`"persistent"`), 1), 0o600)
+	// ほかの中身を残さない会話（chat-4）は残さないので、起動のたびに読み直してファイルを書き直してしまう。
+	// 変えた会話のことだけを確かめるため、中身を残すことにする
+	other := filepath.Join(crew, "sessions", "dashboard_chat-4-400.jsonl")
+	b4, _ := os.ReadFile(other)
+	os.WriteFile(other, bytes.Replace(b4, []byte(`"incognito"`), []byte(`"persistent"`), 1), 0o600)
+	dir := filepath.Join(t.TempDir(), "cache")
+	file := filepath.Join(dir, diskCacheFile)
+	want := map[string]bool{"kiro": true, "claude": true, "codex": true}
+	run := func() {
+		t.Helper()
+		c := newLoadCache()
+		c.disk = openDiskCache(dir, 15, "", nil)
+		data, _ := collectCached(all, want, 15, c)
+		c.saveToDisk()
+		c.disk.wait()
+		_ = data
+	}
+	run()
+	if b, _ := os.ReadFile(file); !bytes.Contains(b, []byte("SECRET-CLAUDE-CURRENT")) {
+		t.Fatal("a persistent conversation was not saved (the test checks nothing)")
+	}
+	os.WriteFile(transcript, orig, 0o600) // incognito にした。Claude Code の履歴は変わらない
+	run()
+	if b, _ := os.ReadFile(file); bytes.Contains(b, []byte("SECRET-CLAUDE-CURRENT")) {
+		t.Error("the disk cache still holds a conversation made private after it was saved")
+	}
+
+	os.WriteFile(transcript, bytes.Replace(orig, []byte(`"incognito"`), []byte(`"persistent"`), 1), 0o600)
+	run()
+	os.WriteFile(filepath.Join(crew, "session_map.json"), []byte(`{"dashboard:chat-1-100": {"sid": "c-priv"`), 0o600)
+	run()
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		t.Error("kept the disk cache although kiroku could not check which conversations are private")
+	}
+}
+
+// 裏で書くものは、読み込みを終えたときの結果と隠した会話の組。読み込みの途中（エージェントの 1 つを読み直して、
+// 隠すものを調べ直す前）に書いても、新しく現れた中身を残さない会話の写しは入らない。
+func TestDiskSnapshotIsConsistent(t *testing.T) {
+	quietLog(t)
+	all := crewPrivateSources(t)
+	claudeSrc, crew := all[0].(*source.Claude), all[1].(*source.KiroCLI).CrewHome
+	want := map[string]bool{"kiro": true, "claude": true}
+	c := newLoadCache()
+	collectCached(all, want, 15, c)
+	writeUnder(t, crew, map[string]string{
+		"session_map.json":                    `{"dashboard:chat-1-100": {"sid": "c-priv", "provider": "claude_code", "cwd": "/w"}, "dashboard:chat-5-500": {"sid": "c-new", "provider": "claude_code", "cwd": "/w"}}`,
+		"sessions/dashboard_chat-5-500.jsonl": `{"_type": "metadata", "title": "t", "memory_mode": "incognito"}` + "\n",
+	})
+	writeUnder(t, claudeSrc.Root, map[string]string{"-w/c-new.jsonl": claudeTranscript("SECRET-NEW")})
+	c.load(claudeSrc, 15) // 隠すものを調べ直す前
+	has := func() bool {
+		df, err := c.diskSnapshot("b")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, ds := range df.sources {
+			for _, u := range ds.units {
+				for _, o := range u.Outs {
+					if o.Sess != nil && strings.Contains(o.Sess.ID, "c-new") {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	}
+	if has() {
+		t.Error("the snapshot holds a new private copy before it was checked")
+	}
+	collectCached(all, want, 15, c)
+	if has() {
+		t.Error("the snapshot holds a private copy")
+	}
+}
+
+// 時間帯が変わったら使わない（時間帯のない時刻はローカル時刻として読むので）。前からあるフォルダは、書かないときも 0700 にする。
+// 画面の JSON にできない値の入った Unit は使わない。
+func TestDiskCacheZoneDirAndValues(t *testing.T) {
+	setup(t)
+	logw = io.Discard
+	root := t.TempDir()
+	writeClaudeHistory(t, root, 1, 2)
+	dir := filepath.Join(t.TempDir(), "cache")
+	c := newLoadCache()
+	c.disk = openDiskCache(dir, 15, "", nil)
+	collectCached([]source.Source{&source.Claude{Root: root}}, map[string]bool{"claude": true}, 15, c)
+	c.saveToDisk()
+	c.disk.wait()
+	old := time.Local
+	time.Local = time.UTC
+	if d := openDiskCache(dir, 15, "", nil); d != nil && len(d.loaded) > 0 {
+		t.Error("used a cache saved in another time zone")
+	}
+	time.Local = old
+	if runtime.GOOS != "windows" {
+		os.Chmod(dir, 0o755)
+		openDiskCache(dir, 15, "", nil)
+		if st, _ := os.Stat(dir); st.Mode().Perm() != 0o700 {
+			t.Errorf("cache folder left %o", st.Mode().Perm())
+		}
+	}
+	bad := &core.Session{Tools: [][2]any{{"Bash", complex(1, 2)}}}
+	if _, ok := restoreUnit(diskUnit{Outs: []diskLoaded{{Sess: bad}}}); ok {
+		t.Error("accepted a value the view can't show")
+	}
+	good := &core.Session{Tools: [][2]any{{"Bash", 2}}}
+	if _, ok := restoreUnit(diskUnit{Outs: []diskLoaded{{Sess: good}}}); !ok {
+		t.Error("rejected an ordinary session")
 	}
 }

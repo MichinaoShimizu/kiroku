@@ -25,13 +25,14 @@ import (
 // 会話ごとのファイルに分けて読める Source（source.Splitter: Claude Code と Codex）の Unit ごとに、
 // 読んだときの印（Stamp と Tag）とセッションを残し、次の起動では印が同じ Unit を読み直さない。
 // 履歴の中身（依頼文・応答・パス）が入るので、kiroku が書くほかの履歴のファイルと同じく本人だけが読める
-// （フォルダ 0700、ファイル 0600）。kiroku の実行ファイルが変わったら（版を上げた・作り直した）使わない。
-// --no-cache で使わず、残っていれば消す。
+// （フォルダ 0700、ファイル 0600）。kiroku の実行ファイル・時間帯・--gap・--prices が変わったら使わない。
+// 中身を出さない会話（Kiro Crew の incognito・temporary）の写しは残さない。--no-cache で使わず、残っていれば消す。
 
 const (
 	diskCacheFile  = "serve-cache"
-	diskCacheMagic = "kiroku serve-cache 1"
+	diskCacheMagic = "kiroku serve-cache 2"
 	// diskCacheMax は読むファイルの大きさの上限（壊れたファイルでメモリを使い切らないように）。
+	// 塊ごとに読むので、一度にメモリに置くのは読み終えたセッションと、並べて読んでいる数個の塊だけ。
 	diskCacheMax = int64(4 << 30)
 )
 
@@ -59,23 +60,23 @@ func cacheDir() (string, error) {
 	return filepath.Join(d, "kiroku"), nil
 }
 
-// diskFile はファイルの中身。
-type diskFile struct {
-	Magic   string
-	Build   string // kiroku の実行ファイルの SHA-256（違えば使わない）
-	Gap     int
-	Sources []diskSource
+// ファイルは 1 つの gob の流れで、diskHeader のあとに diskShardMsg が続き、Last の印で終わる。
+// 1 つにまとめた値にすると、書くときも読むときもファイル全体をメモリに置くので、塊（diskShard 個の Unit）ごとの値にする。
+// 塊の中身は別の gob（[]diskUnit）にしてあり、並べて読む（gob の 1 つの流れは 1 つの CPU でしか読めない）。
+type diskHeader struct {
+	Magic string
+	Build string // kiroku の実行ファイルの SHA-256 と、時間帯・--prices（違えば使わない）
+	Gap   int
 }
 
-// diskSource は 1 つの Source の Unit。gob は 1 つの流れを 1 つの CPU でしか読めないので、
-// diskShard 個ずつに分けて別々に gob にし、並べて読む。
-type diskSource struct {
-	ID     string   // sourceID
-	Shards [][]byte // []diskUnit の gob
+type diskShardMsg struct {
+	Source string // sourceID
+	Data   []byte // []diskUnit の gob
+	Last   bool   // ファイルの終わり（途中で切れたファイルを、そろったものとして使わない）
 }
 
 // diskShard は 1 つの塊の Unit の数。
-const diskShard = 128
+const diskShard = 32
 
 type diskUnit struct {
 	Key, Stamp string
@@ -89,6 +90,17 @@ type diskLoaded struct {
 	Fulls, Replies    []string // core.Session.Fulls（HTML に入れない全文）
 	Empty             [][]int  // gob が nil にする、空の（nil ではない）スライス・マップと、ゼロを指すポインタの場所（emptyMarks）
 	Format            *core.Format
+}
+
+// diskFile は書くもの: 見出しと、Source ごとの Unit（塊に分けるのは書くとき）。
+type diskFile struct {
+	head    diskHeader
+	sources []diskSource
+}
+
+type diskSource struct {
+	id    string
+	units []diskUnit
 }
 
 // sourceID は Source を見分ける名前（エージェントと場所）。
@@ -109,6 +121,7 @@ type diskCache struct {
 	writing bool
 	again   bool // 書いている間に、もう一度書く必要ができた
 	next    func() (*diskFile, error)
+	gen     int // remove のたびに増やす（消す前に作り始めた中身を、あとから置かない）
 	wg      sync.WaitGroup
 }
 
@@ -145,78 +158,149 @@ func openDiskCache(dir string, gap int, prices string, logf func(string, ...any)
 		h := sha256.Sum256(b)
 		build += "+" + hex.EncodeToString(h[:])
 	}
+	// 時間帯のない時刻はローカル時刻として読むので、時間帯が変わったら使わない
+	zone, off := time.Now().Zone()
+	build += fmt.Sprintf("+tz=%s/%s/%d", os.Getenv("TZ"), zone, off)
+	if _, err := os.Lstat(dir); err == nil { // 前からあって、ほかの人も開けるフォルダも自分だけにする（書かないときも）
+		if err := core.PrivateDir(dir); err != nil {
+			return nil
+		}
+	}
 	d := &diskCache{path: filepath.Join(dir, diskCacheFile), build: build, logf: logf, gap: gap}
 	if old, _ := filepath.Glob(filepath.Join(dir, diskCacheFile+".*.tmp")); len(old) > 0 { // 書いている途中で止まった残り
 		for _, p := range old {
 			os.Remove(p)
 		}
 	}
-	f, err := d.read()
+	loaded, memos, err := d.read()
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) && logf != nil {
 			logf("not using the saved cache of history (%v); kiroku reads all history and saves it again\n", err)
 		}
 		return d
 	}
-	d.loaded, d.memos = map[string]*sourceCache{}, map[string]map[string][]byte{}
-	for _, s := range f.Sources {
-		shards := make([][]diskUnit, len(s.Shards))
-		parallel(len(s.Shards), func(i int) {
-			if gob.NewDecoder(bytes.NewReader(s.Shards[i])).Decode(&shards[i]) != nil {
-				shards[i] = nil // 読めない塊の Unit は読み直す
-			}
-		})
-		sc := &sourceCache{units: map[string]unitCache{}}
-		memos := map[string][]byte{}
-		for _, units := range shards {
-			for _, u := range units {
-				outs := make([]loaded, 0, len(u.Outs))
-				ok := true
-				for _, o := range u.Outs {
-					if o.Sess != nil && (!restoreEmpty(reflect.ValueOf(o.Sess).Elem(), o.Empty) || !o.Sess.SetFulls(o.Fulls, o.Replies)) {
-						ok = false
-						break
-					}
-					outs = append(outs, loaded{key: o.Key, claim: o.Claim, yield: o.Yield, sess: o.Sess, format: o.Format})
-				}
-				if !ok {
-					continue
-				}
-				sc.units[u.Key] = unitCache{stamp: u.Stamp, outs: outs}
-				if len(u.Memo) > 0 {
-					memos[u.Key] = u.Memo
-				}
-			}
-		}
-		d.loaded[s.ID], d.memos[s.ID] = sc, memos
-	}
+	d.loaded, d.memos = loaded, memos
 	return d
 }
 
-func (d *diskCache) read() (*diskFile, error) {
+// read はファイルを塊ごとに読み、Source ごとの結果にする。読めない塊・形の合わない Unit は捨てる（読み直す）。
+// 終わりの印まで読めなかったファイルは使わない。
+func (d *diskCache) read() (map[string]*sourceCache, map[string]map[string][]byte, error) {
 	f, err := core.OpenRegular(d.path)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer f.Close()
 	st, err := f.Stat()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if runtime.GOOS != "windows" && st.Mode().Perm()&0o077 != 0 {
-		return nil, errors.New("the file is readable by other users")
+		return nil, nil, errors.New("the file is readable by other users")
 	}
 	if st.Size() > diskCacheMax {
-		return nil, errors.New("the file is too large")
+		return nil, nil, errors.New("the file is too large")
 	}
-	var df diskFile
-	if err := gob.NewDecoder(bufio.NewReader(io.LimitReader(f, diskCacheMax))).Decode(&df); err != nil {
-		return nil, fmt.Errorf("could not read it: %w", err)
+	dec := gob.NewDecoder(bufio.NewReaderSize(io.LimitReader(f, diskCacheMax), 1<<20))
+	var head diskHeader
+	if err := dec.Decode(&head); err != nil {
+		return nil, nil, fmt.Errorf("could not read it: %w", err)
 	}
-	if df.Magic != diskCacheMagic || df.Build != d.build || df.Gap != d.gap {
-		return nil, os.ErrNotExist // 別の版・別の --gap のもの。黙って作り直す
+	if head.Magic != diskCacheMagic || head.Build != d.build || head.Gap != d.gap {
+		return nil, nil, os.ErrNotExist // 別の版・時間帯・--gap のもの。黙って作り直す
 	}
-	return &df, nil
+	type decoded struct {
+		id    string
+		units []diskUnit
+	}
+	workers := max(1, runtime.GOMAXPROCS(0))
+	in, out := make(chan diskShardMsg, workers), make(chan decoded, workers)
+	var wg sync.WaitGroup
+	for range workers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for m := range in {
+				var units []diskUnit
+				if gob.NewDecoder(bytes.NewReader(m.Data)).Decode(&units) != nil {
+					units = nil // 読めない塊の Unit は読み直す
+				}
+				out <- decoded{m.Source, units}
+			}
+		}()
+	}
+	loaded, memos := map[string]*sourceCache{}, map[string]map[string][]byte{}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for dc := range out {
+			sc := loaded[dc.id]
+			if sc == nil {
+				sc = &sourceCache{units: map[string]unitCache{}}
+				loaded[dc.id], memos[dc.id] = sc, map[string][]byte{}
+			}
+			for _, u := range dc.units {
+				if outs, ok := restoreUnit(u); ok {
+					sc.units[u.Key] = unitCache{stamp: u.Stamp, outs: outs}
+					if len(u.Memo) > 0 {
+						memos[dc.id][u.Key] = u.Memo
+					}
+				}
+			}
+		}
+	}()
+	var readErr error
+	complete := false
+	for {
+		var m diskShardMsg
+		if err := dec.Decode(&m); err != nil {
+			readErr = err
+			break
+		}
+		if m.Last {
+			complete = true
+			break
+		}
+		in <- m
+	}
+	close(in)
+	wg.Wait()
+	close(out)
+	<-done
+	if !complete {
+		return nil, nil, fmt.Errorf("could not read it: %w", readErr)
+	}
+	return loaded, memos, nil
+}
+
+// restoreUnit は、ファイルから読んだ Unit を読み込みの結果に戻す。形が合わなければ false。
+func restoreUnit(u diskUnit) ([]loaded, bool) {
+	outs := make([]loaded, 0, len(u.Outs))
+	for _, o := range u.Outs {
+		if o.Sess != nil && (!plainAny(o.Sess) || !restoreEmpty(reflect.ValueOf(o.Sess).Elem(), o.Empty) || !o.Sess.SetFulls(o.Fulls, o.Replies)) {
+			return nil, false
+		}
+		outs = append(outs, loaded{key: o.Key, claim: o.Claim, yield: o.Yield, sess: o.Sess, format: o.Format})
+	}
+	return outs, true
+}
+
+// plainAny は、[名前, 数] の欄（Tools・Models・Tiers）が、読み込みで作る形（文字列と数）だけか。
+// gob は any に登録した型ならなんでも戻すので、画面の JSON にできない値（complex128 など）の入ったファイルを使わない。
+func plainAny(s *core.Session) bool {
+	for _, rows := range [][][2]any{s.Tools, s.Models, s.Tiers} {
+		for _, r := range rows {
+			if _, ok := r[0].(string); !ok {
+				return false
+			}
+			switch r[1].(type) {
+			case int, float64:
+			default:
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // take は、s について起動したときに読んだ結果（1 回だけ）。Unit の覚え書きを s に戻してから返す。
@@ -244,14 +328,13 @@ func (d *diskCache) take(s source.Source, gap int) *sourceCache {
 	return sc
 }
 
-// snapshot は、いまの読み込みの結果からファイルの中身を作る（読めなかった Unit は残さない）。
+// diskSnapshot は、読み込みの結果からファイルの中身を作る（読めなかった Unit と、隠した会話の写しは残さない）。
+// 使うのは、読み込みを終えたときに setWithheld が取っておいた、読んだ結果と隠した会話の組
+// （読み込みの途中の、新しい会話と前の読み込みの隠す会話の組み合わせで書かないように）。
 func (c *loadCache) diskSnapshot(build string) (*diskFile, error) {
 	c.mu.Lock()
-	sources := make(map[source.Source]*sourceCache, len(c.sources))
-	for s, sc := range c.sources { // 中身は読み直しのたびに作り直すので、書き換わらない
-		sources[s] = sc
-	}
-	df := &diskFile{Magic: diskCacheMagic, Build: build, Gap: c.gap}
+	sources := c.saved
+	df := &diskFile{head: diskHeader{Magic: diskCacheMagic, Build: build, Gap: c.gap}}
 	withheld, claims, unsure := c.withheld, c.withheldClaims, c.unsure
 	c.mu.Unlock()
 	if unsure {
@@ -262,8 +345,7 @@ func (c *loadCache) diskSnapshot(build string) (*diskFile, error) {
 			continue
 		}
 		memoer, _ := s.(source.UnitMemoer)
-		ds := diskSource{ID: sourceID(s)}
-		var units []diskUnit
+		ds := diskSource{id: sourceID(s)}
 		for key, uc := range sc.units {
 			if uc.err != nil {
 				continue
@@ -289,22 +371,12 @@ func (c *loadCache) diskSnapshot(build string) (*diskFile, error) {
 				}
 				du.Outs = append(du.Outs, dl)
 			}
-			units = append(units, du)
+			ds.units = append(ds.units, du)
 		}
-		sort.Slice(units, func(i, j int) bool { return units[i].Key < units[j].Key })
-		ds.Shards = make([][]byte, (len(units)+diskShard-1)/diskShard)
-		errs := make([]error, len(ds.Shards))
-		parallel(len(ds.Shards), func(i int) {
-			var b bytes.Buffer
-			errs[i] = gob.NewEncoder(&b).Encode(units[i*diskShard : min(len(units), (i+1)*diskShard)])
-			ds.Shards[i] = b.Bytes()
-		})
-		if err := errors.Join(errs...); err != nil {
-			return nil, err
-		}
-		df.Sources = append(df.Sources, ds)
+		sort.Slice(ds.units, func(i, j int) bool { return ds.units[i].Key < ds.units[j].Key })
+		df.sources = append(df.sources, ds)
 	}
-	sort.Slice(df.Sources, func(i, j int) bool { return df.Sources[i].ID < df.Sources[j].ID })
+	sort.Slice(df.sources, func(i, j int) bool { return df.sources[i].id < df.sources[j].id })
 	return df, nil
 }
 
@@ -333,12 +405,12 @@ func (d *diskCache) save(snap func() (*diskFile, error)) {
 				time.Sleep(wait)
 			}
 			d.mu.Lock()
-			snap := d.next
+			snap, gen := d.next, d.gen
 			d.last = time.Now()
 			d.mu.Unlock()
 			df, err := snap()
 			if err == nil {
-				err = d.write(df)
+				err = d.write(df, gen)
 			}
 			if err != nil && d.logf != nil {
 				d.logf("could not save the cache of history (%v); the next start reads all history\n", err)
@@ -363,7 +435,9 @@ func (d *diskCache) wait() {
 }
 
 // write はファイルを置きかえる（同じフォルダに書いてから名前を変えるので、途中で止まっても前のものが残る）。
-func (d *diskCache) write(df *diskFile) error {
+// 塊は CPU の数ずつ並べて gob にして順に書くので、一度にメモリに置くのはその数の塊だけ。
+// 書いている間に remove されたら（gen が変わったら）置きかえない。
+func (d *diskCache) write(df *diskFile, gen int) error {
 	dir := filepath.Dir(d.path)
 	if err := core.PrivateDir(dir); err != nil {
 		return err
@@ -374,23 +448,68 @@ func (d *diskCache) write(df *diskFile) error {
 	}
 	name := tmp.Name()
 	defer os.Remove(name) // 名前を変えたあとは何もしない
-	w := bufio.NewWriterSize(tmp, 1<<20)
-	if err := gob.NewEncoder(w).Encode(df); err != nil {
+	fail := func(err error) error {
 		tmp.Close()
 		return err
+	}
+	w := bufio.NewWriterSize(tmp, 1<<20)
+	enc := gob.NewEncoder(w)
+	if err := enc.Encode(df.head); err != nil {
+		return fail(err)
+	}
+	workers := max(1, runtime.GOMAXPROCS(0))
+	for _, ds := range df.sources {
+		n := (len(ds.units) + diskShard - 1) / diskShard
+		for start := 0; start < n; start += workers {
+			batch := make([][]byte, min(workers, n-start))
+			errs := make([]error, len(batch))
+			parallel(len(batch), func(i int) {
+				k := start + i
+				var b bytes.Buffer
+				errs[i] = gob.NewEncoder(&b).Encode(ds.units[k*diskShard : min(len(ds.units), (k+1)*diskShard)])
+				batch[i] = b.Bytes()
+			})
+			if err := errors.Join(errs...); err != nil {
+				return fail(err)
+			}
+			for _, b := range batch {
+				if err := enc.Encode(diskShardMsg{Source: ds.id, Data: b}); err != nil {
+					return fail(err)
+				}
+			}
+		}
+	}
+	if err := enc.Encode(diskShardMsg{Last: true}); err != nil {
+		return fail(err)
 	}
 	if err := w.Flush(); err != nil {
-		tmp.Close()
-		return err
+		return fail(err)
 	}
 	if err := tmp.Chmod(0o600); err != nil && runtime.GOOS != "windows" {
-		tmp.Close()
-		return err
+		return fail(err)
 	}
 	if err := tmp.Close(); err != nil {
 		return err
 	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.gen != gen {
+		return nil
+	}
 	return os.Rename(name, d.path)
+}
+
+// remove は残した結果を消す（隠すものを調べきれなかったとき。前に書いたものに、いまは隠す会話が入っているかもしれない）。
+func (d *diskCache) remove() {
+	if d == nil {
+		return
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.gen++
+	if err := os.Remove(d.path); err != nil && !errors.Is(err, os.ErrNotExist) && d.logf != nil {
+		d.logf("could not delete the cache of history (%v)\n", err)
+	}
 }
 
 // removeDiskCache は残した結果を消す（--no-cache）。消したら true。なければ何もしない。
