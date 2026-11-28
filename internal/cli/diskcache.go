@@ -393,17 +393,21 @@ func (d *diskCache) write(df *diskFile) error {
 	return os.Rename(name, d.path)
 }
 
-// removeDiskCache は残した結果を消す（--no-cache）。なければ何もしない。
-func removeDiskCache() error {
+// removeDiskCache は残した結果を消す（--no-cache）。消したら true。なければ何もしない。
+// 場所がわからない（ホームがない）ときは何もしないが、KIROKU_CACHE_DIR が相対パスならそう言う。
+func removeDiskCache() (bool, error) {
 	dir, err := cacheDir()
 	if err != nil {
-		return nil
+		if os.Getenv("KIROKU_CACHE_DIR") != "" {
+			return false, err
+		}
+		return false, nil
 	}
 	err = os.Remove(filepath.Join(dir, diskCacheFile))
 	if errors.Is(err, os.ErrNotExist) {
-		return nil
+		return false, nil
 	}
-	return err
+	return err == nil, err
 }
 
 // emptyMarks は v の中の、gob が送らずに nil に戻すもの（空の nil ではないスライスとマップ、ゼロの値を指すポインタ）の場所を

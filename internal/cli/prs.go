@@ -54,6 +54,7 @@ const (
 	prsMaxStdout = 4 << 20
 	prsFresh     = 2 * time.Minute  // これより新しい結果があれば、一覧を開いても問い合わせ直さない
 	prsMinGap    = 10 * time.Second // 「更新」を続けて押しても、これより短い間隔では問い合わせない
+	prsErrGap    = 2 * time.Second  // 失敗したあとの「更新」は、これより短い間隔では問い合わせない（gh auth login のあとすぐ押せるように）
 	prsTitleMax  = 300
 	prsPerList   = 50 // prsQuery の first: 50 と同じ
 )
@@ -280,6 +281,7 @@ type prBoard struct {
 	mu    sync.Mutex
 	at    time.Time
 	body  []byte
+	bad   bool                                     // body は失敗の答え（一覧を開いても prsMinGap、「更新」なら prsErrGap たてば問い合わせ直す）
 	fetch func(context.Context) (prsResult, error) // テストで差しかえる
 	now   func() time.Time
 	logf  func(format string, args ...any)
@@ -290,11 +292,15 @@ func newPRBoard(logf func(string, ...any)) *prBoard {
 }
 
 // get は一覧の JSON を返す。force（「更新」）なら prsMinGap より古ければ、そうでなければ prsFresh より古ければ問い合わせる。
+// 前の答えが失敗なら、それぞれ prsErrGap と prsMinGap（画面を開いたときに失敗しても、直してすぐ試せるように）。
 func (b *prBoard) get(ctx context.Context, force bool) []byte {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	age, limit := b.now().Sub(b.at), prsFresh
-	if force {
+	switch {
+	case force && b.bad:
+		limit = prsErrGap
+	case force, b.bad:
 		limit = prsMinGap
 	}
 	if b.body != nil && age < limit {
@@ -304,7 +310,7 @@ func (b *prBoard) get(ctx context.Context, force bool) []byte {
 	if err != nil && b.logf != nil {
 		b.logf("could not list pull requests (--prs): %v\n", err)
 	}
-	b.at = b.now()
+	b.at, b.bad = b.now(), res.Error != ""
 	res.Fetched = float64(b.at.UnixNano()) / 1e9
 	js, mErr := json.Marshal(res)
 	if mErr != nil {

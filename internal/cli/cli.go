@@ -203,8 +203,14 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 			if !persist {
 				return
 			}
-			if dir, err := cacheDir(); err == nil {
-				cache.disk = openDiskCache(dir, gap, *c.prices, func(f string, a ...any) { fmt.Fprintf(os.Stderr, f, a...) })
+			dir, err := cacheDir()
+			if err != nil {
+				fmt.Fprintf(logw, "  %s not saving what kiroku read for a faster next start: %v\n", styleFor(logw).warn("!"), err)
+				return
+			}
+			cache.disk = openDiskCache(dir, gap, *c.prices, func(f string, a ...any) { fmt.Fprintf(os.Stderr, f, a...) })
+			if cache.disk != nil {
+				fmt.Fprintf(logw, "  %s\n", styleFor(logw).dim("saves what it reads to "+filepath.Join(dir, diskCacheFile)+" (readable only by you) for a faster next start; --no-cache turns this off"))
 			}
 		})
 		data, rep := collectCached(all, want, gap, cache)
@@ -340,7 +346,7 @@ func cmdServe(args []string) error {
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
 	allow := fs.String("allow-host", "", "comma-separated extra host `names` the view may be opened by (e.g. a name in your hosts file); localhost, 127.0.0.1 and ::1 always work, and this computer's own IPs and host name too when ADDR is 0.0.0.0 or another all-interfaces address")
 	lang := langFlag(fs)
-	prs := fs.Bool("prs", false, "list open pull requests that involve you (opened by you, review requested, or mentioning you) with their status and a prompt to copy; asks GitHub through the GitHub CLI (gh) once when the view opens and when you open or refresh that page, and sends nothing from your history")
+	prs := fs.Bool("prs", false, "list open pull requests that involve you (opened by you, review requested, or mentioning you) with their status and a prompt to copy; asks GitHub through the GitHub CLI (gh) when you open the view in a browser and when you open or refresh that page, and sends nothing from your history")
 	noCache := fs.Bool("no-cache", false, "do not save what kiroku read to its cache folder for a faster next start, and delete what an earlier run saved there")
 	ai := fs.Bool("ai", false, "removed in 4.0 (kiroku no longer runs AI agents); accepted and ignored")
 	_ = fs.Bool("no-ai", false, "removed in 4.0 (kiroku no longer runs AI agents); accepted and ignored")
@@ -357,8 +363,15 @@ func cmdServe(args []string) error {
 	}
 	c.persist = !*noCache
 	if *noCache {
-		if err := removeDiskCache(); err != nil {
+		removed, err := removeDiskCache()
+		if err != nil {
 			return fmt.Errorf("could not delete the saved cache of history: %w", err)
+		}
+		if removed {
+			fmt.Fprintln(os.Stderr, "--no-cache: deleted the cache of history an earlier kiroku serve saved")
+		}
+		if looksLikeServe(probeAddr(addr)) { // 動いている serve は、止めて --no-cache で起動し直すまで残し続ける
+			fmt.Fprintln(os.Stderr, "--no-cache: the kiroku serve already running keeps saving it; stop it (Ctrl+C) and start it again with --no-cache")
 		}
 	}
 	picked, load, err := c.loader()

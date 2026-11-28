@@ -218,7 +218,7 @@ func TestPRBoardAsksRarely(t *testing.T) {
 	b := &prBoard{now: func() time.Time { return now }, logf: func(f string, a ...any) { logged = append(logged, f) },
 		fetch: func(context.Context) (prsResult, error) {
 			n++
-			if n == 3 {
+			if n == 3 { // 更新（失敗）
 				return prsResult{On: true, Items: []prItem{}, Error: "failed"}, errors.New("boom")
 			}
 			return prsResult{On: true, Items: []prItem{{URL: "https://github.com/o/r/pull/1", Why: []string{"author"}}}}, nil
@@ -235,7 +235,10 @@ func TestPRBoardAsksRarely(t *testing.T) {
 		{time.Second, true, 2},      // 更新を押したが、問い合わせたばかり
 		{prsMinGap, true, 3},        // 更新（失敗）
 		{time.Second, false, 3},     // 失敗も、すぐには問い合わせ直さない
-		{prsMinGap, true, 4},
+		{0, true, 3},                // 失敗のあとの更新も、続けて押したものは問い合わせない
+		{prsErrGap, true, 4},        // 失敗のあとの更新は prsErrGap で問い合わせる（gh auth login のあと）
+		{time.Second, true, 4},      // 成功したので、また prsMinGap
+		{prsMinGap, true, 5},
 	}
 	for i, s := range steps {
 		now = now.Add(s.after)

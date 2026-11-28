@@ -160,11 +160,11 @@ function prsDraw(){
   const hadK = A && A.matches && A.matches("#prsv .prk[data-k]") ? A.dataset.k : null, hadAll = A && A.matches && A.matches("#prsv .prall");
   V.hidden = false;
   V.innerHTML = `<div class="panel prpanel"><div class="prhead"><div><h2 id="prsh">${ico("pr")}${esc(t("Pull requests that involve you"))}</h2>
-      <p class="prwhen" role="status">${d && d.fetched ? esc(t("From GitHub (through gh) as of {time}", {time: hm(d.fetched)})) + (d.login ? ` · @${esc(d.login)}` : "") : ""}${d && PRS.busy ? ` · ${esc(t("Asking GitHub…"))}` : ""}</p>
+      <p class="prwhen" role="status">${d && d.fetched && !d.error ? esc(t("From GitHub (through gh) as of {time}", {time: hm(d.fetched)})) + (d.login ? ` · @${esc(d.login)}` : "") : ""}${d && PRS.busy ? ` · ${esc(t("Asking GitHub…"))}` : ""}</p>
       ${d && PRS.failed ? `<p class="prstale">${esc(t("Couldn't get the list from kiroku serve, so this may be out of date. Is it still running?"))}</p>` : ""}</div>
       <button type="button" class="pill" id="prsre" aria-disabled="${PRS.busy ? "true" : "false"}">${esc(t("Refresh"))}</button></div>
     <div class="prsbody">${prsBody()}</div>
-    <p class="note">${esc(t("kiroku asks GitHub when kiroku opens in your browser and when you open or refresh this list, through the GitHub CLI on this computer. It sends the fixed question \"open pull requests that involve me\" and nothing from your history. Titles and names come from GitHub and can be written by other people."))}</p></div>`;
+    <p class="note">${esc(t("kiroku asks GitHub only when you open kiroku in your browser and when you open or refresh this list, through the GitHub CLI on this computer. It sends the fixed question \"open pull requests that involve me\" and nothing from your history. Titles and names come from GitHub and can be written by other people."))}</p></div>`;
   $("#prsre").onclick = () => prsLoad(true);
   if (hadRe) $("#prsre").focus();
   else if (hadK || hadAll){ const n = (hadAll && V.querySelector(".prall")) || (hadK && V.querySelector(`.prk[data-k="${hadK}"]:not(:disabled)`)) || V.querySelector(".prk:not(:disabled)") || $("#prsre"); n.focus(); }

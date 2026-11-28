@@ -206,18 +206,21 @@ func TestRemoveDiskCache(t *testing.T) {
 	t.Setenv("KIROKU_CACHE_DIR", dir)
 	p := filepath.Join(dir, diskCacheFile)
 	os.WriteFile(p, []byte("x"), 0o600)
-	if err := removeDiskCache(); err != nil {
-		t.Fatal(err)
+	if removed, err := removeDiskCache(); err != nil || !removed {
+		t.Fatal(removed, err)
 	}
 	if _, err := os.Stat(p); !os.IsNotExist(err) {
 		t.Error("cache not removed")
 	}
-	if err := removeDiskCache(); err != nil {
-		t.Error(err)
+	if removed, err := removeDiskCache(); err != nil || removed {
+		t.Error(removed, err)
 	}
 	t.Setenv("KIROKU_CACHE_DIR", "relative")
 	if _, err := cacheDir(); err == nil {
 		t.Error("accepted a relative KIROKU_CACHE_DIR")
+	}
+	if _, err := removeDiskCache(); err == nil {
+		t.Error("--no-cache with a relative KIROKU_CACHE_DIR said nothing")
 	}
 }
 
