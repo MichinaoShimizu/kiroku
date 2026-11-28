@@ -280,6 +280,7 @@ const JA_TEXT = {
   "Corrections / interruptions": "言い直し・中断",
   "Cost": "費用",
   "Couldn't copy": "コピーできませんでした",
+  "Still loading your prompts. Try again in a moment.": "プロンプトを読み込んでいるところです。少し待ってからもう一度押してください。",
   "Couldn't load. Try again": "読み込めませんでした。もう一度お試しください",
   "Couldn't show the summary for this period ({error}). Please let us know in an issue.": "この期間のサマリーを表示できませんでした（{error}）。issue でお知らせください。",
   "Couldn't open the history file. If kiroku serve is running, run kiroku serve and try again.": "履歴ファイルを開けませんでした。kiroku serve が動いているなら、kiroku serve を実行してからもう一度お試しください。",
@@ -1106,7 +1107,7 @@ const JA_TEXT = {
   "GitHub answered only in part, so some pull requests or their status may be missing.": "GitHub の答えが一部だけだったので、PR やその状況が欠けていることがあります。",
   "Pull requests that involve you": "自分に関係する PR",
   "Refresh": "再取得",
-  "kiroku asks GitHub only when you open or refresh this list, through the GitHub CLI on this computer. It sends the fixed question \"open pull requests that involve me\" and nothing from your history. Titles and names come from GitHub and can be written by other people.": "kiroku が GitHub に問い合わせるのは、この一覧を開いたときと更新したときだけで、この PC の GitHub CLI を使います。送るのは「自分に関係する開いている PR」という決まった問い合わせだけで、履歴からは何も送りません。タイトルと名前は GitHub から来たもので、ほかの人が書けます。",
+  "kiroku asks GitHub only when you open kiroku in your browser and when you open or refresh this list, through the GitHub CLI on this computer. It sends the fixed question \"open pull requests that involve me\" and nothing from your history. Titles and names come from GitHub and can be written by other people.": "kiroku が GitHub に問い合わせるのは、ブラウザで kiroku を開いたときと、この一覧を開いたとき・再取得したときだけで、この PC の GitHub CLI を使います。送るのは「自分に関係する開いている PR」という決まった問い合わせだけで、履歴からは何も送りません。タイトルと名前は GitHub から来たもので、ほかの人が書けます。",
   "Updated": "更新",
   "From GitHub (through gh) as of {time}": "GitHub の {time} 時点（gh で取得）",
   "Couldn't get the list from kiroku serve, so this may be out of date. Is it still running?": "kiroku serve から一覧を取れなかったので、古いままかもしれません。kiroku serve は動いていますか。",
@@ -1171,9 +1172,11 @@ function localizeTitles(data){
   const fixed = new Set(["Kiro Crew private conversation", "Kiro Crew background work"]);
   const localize = (o, k, f) => { const en = o[k]; Object.defineProperty(o, k, {get: () => f(en), set: v => { localize(o, k, () => v); }, enumerable: true, configurable: true}); };
   for (const s of data || []){
-    if (!s.synthetic || (Object.getOwnPropertyDescriptor(s, "title") || {}).get) continue; // 2 度目は何もしない
-    if (fixed.has(s.title)) localize(s, "title", en => t(en));
-    else { const m = /^Kiro Crew memory consolidation \((.*)\)$/.exec(s.title || ""); if (m) localize(s, "title", () => t("Kiro Crew memory consolidation ({slot})", {slot: m[1]})); }
-    for (const p of s.prompts || []) if (p.text === "(private)") localize(p, "text", en => t(en));
+    if (!s.synthetic) continue;
+    const has = (o, k) => !!(Object.getOwnPropertyDescriptor(o, k) || {}).get; // 2 度目は何もしない（kiroku serve では、依頼の文はあとから届く）
+    if (!has(s, "title")){
+      if (fixed.has(s.title)) localize(s, "title", en => t(en));
+      else { const m = /^Kiro Crew memory consolidation \((.*)\)$/.exec(s.title || ""); if (m) localize(s, "title", () => t("Kiro Crew memory consolidation ({slot})", {slot: m[1]})); } }
+    for (const p of s.prompts || []) if (!has(p, "text") && p.text === "(private)") localize(p, "text", en => t(en));
   }
 }

@@ -145,3 +145,11 @@ func Stamp(files []string) string {
 	}
 	return hex.EncodeToString(h.Sum(nil))
 }
+
+// UnitMemoer は、Unit を読んだときに覚えたこと（Units が Tag に使う）を、kiroku serve がディスクに残せる Splitter。
+// 次に起動したとき、ディスクに残した読み込みの結果を使う前に RestoreUnitMemo で戻す（戻さないと、
+// 読み直すべき Unit を見分けられない）。
+type UnitMemoer interface {
+	UnitMemo(key string) ([]byte, bool)
+	RestoreUnitMemo(key string, memo []byte)
+}

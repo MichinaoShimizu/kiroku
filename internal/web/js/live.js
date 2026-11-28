@@ -63,6 +63,7 @@ function showLocked(key, status){
 async function openShell(){
   $("main").hidden = true; // 届くまでは、空の期間を描かない
   if (!serveKey()){ showLocked(true); return; }
+  prsPrefetch(); // data.json と並べて
   let r;
   try { r = await kfetch("data.json"); } catch(e){ showLocked(false); return; }
   if (r.status === 503){ setTimeout(() => location.reload(), 1000); return; } // 読み込み中に戻っていた（/ が読み込み中の画面を返す）

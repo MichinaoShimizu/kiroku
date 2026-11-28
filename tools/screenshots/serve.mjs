@@ -24,7 +24,7 @@ const check = (what, ok, detail = "") => { if (ok) console.log(`  ok   ${what}`)
 
 const work = await mkdtemp(path.join(tmpdir(), "kiroku-serve-e2e-"));
 const home = path.join(gen, "home");
-const env = { ...process.env, HOME: path.join(work, "home"), KIROKU_CONFIG_DIR: path.join(work, "config"), KIROKU_LANG: "", KIROKU_AI: "", TZ: "Asia/Tokyo" };
+const env = { ...process.env, HOME: path.join(work, "home"), KIROKU_CONFIG_DIR: path.join(work, "config"), KIROKU_CACHE_DIR: path.join(work, "cache"), KIROKU_LANG: "", KIROKU_AI: "", TZ: "Asia/Tokyo" };
 const serveArgs = ["serve", "127.0.0.1:0", "--no-open", "--sources", "claude", "--claude-root", path.join(home, ".claude", "projects"), "--archive-dir", path.join(work, "archive")];
 const srv = spawn(path.resolve(bin), serveArgs, { env, stdio: ["ignore", "pipe", "pipe"] });
 let log = "";

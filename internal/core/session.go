@@ -787,6 +787,9 @@ type Session struct {
 	Fix          []float64 `json:"-"`
 	Meas         []Measure `json:"-"`
 	OutTracked   bool      `json:"-"` // アウトプットを記録できるエージェントのセッション（Records の outputs）
+	// TextHash は、依頼文と応答の文の印（kiroku serve の /data.json だけ。文は /texts.json で別に配るので、
+	// 画面は自動更新のときにこれを比べて、文が変わった会話だけを読み直す）
+	TextHash string `json:"th,omitempty"`
 }
 
 // PRAct は AI が PR にした操作（K: merge・review・approve）と時刻、わかれば相手の PR（Ref: 「#11」か「repo#11」）。
@@ -1057,4 +1060,41 @@ func limitResets(xs []string) []string {
 		}
 	}
 	return nil
+}
+
+// Fulls は、s の依頼と応答の切る前の全文（切っていないものは空）。Prompts と同じ並びで、どれも切っていなければ nil。
+// kiroku serve がディスクに残す読み込みの結果（cli の diskcache.go）に入れるため。
+func (s *Session) Fulls() (prompts, replies []string) {
+	any := false
+	prompts, replies = make([]string, len(s.Prompts)), make([]string, len(s.Prompts))
+	for i, p := range s.Prompts {
+		prompts[i] = p.full
+		if p.Reply != nil {
+			replies[i] = p.Reply.full
+		}
+		any = any || prompts[i] != "" || replies[i] != ""
+	}
+	if !any {
+		return nil, nil
+	}
+	return prompts, replies
+}
+
+// SetFulls は Fulls で取り出した全文を s に戻す。並びが Prompts と合わなければ false。
+func (s *Session) SetFulls(prompts, replies []string) bool {
+	if prompts == nil && replies == nil {
+		return true
+	}
+	if len(prompts) != len(s.Prompts) || len(replies) != len(s.Prompts) {
+		return false
+	}
+	for i := range s.Prompts {
+		s.Prompts[i].full = prompts[i]
+		if s.Prompts[i].Reply != nil {
+			s.Prompts[i].Reply.full = replies[i]
+		} else if replies[i] != "" {
+			return false
+		}
+	}
+	return true
 }

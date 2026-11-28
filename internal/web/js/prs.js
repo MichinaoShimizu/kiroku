@@ -1,5 +1,5 @@
 // 自分に関係する、開いているプルリクエストの表（kiroku serve --prs のときだけ。なければ表示の切り替えにも出さない）。
-// kiroku serve が GitHub CLI（gh）で GitHub に問い合わせた結果を /prs から読む。問い合わせるのは、この表示を開いたときと「更新」を押したときだけ。
+// kiroku serve が GitHub CLI（gh）で GitHub に問い合わせた結果を /prs から読む。問い合わせるのは、画面を開いたとき（prsPrefetch）と、この表示を開いたときと「更新」を押したときだけ。
 // 題名・名前・URL は、ほかの人が書ける文字。どれも esc を通して出し、AI に渡すプロンプトには URL（形を確かめたもの）しか入れない
 const PRS = {data: null, busy: false, failed: false, filter: null}; // filter: 自分の PR を種類（fix・ready・wait）で絞り込んでいるとき
 const prsOn = () => LIVE && !!META && META.prs === true;
@@ -160,11 +160,11 @@ function prsDraw(){
   const hadK = A && A.matches && A.matches("#prsv .prk[data-k]") ? A.dataset.k : null, hadAll = A && A.matches && A.matches("#prsv .prall");
   V.hidden = false;
   V.innerHTML = `<div class="panel prpanel"><div class="prhead"><div><h2 id="prsh">${ico("pr")}${esc(t("Pull requests that involve you"))}</h2>
-      <p class="prwhen" role="status">${d && d.fetched ? esc(t("From GitHub (through gh) as of {time}", {time: hm(d.fetched)})) + (d.login ? ` · @${esc(d.login)}` : "") : ""}${d && PRS.busy ? ` · ${esc(t("Asking GitHub…"))}` : ""}</p>
+      <p class="prwhen" role="status">${d && d.fetched && !d.error ? esc(t("From GitHub (through gh) as of {time}", {time: hm(d.fetched)})) + (d.login ? ` · @${esc(d.login)}` : "") : ""}${d && PRS.busy ? ` · ${esc(t("Asking GitHub…"))}` : ""}</p>
       ${d && PRS.failed ? `<p class="prstale">${esc(t("Couldn't get the list from kiroku serve, so this may be out of date. Is it still running?"))}</p>` : ""}</div>
       <button type="button" class="pill" id="prsre" aria-disabled="${PRS.busy ? "true" : "false"}">${esc(t("Refresh"))}</button></div>
     <div class="prsbody">${prsBody()}</div>
-    <p class="note">${esc(t("kiroku asks GitHub only when you open or refresh this list, through the GitHub CLI on this computer. It sends the fixed question \"open pull requests that involve me\" and nothing from your history. Titles and names come from GitHub and can be written by other people."))}</p></div>`;
+    <p class="note">${esc(t("kiroku asks GitHub only when you open kiroku in your browser and when you open or refresh this list, through the GitHub CLI on this computer. It sends the fixed question \"open pull requests that involve me\" and nothing from your history. Titles and names come from GitHub and can be written by other people."))}</p></div>`;
   $("#prsre").onclick = () => prsLoad(true);
   if (hadRe) $("#prsre").focus();
   else if (hadK || hadAll){ const n = (hadAll && V.querySelector(".prall")) || (hadK && V.querySelector(`.prk[data-k="${hadK}"]:not(:disabled)`)) || V.querySelector(".prk:not(:disabled)") || $("#prsre"); n.focus(); }
@@ -187,5 +187,8 @@ async function prsLoad(force){
   PRS.busy = false;
   if (st.view === "prs") prsDraw();
 }
+// prsPrefetch は、画面を開いたときに一度だけ一覧を読み始める（kiroku serve --prs のとき。履歴の読み込みと並べて）。
+// 「プルリクエスト」に切り替えたときには届いているので、すぐに出る。kiroku serve は、新しい結果があるうちは GitHub に問い合わせ直さない
+function prsPrefetch(){ if (LIVE && META && META.prs === true && !PRS.data && !PRS.busy) prsLoad(false); }
 // prsShow は、表示を「プルリクエスト」に切り替えたとき（setView）。kiroku serve は、新しい結果があるうちは GitHub に問い合わせ直さない
 function prsShow(){ if (!prsOn()) return; prsDraw(); prsLoad(false); }

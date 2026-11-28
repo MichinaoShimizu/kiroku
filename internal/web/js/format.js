@@ -83,7 +83,7 @@ function matches(s){
   return !st.q || searchText(s).includes(st.q);
 }
 /* 検索の対象：タイトル・プロンプト・プロジェクト・ブランチ・ツール・変更したファイル・PR・そのセッションの間のコミット（件名・ハッシュ・ファイル） */
-const SQ = new WeakMap(); // DATA が入れ替わる（自動更新）と作り直される
+let SQ = new WeakMap(); // DATA が入れ替わる（自動更新）か、依頼文が届く（applyTexts）と作り直される
 function searchText(s){
   let t = SQ.get(s);
   if (t == null){ t = [s.title, s.project, s.branch || "", s.source, ...s.prompts.map(p => p.text), ...s.files, ...(s.prs || []),

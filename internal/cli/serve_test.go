@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -305,7 +306,7 @@ func TestServeBeforeLoad(t *testing.T) {
 	if code, body := do("GET", "/", host); code != 503 || !strings.Contains(body, "Reading your history") || strings.Contains(body, "const LIVE") {
 		t.Errorf("読み込み中の / = %d %.80q", code, body)
 	}
-	for _, c := range []struct{ method, path string }{{"GET", "/stamp"}, {"GET", "/data.json"}, {"GET", "/history?id=s1"}, {"GET", "/prompt?id=s1&i=0"}, {"GET", "/reply?id=s1&i=0"}, {"POST", "/archive"}} {
+	for _, c := range []struct{ method, path string }{{"GET", "/stamp"}, {"GET", "/data.json"}, {"GET", "/texts.json"}, {"GET", "/history?id=s1"}, {"GET", "/prompt?id=s1&i=0"}, {"GET", "/reply?id=s1&i=0"}, {"POST", "/archive"}} {
 		if code, _ := do(c.method, c.path, host); code != 503 {
 			t.Errorf("読み込み中の %s %s = %d, want 503", c.method, c.path, code)
 		}
@@ -338,6 +339,22 @@ func TestServeBeforeLoad(t *testing.T) {
 	}
 	if code, body := do("GET", "/data.json", host); code != 200 || !strings.Contains(body, `"s1"`) {
 		t.Errorf("読み終わったあとの /data.json = %d %.80q", code, body)
+	}
+	// 依頼文は /data.json に入れず（画面を早く出すため）、/texts.json で配る
+	if code, body := do("GET", "/data.json", host); code != 200 || strings.Contains(body, `"text":"はじめの依頼"`) || !strings.Contains(body, `"text":""`) {
+		t.Errorf("/data.json carries prompt text: %d", code)
+	}
+	if code, body := do("GET", "/texts.json", host); code != 200 || !strings.Contains(body, `["s1",[["はじめの依頼",`) {
+		t.Errorf("/texts.json = %d %.120q", code, body)
+	}
+	if code, body := do("GET", "/texts.json?id=s1&id=nope", host); code != 200 || !strings.HasPrefix(body, `{"sessions":[["s1",[["はじめの依頼",`) || strings.Count(body, `["s1",`) != 1 {
+		t.Errorf("/texts.json?id=s1 = %d %.120q", code, body)
+	}
+	if code, body := do("GET", "/texts.json?id=nope", host); code != 200 || body != `{"sessions":[]}` {
+		t.Errorf("/texts.json?id=nope = %d %q", code, body)
+	}
+	if code, _ := do("GET", "/texts.json?"+strings.Repeat("id=x&", textsMaxIDs+1), host); code != 400 {
+		t.Errorf("/texts.json with too many ids = %d, want 400", code)
 	}
 	if code, body := do("GET", "/prompt?id=s1&i=0", host); code != 200 || body != "はじめの依頼" {
 		t.Errorf("読み終わったあとの /prompt = %d %q", code, body)
@@ -845,5 +862,39 @@ func TestLooksLikeServeIgnoresRedirects(t *testing.T) {
 	}
 	if hit.Load() {
 		t.Error("looksLikeServe がリダイレクトをたどった")
+	}
+}
+
+// splitTexts は文を抜いたセッションと文に分け、もとのセッションは変えない。同じ ID の会話は data.json と同じ並びで両方配り、
+// 文の印（th）は、時刻を変えずに応答が伸びても変わる（画面は印で、前の文を使えるかを決める）。
+func TestSplitTexts(t *testing.T) {
+	f := func(v float64) *float64 { return &v }
+	mk := func(id, prompt, reply string) *core.Session {
+		b := core.NewBuilder("Claude Code", id)
+		b.Prompt(f(100), prompt)
+		b.Reply(f(110), "m1", reply)
+		b.Tick(f(120))
+		return b.Finish(15)
+	}
+	a, b2 := mk("dup", "PROMPT A", "REPLY A"), mk("dup", "PROMPT B", "REPLY B")
+	lean, texts := splitTexts([]*core.Session{a, b2})
+	if a.Prompts[0].Text != "PROMPT A" || a.Prompts[0].Reply.Text != "REPLY A" {
+		t.Fatal("splitTexts changed the original session")
+	}
+	for _, s := range lean {
+		if s.Prompts[0].Text != "" || s.Prompts[0].Reply.Text != "" || s.TextHash == "" {
+			t.Errorf("lean session %+v", s.Prompts[0])
+		}
+	}
+	js, _ := json.Marshal(texts)
+	if want := `{"sessions":[["dup",[["PROMPT A","REPLY A"]]],["dup",[["PROMPT B","REPLY B"]]]]}`; string(js) != want {
+		t.Errorf("texts = %s, want %s", js, want)
+	}
+	grown, _ := splitTexts([]*core.Session{mk("dup", "PROMPT A", "REPLY A and more")})
+	if grown[0].TextHash == lean[0].TextHash {
+		t.Error("the text hash did not change when the reply grew")
+	}
+	if lean[0].TextHash == lean[1].TextHash {
+		t.Error("different texts got the same hash")
 	}
 }

@@ -29,6 +29,7 @@ func TestMain(m *testing.M) {
 	}
 	os.Setenv("KIROKU_ARCHIVE_DIR", dir)
 	os.Setenv("KIROKU_CONFIG_DIR", filepath.Join(dir, "config")) // kiroku serve の鍵を、本当の設定の場所に作らない
+	os.Setenv("KIROKU_CACHE_DIR", filepath.Join(dir, "cache"))   // 読み込みの結果も、本当のキャッシュの場所に残さない
 	code := m.Run()
 	os.RemoveAll(dir)
 	os.Exit(code)

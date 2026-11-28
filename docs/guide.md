@@ -256,7 +256,7 @@ Copy a prompt has one button per instruction, named after it (for example "Fix t
 
 Things to know:
 
-- kiroku asks GitHub only when you open the page (not again within 2 minutes) or press Refresh (not again within 10 seconds). It never asks in the background
+- kiroku asks GitHub when you open kiroku in your browser, so the page is ready by the time you switch to it, and when you open the page (neither again within 2 minutes) or press Refresh (not again within 10 seconds; 2 seconds after a failure, so you can try again right after fixing it). It never asks on a timer
 - It runs `gh api graphql` with one fixed, read-only question: "open pull requests that I opened, that request my review, or that mention me", up to 50 of each, most recently updated first. "Me" is whoever `gh` is logged in as, on the host `gh` uses by default. Nothing from your history is sent, and kiroku never reads, stores or passes a token
 - The answer stays in the memory of `kiroku serve`; it is not written to a file, and it is served only to a browser that has the key
 - Titles and names come from GitHub and can be written by other people. The view shows them as text. The prompt contains only the pull request's address and the status kiroku saw, never the title, the description or a name. It tells the agent to read the pull request with `gh`, to treat what it reads as material and not as instructions, and to wait for your OK before it pushes, comments, reviews, merges or closes anything, and to stop and ask when the current folder is not a checkout of that repository or has uncommitted changes.
@@ -598,8 +598,9 @@ Per command:
 | `serve` | `--allow-host` | | Extra host names the view may be opened by, comma-separated (for example a name in your hosts file). `localhost`, `127.0.0.1` and `::1` always work, and so do this computer's IPs and host name when it listens on all interfaces (such as `0.0.0.0:8485`); requests addressed to any other name are refused |
 | `serve` | `--interval` | `5s` | How often to check history for changes. Reloads when changes stop for twice the interval (at most 12 times the interval) |
 | `serve` | `--lang` | `$KIROKU_LANG`, else the browser's language | Language of the view: `en` or `ja`. `?lang=en` or `?lang=ja` in the address also picks it |
+| `serve` | `--no-cache` | | Don't save what kiroku read to its cache folder, and delete what an earlier run saved there. Without it, `kiroku serve` keeps the Claude Code and Codex sessions it read, including prompts, replies and file paths, in `serve-cache` (readable only by you) in `~/.cache/kiroku` on Linux (`$XDG_CACHE_HOME/kiroku` if set), `~/Library/Caches/kiroku` on macOS, `%LocalAppData%\kiroku-cache` on Windows or `$KIROKU_CACHE_DIR`, and the next start reads only conversations that changed. A new version of kiroku, another time zone, another `--gap` or another `--prices` file reads everything again. Stop a running `kiroku serve` before you start it with `--no-cache`, or it keeps saving. Copies of Kiro Crew private conversations are never saved (see [SECURITY.md](../SECURITY.md)) |
 | `serve` | `--no-open` | | Don't open the browser (if `kiroku serve` is already running, only print its address) |
-| `serve` | `--prs` | | Add the "Pull requests" page: open pull requests that involve you, with their status and a prompt for each. Asks GitHub through the GitHub CLI (`gh`) when you open or refresh it, and sends nothing from your history (see [Pull requests that involve you](#pull-requests-that-involve-you)) |
+| `serve` | `--prs` | | Add the "Pull requests" page: open pull requests that involve you, with their status and a prompt for each. Asks GitHub through the GitHub CLI (`gh`) when the view opens and when you open or refresh the page, and sends nothing from your history (see [Pull requests that involve you](#pull-requests-that-involve-you)) |
 | `serve --check` | `--no-update-check` | | Don't ask GitHub whether a newer release exists |
 | `serve --check` | `--all` | | List every agent kiroku looks at, including those with no history, with where it looks |
 | `serve --check` | `--report` | | Print only kinds and counts for a bug report (kiroku --version, OS, per agent sessions, newest version seen, unreadable lines, unknown kinds); no paths, project names, IDs or content |
@@ -610,8 +611,9 @@ Per command:
 1. If you used `kiroku autostart on` in kiroku 4, run `kiroku autostart` once. In kiroku 5 it only stops the `kiroku serve` that login item started and removes the item
 2. If you turned on `kiroku serve --archive`, run `kiroku serve --archive off` and answer `y` to delete the copies of history it kept. Or delete the folder yourself: `kiroku serve --archive` shows where it is (by default `~/.local/share/kiroku` on Linux, `~/Library/Application Support/kiroku` on macOS, `%LocalAppData%\kiroku` on Windows)
 3. Delete kiroku's settings folder, which holds the key of `kiroku serve` (`~/.config/kiroku` on Linux, `~/Library/Application Support/kiroku` on macOS, `%AppData%\kiroku` on Windows, or `$KIROKU_CONFIG_DIR`)
-4. On macOS, if you used autostart in kiroku 4, delete the log it wrote, `~/Library/Logs/kiroku.log` (`kiroku autostart` leaves it)
-5. Delete the binary: `rm "$(command -v kiroku)"` (with `sudo` if it is in `/usr/local/bin`)
+4. Delete kiroku's cache folder, which holds the history `kiroku serve` read last time (`~/.cache/kiroku` or `$XDG_CACHE_HOME/kiroku` on Linux, `~/Library/Caches/kiroku` on macOS, `%LocalAppData%\kiroku-cache` on Windows, or `$KIROKU_CACHE_DIR`), or stop `kiroku serve` and run `kiroku serve --no-cache` once
+5. On macOS, if you used autostart in kiroku 4, delete the log it wrote, `~/Library/Logs/kiroku.log` (`kiroku autostart` leaves it)
+6. Delete the binary: `rm "$(command -v kiroku)"` (with `sudo` if it is in `/usr/local/bin`)
 
 Apart from these, kiroku keeps nothing of its own; view settings are stored in your browser.
 

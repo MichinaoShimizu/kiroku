@@ -55,7 +55,7 @@ func TestServeSecurityHeaders(t *testing.T) {
 	srv := httptest.NewServer(secureHeaders(sameOrigin("127.0.0.1:8484", nil, l.handler())))
 	defer srv.Close()
 	const host = "localhost:8484"
-	paths := []struct{ method, path string }{{"GET", "/"}, {"GET", "/data.json"}, {"GET", "/stamp"}, {"GET", "/history?id=s1"}, {"GET", "/prompt?id=s1&i=0"}, {"GET", "/reply?id=s1&i=0"}, {"POST", "/archive"}, {"GET", "/nope"}}
+	paths := []struct{ method, path string }{{"GET", "/"}, {"GET", "/data.json"}, {"GET", "/texts.json"}, {"GET", "/stamp"}, {"GET", "/history?id=s1"}, {"GET", "/prompt?id=s1&i=0"}, {"GET", "/reply?id=s1&i=0"}, {"POST", "/archive"}, {"GET", "/nope"}}
 	for _, c := range paths { // 読み込み中（503 と読み込み中の画面）
 		_, _, h := fetchHost(t, c.method, srv.URL+c.path, host)
 		checkHeaders(t, "読み込み中の "+c.path, h)

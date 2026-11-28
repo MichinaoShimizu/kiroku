@@ -89,6 +89,7 @@ func writeClaudeHistory(tb testing.TB, root string, days, perDay int) int {
 
 // BenchmarkLarge は kiroku serve の読み直し 1 回ぶんを、段階ごとに測る。
 //   - read: 履歴を読む（キャッシュなし。tools/html と serve の最初の読み込み）
+//   - disk: 前に起動したときにディスクに残した結果から読む（serve を起動し直したとき）
 //   - aggregate: すべての週と月を集計する
 //   - render: HTML と /data.json を作る
 //
@@ -111,6 +112,26 @@ func BenchmarkLarge(b *testing.B) {
 	b.Run("read", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			collect(srcs, want, 15)
+		}
+	})
+	// disk: kiroku serve を起動し直したとき。前に起動したときにディスクに残した結果から読む（diskcache.go）
+	dir := b.TempDir()
+	c := newLoadCache()
+	c.disk = openDiskCache(dir, 15, "", nil)
+	collectCached(srcs, want, 15, c)
+	c.saveToDisk()
+	c.disk.wait()
+	if st, err := os.Stat(filepath.Join(dir, diskCacheFile)); err == nil {
+		b.Logf("disk cache: %.1f MB", float64(st.Size())/1e6)
+	}
+	b.Run("disk", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			c := newLoadCache()
+			c.disk = openDiskCache(dir, 15, "", nil)
+			fresh := []source.Source{&source.Claude{Root: root}}
+			if got, _ := collectCached(fresh, want, 15, c); len(got) != n {
+				b.Fatalf("read %d sessions, want %d", len(got), n)
+			}
 		}
 	})
 	b.Run("aggregate", func(b *testing.B) {
