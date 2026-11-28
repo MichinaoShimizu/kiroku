@@ -110,6 +110,7 @@ type common struct {
 	claudeRoot, kiroHome, crewHome, kiroCLIDB, amazonQDB, codexHome, sources, prices, archiveDir *string
 	gap                                                                                          *int
 	fs                                                                                           *flag.FlagSet // 何を明示したかを見る（--kiro-home）
+	persist                                                                                      bool          // 読み込みの結果をディスクに残し、次の起動で使う（kiroku serve。diskcache.go）
 }
 
 func addCommon(fs *flag.FlagSet) *common {
@@ -190,13 +191,24 @@ func (c *common) loader() ([]source.Source, func() snapshot, error) {
 	cache := newLoadCache()     // kiroku serve の読み直しで、変わっていない履歴を読み直さない
 	gcache := gitlog.NewCache() // git も、変わっていないリポジトリは読み直さない
 	rcache := report.NewCache() // 週と月も、セッションとコミットが変わっていない期間は集計し直さない
+	persist := c.persist
+	var openDisk sync.Once // 残した結果は最初の読み込みで読む（待ち受けと読み込み中の画面を待たせない）
 	load := func() snapshot {
 		on := archiveOn(dir)
 		var skipped map[string]error
 		if on {
 			_, skipped = keepCopies(picked, dir)
 		}
+		openDisk.Do(func() {
+			if !persist {
+				return
+			}
+			if dir, err := cacheDir(); err == nil {
+				cache.disk = openDiskCache(dir, gap, *c.prices, func(f string, a ...any) { fmt.Fprintf(os.Stderr, f, a...) })
+			}
+		})
 		data, rep := collectCached(all, want, gap, cache)
+		cache.saveToDisk()
 		rep = withSkipped(rep, skipped)
 		if data == nil {
 			data = []*core.Session{} // 画面では null ではなく空の一覧として扱う
@@ -328,7 +340,8 @@ func cmdServe(args []string) error {
 	noOpen := fs.Bool("no-open", false, "do not open a browser")
 	allow := fs.String("allow-host", "", "comma-separated extra host `names` the view may be opened by (e.g. a name in your hosts file); localhost, 127.0.0.1 and ::1 always work, and this computer's own IPs and host name too when ADDR is 0.0.0.0 or another all-interfaces address")
 	lang := langFlag(fs)
-	prs := fs.Bool("prs", false, "list open pull requests that involve you (opened by you, review requested, or mentioning you) with their status and a prompt to copy; asks GitHub through the GitHub CLI (gh) when you open or refresh that page, and sends nothing from your history")
+	prs := fs.Bool("prs", false, "list open pull requests that involve you (opened by you, review requested, or mentioning you) with their status and a prompt to copy; asks GitHub through the GitHub CLI (gh) once when the view opens and when you open or refresh that page, and sends nothing from your history")
+	noCache := fs.Bool("no-cache", false, "do not save what kiroku read to its cache folder for a faster next start, and delete what an earlier run saved there")
 	ai := fs.Bool("ai", false, "removed in 4.0 (kiroku no longer runs AI agents); accepted and ignored")
 	_ = fs.Bool("no-ai", false, "removed in 4.0 (kiroku no longer runs AI agents); accepted and ignored")
 	pos, err := parse(fs, args, 1)
@@ -341,6 +354,12 @@ func cmdServe(args []string) error {
 			return fmt.Errorf("the address must look like :8485 or 127.0.0.1:8485: %s", pos[0])
 		}
 		addr = pos[0]
+	}
+	c.persist = !*noCache
+	if *noCache {
+		if err := removeDiskCache(); err != nil {
+			return fmt.Errorf("could not delete the saved cache of history: %w", err)
+		}
 	}
 	picked, load, err := c.loader()
 	if err != nil {

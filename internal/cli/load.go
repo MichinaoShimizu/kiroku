@@ -185,6 +185,14 @@ func collectCached(all []source.Source, want map[string]bool, gap int, cache *lo
 		fmt.Fprintf(logw, "  %s %s: %s (%s)\n", styleFor(logw).warn("!"), r.Name, r.DetailEn, termMsg(*r.Error))
 	}
 	rep = append(rep, scanRep...)
+	// ディスクに残すもの（diskcache.go）からは、隠した会話を外す。隠すものを調べきれなかったら残さない
+	unsure := len(scanRep) > 0
+	for i, s := range picked {
+		_, w1 := s.(source.Withholder)
+		_, w2 := s.(source.ClaimWithholder)
+		unsure = unsure || (w1 || w2) && res[i].err != nil
+	}
+	cache.setWithheld(withheld, withheldClaims, unsure)
 	sort.SliceStable(data, func(i, j int) bool { return data[i].Start < data[j].Start })
 	return data, rep
 }

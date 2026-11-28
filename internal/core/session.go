@@ -1058,3 +1058,40 @@ func limitResets(xs []string) []string {
 	}
 	return nil
 }
+
+// Fulls は、s の依頼と応答の切る前の全文（切っていないものは空）。Prompts と同じ並びで、どれも切っていなければ nil。
+// kiroku serve がディスクに残す読み込みの結果（cli の diskcache.go）に入れるため。
+func (s *Session) Fulls() (prompts, replies []string) {
+	any := false
+	prompts, replies = make([]string, len(s.Prompts)), make([]string, len(s.Prompts))
+	for i, p := range s.Prompts {
+		prompts[i] = p.full
+		if p.Reply != nil {
+			replies[i] = p.Reply.full
+		}
+		any = any || prompts[i] != "" || replies[i] != ""
+	}
+	if !any {
+		return nil, nil
+	}
+	return prompts, replies
+}
+
+// SetFulls は Fulls で取り出した全文を s に戻す。並びが Prompts と合わなければ false。
+func (s *Session) SetFulls(prompts, replies []string) bool {
+	if prompts == nil && replies == nil {
+		return true
+	}
+	if len(prompts) != len(s.Prompts) || len(replies) != len(s.Prompts) {
+		return false
+	}
+	for i := range s.Prompts {
+		s.Prompts[i].full = prompts[i]
+		if s.Prompts[i].Reply != nil {
+			s.Prompts[i].Reply.full = replies[i]
+		} else if replies[i] != "" {
+			return false
+		}
+	}
+	return true
+}

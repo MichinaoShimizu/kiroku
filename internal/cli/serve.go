@@ -85,11 +85,14 @@ func (l *live) refresh() error {
 }
 
 // shellMeta は、画面の骨組み（鍵なしで返す /）の META。履歴から作ったものは入れず、shell（data.json を読むこと）と、
-// 履歴ではない設定（デモの時計）だけにする。
+// 履歴ではない設定（デモの時計と --prs）だけにする。
 func shellMeta(meta map[string]any) map[string]any {
 	out := map[string]any{"shell": true}
 	if v, ok := meta["demo"]; ok {
 		out["demo"] = v
+	}
+	if v, ok := meta["prs"]; ok { // --prs（設定）。画面は data.json を待たずにプルリクエストの一覧を読み始める
+		out["prs"] = v
 	}
 	return out
 }
@@ -681,7 +684,7 @@ func serveLiveWith(addr string, allow []string, every time.Duration, picked []so
 	startLive(l, every)
 	fmt.Fprintln(l.print, st.dim("only browsers with its key can open it (to protect it from other users of this computer); run \"kiroku serve\" again to open it in another browser"))
 	if prs {
-		fmt.Fprintln(l.print, st.dim("--prs: the view has a Pull requests page; kiroku asks GitHub through gh only when you open or refresh it, and sends nothing from your history"))
+		fmt.Fprintln(l.print, st.dim("--prs: the view has a Pull requests page; kiroku asks GitHub through gh when the view opens and when you open or refresh that page, and sends nothing from your history"))
 	}
 	if open {
 		if err := openWithKey(url); err != nil {

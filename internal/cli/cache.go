@@ -28,6 +28,21 @@ type loadCache struct {
 	gap     int
 	sources map[source.Source]*sourceCache
 	scans   map[source.ClaimScanner]scanCache // 選んでいない Source の ScanWithheldClaims の結果
+	disk    *diskCache                        // 前に起動したときの結果（diskcache.go。nil なら使わない）
+	dirty   bool                              // ディスクに残したものから変わった（読み直した Unit・消えた Unit がある）
+	// 中身を出さない会話（Kiro Crew の incognito・temporary）の写し。ディスクには残さない（collectCached が入れる）
+	withheld, withheldClaims map[string]bool
+	unsure                   bool // 隠すものを調べきれなかった（ディスクに何も残さない）
+}
+
+// setWithheld は、最後の読み込みで隠した会話を覚える（diskSnapshot が外す）。
+func (c *loadCache) setWithheld(withheld, claims map[string]bool, unsure bool) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	c.withheld, c.withheldClaims, c.unsure = withheld, claims, unsure
+	c.mu.Unlock()
 }
 
 // scanCache は ScanWithheldClaims の結果と、そのときの ScanPaths の指紋。
@@ -48,6 +63,22 @@ type unitCache struct {
 	stamp string
 	outs  []loaded
 	err   error
+}
+
+// saveToDisk は、前にディスクに残してから変わっていれば、裏で書き直す。
+func (c *loadCache) saveToDisk() {
+	if c == nil || c.disk == nil {
+		return
+	}
+	c.mu.Lock()
+	dirty := c.dirty && !c.unsure
+	if dirty {
+		c.dirty = false
+	}
+	c.mu.Unlock()
+	if dirty {
+		c.disk.save(func() (*diskFile, error) { return c.diskSnapshot(c.disk.build) })
+	}
 }
 
 func newLoadCache() *loadCache {
@@ -87,6 +118,9 @@ func (c *loadCache) load(s source.Source, gap int) ([]loaded, error) {
 	}
 	prev := c.sources[s]
 	c.mu.Unlock()
+	if prev == nil {
+		prev = c.disk.take(s, gap) // 起動して初めて読むときは、前に起動したときの結果（fp は空なので Unit ごとに確かめる）
+	}
 	if prev != nil && prev.fp == fp {
 		return prev.outs, prev.err
 	}
@@ -117,6 +151,11 @@ func (c *loadCache) load(s source.Source, gap int) ([]loaded, error) {
 			errs = append(errs, ucs[i].err)
 		}
 		next.err = source.UnitErrs(errs) // 最初のエラーと、ほかに読めなかった数（読み直さないときと同じ形）
+		if len(todo) > 0 || prev == nil || len(prev.units) != len(units) {
+			c.mu.Lock()
+			c.dirty = true
+			c.mu.Unlock()
+		}
 	} else {
 		next.outs, next.err = loadAll(s, gap)
 	}

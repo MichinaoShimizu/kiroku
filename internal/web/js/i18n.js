@@ -1106,7 +1106,7 @@ const JA_TEXT = {
   "GitHub answered only in part, so some pull requests or their status may be missing.": "GitHub の答えが一部だけだったので、PR やその状況が欠けていることがあります。",
   "Pull requests that involve you": "自分に関係する PR",
   "Refresh": "再取得",
-  "kiroku asks GitHub only when you open or refresh this list, through the GitHub CLI on this computer. It sends the fixed question \"open pull requests that involve me\" and nothing from your history. Titles and names come from GitHub and can be written by other people.": "kiroku が GitHub に問い合わせるのは、この一覧を開いたときと更新したときだけで、この PC の GitHub CLI を使います。送るのは「自分に関係する開いている PR」という決まった問い合わせだけで、履歴からは何も送りません。タイトルと名前は GitHub から来たもので、ほかの人が書けます。",
+  "kiroku asks GitHub when kiroku opens in your browser and when you open or refresh this list, through the GitHub CLI on this computer. It sends the fixed question \"open pull requests that involve me\" and nothing from your history. Titles and names come from GitHub and can be written by other people.": "kiroku が GitHub に問い合わせるのは、ブラウザで kiroku を開いたときと、この一覧を開いたとき・更新したときだけで、この PC の GitHub CLI を使います。送るのは「自分に関係する開いている PR」という決まった問い合わせだけで、履歴からは何も送りません。タイトルと名前は GitHub から来たもので、ほかの人が書けます。",
   "Updated": "更新",
   "From GitHub (through gh) as of {time}": "GitHub の {time} 時点（gh で取得）",
   "Couldn't get the list from kiroku serve, so this may be out of date. Is it still running?": "kiroku serve から一覧を取れなかったので、古いままかもしれません。kiroku serve は動いていますか。",

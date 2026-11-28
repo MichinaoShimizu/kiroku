@@ -486,3 +486,37 @@ func (o *claudeOrigins) remember(key string, c *originCheck) {
 	}
 	o.used[key] = usedOrigins{ids: ids, stamps: c.stamps}
 }
+
+// usedMemo は usedOrigins をディスクに残す形（UnitMemo）。
+type usedMemo struct {
+	IDs    []string          `json:"ids"`
+	Stamps map[string]string `json:"stamps"`
+}
+
+// UnitMemo は、会話のファイル key が突き合わせた元の会話（remember が覚えたもの）。なければ false。
+func (c *Claude) UnitMemo(key string) ([]byte, bool) {
+	o := &c.orig
+	o.mu.Lock()
+	u, ok := o.used[key]
+	o.mu.Unlock()
+	if !ok {
+		return nil, false
+	}
+	b, err := json.Marshal(usedMemo{IDs: u.ids, Stamps: u.stamps})
+	return b, err == nil
+}
+
+// RestoreUnitMemo は UnitMemo を戻す（Units より前に呼ぶ）。形の合わないものは捨てる。
+func (c *Claude) RestoreUnitMemo(key string, memo []byte) {
+	var m usedMemo
+	if json.Unmarshal(memo, &m) != nil || len(m.IDs) == 0 {
+		return
+	}
+	o := &c.orig
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	if o.used == nil {
+		o.used = map[string]usedOrigins{}
+	}
+	o.used[key] = usedOrigins{ids: m.IDs, stamps: m.Stamps}
+}

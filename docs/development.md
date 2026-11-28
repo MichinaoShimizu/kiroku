@@ -67,6 +67,7 @@ Tests never use personal history. Everything in `testdata/` is synthetic, with m
 | `internal/cli/diagnose.go` | "Format check" and `kiroku serve --check --report` (only counts, versions and record kinds that look like identifiers; never paths or history text) |
 | `internal/cli/progress.go` | The progress of the first load of `kiroku serve`, shown by the loading page through `/progress` (agent names, counts and times only) |
 | `internal/cli/cache.go` | On reload, skips history unchanged since last time (using a per-agent fingerprint and the per-conversation marks of `source.Splitter`) |
+| `internal/cli/diskcache.go` | Saves what `kiroku serve` read (the units of `source.Splitter`, with the memo of `source.UnitMemoer`) to `serve-cache` in kiroku's cache folder and reads it back on the next start, so unchanged conversations aren't read again (`--no-cache` turns it off) |
 | `internal/cli/color.go` | Colour and emphasis for what is written to the terminal (`styleFor` turns it off for pipes, files, `NO_COLOR` and `TERM=dumb`) |
 | `internal/archive` | The copies `kiroku serve --archive` keeps: the on/off marks, compressing history to `.zst` (`Sync`), usage, and deleting only the `.zst` copies (`Clear`) |
 | `internal/source` | Adapters that read each agent's history. Details on how they read are in [sources.md](sources.md) |
