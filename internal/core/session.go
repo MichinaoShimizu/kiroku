@@ -787,6 +787,9 @@ type Session struct {
 	Fix          []float64 `json:"-"`
 	Meas         []Measure `json:"-"`
 	OutTracked   bool      `json:"-"` // アウトプットを記録できるエージェントのセッション（Records の outputs）
+	// TextHash は、依頼文と応答の文の印（kiroku serve の /data.json だけ。文は /texts.json で別に配るので、
+	// 画面は自動更新のときにこれを比べて、文が変わった会話だけを読み直す）
+	TextHash string `json:"th,omitempty"`
 }
 
 // PRAct は AI が PR にした操作（K: merge・review・approve）と時刻、わかれば相手の PR（Ref: 「#11」か「repo#11」）。

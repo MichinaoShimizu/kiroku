@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -861,5 +862,39 @@ func TestLooksLikeServeIgnoresRedirects(t *testing.T) {
 	}
 	if hit.Load() {
 		t.Error("looksLikeServe がリダイレクトをたどった")
+	}
+}
+
+// splitTexts は文を抜いたセッションと文に分け、もとのセッションは変えない。同じ ID の会話は data.json と同じ並びで両方配り、
+// 文の印（th）は、時刻を変えずに応答が伸びても変わる（画面は印で、前の文を使えるかを決める）。
+func TestSplitTexts(t *testing.T) {
+	f := func(v float64) *float64 { return &v }
+	mk := func(id, prompt, reply string) *core.Session {
+		b := core.NewBuilder("Claude Code", id)
+		b.Prompt(f(100), prompt)
+		b.Reply(f(110), "m1", reply)
+		b.Tick(f(120))
+		return b.Finish(15)
+	}
+	a, b2 := mk("dup", "PROMPT A", "REPLY A"), mk("dup", "PROMPT B", "REPLY B")
+	lean, texts := splitTexts([]*core.Session{a, b2})
+	if a.Prompts[0].Text != "PROMPT A" || a.Prompts[0].Reply.Text != "REPLY A" {
+		t.Fatal("splitTexts changed the original session")
+	}
+	for _, s := range lean {
+		if s.Prompts[0].Text != "" || s.Prompts[0].Reply.Text != "" || s.TextHash == "" {
+			t.Errorf("lean session %+v", s.Prompts[0])
+		}
+	}
+	js, _ := json.Marshal(texts)
+	if want := `{"sessions":[["dup",[["PROMPT A","REPLY A"]]],["dup",[["PROMPT B","REPLY B"]]]]}`; string(js) != want {
+		t.Errorf("texts = %s, want %s", js, want)
+	}
+	grown, _ := splitTexts([]*core.Session{mk("dup", "PROMPT A", "REPLY A and more")})
+	if grown[0].TextHash == lean[0].TextHash {
+		t.Error("the text hash did not change when the reply grew")
+	}
+	if lean[0].TextHash == lean[1].TextHash {
+		t.Error("different texts got the same hash")
 	}
 }

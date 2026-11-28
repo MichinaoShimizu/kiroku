@@ -1172,9 +1172,11 @@ function localizeTitles(data){
   const fixed = new Set(["Kiro Crew private conversation", "Kiro Crew background work"]);
   const localize = (o, k, f) => { const en = o[k]; Object.defineProperty(o, k, {get: () => f(en), set: v => { localize(o, k, () => v); }, enumerable: true, configurable: true}); };
   for (const s of data || []){
-    if (!s.synthetic || (Object.getOwnPropertyDescriptor(s, "title") || {}).get) continue; // 2 度目は何もしない
-    if (fixed.has(s.title)) localize(s, "title", en => t(en));
-    else { const m = /^Kiro Crew memory consolidation \((.*)\)$/.exec(s.title || ""); if (m) localize(s, "title", () => t("Kiro Crew memory consolidation ({slot})", {slot: m[1]})); }
-    for (const p of s.prompts || []) if (p.text === "(private)") localize(p, "text", en => t(en));
+    if (!s.synthetic) continue;
+    const has = (o, k) => !!(Object.getOwnPropertyDescriptor(o, k) || {}).get; // 2 度目は何もしない（kiroku serve では、依頼の文はあとから届く）
+    if (!has(s, "title")){
+      if (fixed.has(s.title)) localize(s, "title", en => t(en));
+      else { const m = /^Kiro Crew memory consolidation \((.*)\)$/.exec(s.title || ""); if (m) localize(s, "title", () => t("Kiro Crew memory consolidation ({slot})", {slot: m[1]})); } }
+    for (const p of s.prompts || []) if (!has(p, "text") && p.text === "(private)") localize(p, "text", en => t(en));
   }
 }

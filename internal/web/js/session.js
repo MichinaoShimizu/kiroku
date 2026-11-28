@@ -79,11 +79,11 @@ function detail(s){
     li.querySelector(".pshort").hidden = open; li.querySelector(".pfull").hidden = !open; b.setAttribute("aria-expanded", open); b.textContent = open ? t("Show less") : pexpLabel(li.dataset.full ? {} : s.prompts[b.dataset.i]); });
   // プロンプトをコピー（そのまま次の依頼に使えるように）。切ったプロンプトは、kiroku serve なら全文を読んでから写す。保存した HTML では入っている分だけ写し、そう言う
   // AI の応答も同じ（切った応答は、kiroku serve なら /reply で全文を読む）
-  P.querySelectorAll(".pcopy").forEach(b => b.onclick = async e => { e.stopPropagation(); const r = await fullText(s, +b.dataset.i, b.classList.contains("rcopy")); if (!r) return;
+  P.querySelectorAll(".pcopy").forEach(b => b.onclick = async e => { e.stopPropagation(); if (textsPending()) return; const r = await fullText(s, +b.dataset.i, b.classList.contains("rcopy")); if (!r) return;
     const msg = r.cut ? t("Copied the first {n} characters", {n: commas(r.text.length)}) : "";
     copy(r.text, msg, msg ? 5000 : 0, b); });
   const ff = P.querySelector(".ffull"); if (ff) ff.onclick = () => toggleFlowFull();
-  const fc = P.querySelector(".fcopy"); if (fc) fc.onclick = async () => { fc.disabled = true; // セッション全体（プロンプトと応答を順に）を Markdown で
+  const fc = P.querySelector(".fcopy"); if (fc) fc.onclick = async () => { if (textsPending()) return; fc.disabled = true; // セッション全体（プロンプトと応答を順に）を Markdown で
     try { const r = await sessionMarkdown(s); copy(r.text, r.cut ? t("Copied. Some long prompts or replies are cut; open with kiroku serve to copy them in full.") : "", r.cut ? 6000 : 0, fc); } finally { fc.disabled = false; } };
   P.querySelectorAll(".pload").forEach(b => b.onclick = async () => { // kiroku serve のときだけ、切ったプロンプトの全文をサーバーから読む
     b.disabled = true;

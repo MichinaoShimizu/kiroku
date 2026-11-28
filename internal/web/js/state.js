@@ -6,48 +6,62 @@ let META = __META__;
 let GENERATED = __GEN__;
 // applyData は kiroku serve から届いた新しいデータに入れかえる（上の名前を書きかえるので、ここに置く）
 // kiroku serve の data.json には依頼文と応答の文が入っていないので（画面を早く出すため）、描いたあとで texts.json を読んで入れる
-// 前のデータで文がそろっていた会話のうち、依頼と応答の時刻と長さが変わっていないものは、前の文を使う（自動更新のたびに全部を読み直さない）。
-// 足りない会話があるときだけ texts.json を読む
-function applyData(j){ const prev = new Map(DATA.map(s => [s.id, s])), next = j.sessions || [];
-  let missing = false; if (LIVE) next.forEach(s => { if (!carryTexts(prev.get(s.id), s)) missing = true; });
+// 前のデータで文がそろっていた会話のうち、文の印（th）と依頼の数が同じものは、前の文を使う（自動更新のたびに全部を読み直さない）。
+// 足りない会話があるときだけ texts.json を読む。同じ ID の会話が 2 つあることもあるので、ID と、その ID の何番目かで見分ける
+function applyData(j){ const prev = new Map(), next = j.sessions || [];
+  if (LIVE) occKeys(DATA).forEach((k, i) => prev.set(k, DATA[i]));
+  let missing = false; if (LIVE) occKeys(next).forEach((k, i) => { if (!carryTexts(prev.get(k), next[i])) missing = true; });
   DATA = next; WEEKS = j.weeks || {}; MONTHS = j.months || {}; META = j.meta; GENERATED = j.generated; localizeTitles(DATA); if (st.sel && !DATA.some(s => s.id === st.sel)) st.sel = null;
-  if (LIVE){ TEXTS = !missing; if (missing) setTimeout(loadTexts, 0); } }
-// HAS_TEXT は、文の入っているセッション
-const HAS_TEXT = new WeakSet();
-// carryTexts は、前のデータの同じ会話 o の文を s に写す。依頼の数・時刻・切った長さ、応答の有無・時刻・長さのどれかが違えば写さない（false）
-function carryTexts(o, s){
-  if (!o || !HAS_TEXT.has(o) || !Array.isArray(s.prompts) || o.prompts.length !== s.prompts.length) return false;
-  const same = (a, b) => a.t === b.t && (a.len || 0) === (b.len || 0);
-  for (let k = 0; k < s.prompts.length; k++){ const a = o.prompts[k], b = s.prompts[k];
-    if (!same(a, b) || !a.reply !== !b.reply || (a.reply && !same(a.reply, b.reply))) return false; }
-  s.prompts.forEach((b, k) => { const a = o.prompts[k]; b.text = a.text; if (b.reply) b.reply.text = a.reply.text; });
-  HAS_TEXT.add(s); return true;
-}
+  if (LIVE){ TEXTS = !missing; textTries = 0; if (missing) setTimeout(loadTexts, 0); } }
+// occKeys は、セッションごとの「ID と、その ID の何番目か」（data.json と texts.json は同じ並び）
+function occKeys(list){ const n = new Map(); return list.map(s => { const k = String(s.id), i = n.get(k) || 0; n.set(k, i + 1); return k + "\u0000" + i; }); }
 // TEXTS は、依頼文と応答の文がそろっているか（HTML のファイルは埋め込んであるので、はじめから true）
 let TEXTS = true;
-// loadTexts は、文のないセッションの文を texts.json で読んで DATA に入れ、描き直す。少なければ（自動更新で変わった会話）その会話の分だけ頼む。
-// 読んでいる間にデータが入れかわったら（自動更新）捨てる（入れかえた側が読み直す）。読めなければ少しあとで読み直す
-async function loadTexts(){
-  const want = DATA, ids = [...new Set(DATA.filter(s => !HAS_TEXT.has(s)).map(s => s.id))];
-  const q = ids.length && ids.length <= 50 ? "?" + ids.map(id => "id=" + encodeURIComponent(id)).join("&") : "";
-  try { const r = await kfetch("texts.json" + q); if (!r.ok) throw new Error(String(r.status)); const j = await r.json();
-    if (DATA !== want) return;
-    if (!applyTexts(j)) throw new Error("bad"); render();
-  } catch(e){ if (DATA === want) setTimeout(() => { if (DATA === want && !TEXTS) loadTexts(); }, 3000); }
+// HAS_TEXT は、文の入っているセッション
+const HAS_TEXT = new WeakSet();
+// carryTexts は、前のデータの同じ会話 o の文を s に写す。文の印・依頼の数・応答の有無のどれかが違えば写さない（false）。
+// 画面の言語で返すようにした文（localizeTitles の getter）は、getter ごと写す（AI に渡すプロンプトは英語のまま）
+function carryTexts(o, s){
+  if (!o || !HAS_TEXT.has(o) || !s.th || o.th !== s.th || !Array.isArray(s.prompts) || o.prompts.length !== s.prompts.length) return false;
+  for (let k = 0; k < s.prompts.length; k++) if (!o.prompts[k].reply !== !s.prompts[k].reply) return false;
+  const move = (a, b) => { const d = Object.getOwnPropertyDescriptor(a, "text"); if (d && d.get) Object.defineProperty(b, "text", d); else b.text = a.text; };
+  s.prompts.forEach((b, k) => { const a = o.prompts[k]; move(a, b); if (b.reply) move(a.reply, b.reply); });
+  HAS_TEXT.add(s); return true;
 }
-// applyTexts は texts.json の文を、文のないセッションの依頼と応答に入れる。ID と依頼の数が合うものだけに入れ、文字列でないものは入れない
+// loadTexts は、文のないセッションの文を texts.json で読んで DATA に入れ、描き直す。少なければ（自動更新で変わった会話）その会話の分だけ頼む
+// （頼む ID が長すぎるときと、2 度目からは全部）。読んでいる間にデータが入れかわったら（自動更新）捨てる（入れかえた側が読み直す）。
+// 読めないとき・足りないときは、間をあけて 4 回まで読み直す（それでも足りなければ、次の自動更新まで待つ）
+let textTries = 0;
+async function loadTexts(){
+  const want = DATA, ids = [...new Set(DATA.filter(s => !HAS_TEXT.has(s)).map(s => String(s.id)))];
+  let q = ids.length && ids.length <= 50 ? "?" + ids.map(id => "id=" + encodeURIComponent(id)).join("&") : "";
+  if (q.length > 4000 || textTries > 0) q = ""; // Kiro・Codex の ID には長さの決まりがない
+  let ok = false;
+  try { const r = await kfetch("texts.json" + q); if (r.ok){ const j = await r.json(); if (DATA !== want) return; ok = applyTexts(j); } }
+  catch(e){}
+  if (DATA !== want) return;
+  if (ok){ render(); if (TEXTS) return; }
+  if (++textTries <= 4) setTimeout(() => { if (DATA === want && !TEXTS) loadTexts(); }, 1500 * 2 ** textTries);
+}
+// applyTexts は texts.json の文を、文のないセッションの依頼と応答に入れる。ID とその何番目かで合わせ（同じ ID の会話が 2 つあっても取り違えない）、
+// 依頼の数が合うものだけに入れ、文字列でないものは入れない。全部そろったら TEXTS
 function applyTexts(j){
   const L = j && j.sessions; if (!Array.isArray(L)) return false;
-  const by = new Map(); L.forEach(x => { if (Array.isArray(x) && typeof x[0] === "string" && Array.isArray(x[1])){ if (!by.has(x[0])) by.set(x[0], []); by.get(x[0]).push(x[1]); } });
-  DATA.forEach(s => { if (HAS_TEXT.has(s)) return;
-    const ps = (by.get(s.id) || []).find(ps => ps.length === s.prompts.length); if (!ps) return;
+  const by = new Map(), count = new Map();
+  L.forEach(x => { if (Array.isArray(x) && typeof x[0] === "string" && Array.isArray(x[1])){ if (!by.has(x[0])) by.set(x[0], []); by.get(x[0]).push(x[1]); } });
+  DATA.forEach(s => { const id = String(s.id); count.set(id, (count.get(id) || 0) + 1); });
+  const seen = new Map();
+  DATA.forEach(s => { const id = String(s.id), n = seen.get(id) || 0; seen.set(id, n + 1);
+    if (HAS_TEXT.has(s)) return;
+    const list = by.get(id) || [], ps = list.length === count.get(id) ? list[n] : null; // 同じ ID の会話の数が合わなければ入れない（別の読み込みの答え）
+    if (!Array.isArray(ps) || ps.length !== s.prompts.length) return;
     ps.forEach((pr, k) => { const p = s.prompts[k]; if (!Array.isArray(pr)) return;
       if (typeof pr[0] === "string") p.text = pr[0];
       if (p.reply && typeof pr[1] === "string") p.reply.text = pr[1]; });
     HAS_TEXT.add(s); });
   localizeTitles(DATA);
   DATA = DATA.slice(); SQ = new WeakMap(); // 文から作る覚え（検索・繰り返したプロンプト）は、DATA と SQ ごと作り直す
-  TEXTS = true; return true;
+  TEXTS = DATA.every(s => HAS_TEXT.has(s)); return true;
 }
 /* デモ（GitHub Pages）と、tools/html の --week / --month で書き出した期間だけのファイルは、作った人の時間帯の時計で見せる。
    どこから開いても「朝から夜に作業した」ように見え、日ごとの集計（作った時間帯で区切っている）とも食い違わない。

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"net"
 	"net/http"
@@ -764,27 +765,31 @@ type textsJSON struct {
 }
 
 // splitTexts は、依頼文と応答の文を抜いたセッション（/data.json 用。もとのセッションは変えず、浅く写したもの）と、
-// 抜いた文（/texts.json 用）に分ける。切った長さ（Len）は data.json に残すので、長すぎる依頼の数え方は変わらない。
+// 抜いた文（/texts.json 用）に分ける。抜いたセッションには文の印（TextHash）を付ける（時刻を変えずに伸びた応答も見分けられるように）。切った長さ（Len）は data.json に残すので、長すぎる依頼の数え方は変わらない。
 func splitTexts(data []*core.Session) ([]*core.Session, textsJSON) {
 	lean := make([]*core.Session, len(data))
 	out := textsJSON{Sessions: make([]sessionTexts, len(data))}
 	for i, s := range data {
 		c := *s
+		h := fnv.New64a()
 		c.Prompts = make([]core.Prompt, len(s.Prompts))
 		pairs := make([][2]*string, len(s.Prompts))
 		for k, p := range s.Prompts {
 			text := p.Text
 			pairs[k][0] = &text
+			fmt.Fprintf(h, "%d:%s\x00", len(text), text)
 			p.Text = ""
 			if p.Reply != nil {
 				r := *p.Reply
 				rt := r.Text
 				pairs[k][1] = &rt
+				fmt.Fprintf(h, "r%d:%s\x00", len(rt), rt)
 				r.Text = ""
 				p.Reply = &r
 			}
 			c.Prompts[k] = p
 		}
+		c.TextHash = fmt.Sprintf("%016x", h.Sum64())
 		lean[i], out.Sessions[i] = &c, sessionTexts{id: s.ID, pairs: pairs}
 	}
 	return lean, out
