@@ -280,6 +280,7 @@ const JA_TEXT = {
   "Corrections / interruptions": "言い直し・中断",
   "Cost": "費用",
   "Couldn't copy": "コピーできませんでした",
+  "Still loading your prompts. Try again in a moment.": "プロンプトを読み込んでいるところです。少し待ってからもう一度押してください。",
   "Couldn't load. Try again": "読み込めませんでした。もう一度お試しください",
   "Couldn't show the summary for this period ({error}). Please let us know in an issue.": "この期間のサマリーを表示できませんでした（{error}）。issue でお知らせください。",
   "Couldn't open the history file. If kiroku serve is running, run kiroku serve and try again.": "履歴ファイルを開けませんでした。kiroku serve が動いているなら、kiroku serve を実行してからもう一度お試しください。",

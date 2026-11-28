@@ -5,7 +5,50 @@ let MONTHS = __MONTHS__;
 let META = __META__;
 let GENERATED = __GEN__;
 // applyData は kiroku serve から届いた新しいデータに入れかえる（上の名前を書きかえるので、ここに置く）
-function applyData(j){ DATA = j.sessions || []; WEEKS = j.weeks || {}; MONTHS = j.months || {}; META = j.meta; GENERATED = j.generated; localizeTitles(DATA); if (st.sel && !DATA.some(s => s.id === st.sel)) st.sel = null; }
+// kiroku serve の data.json には依頼文と応答の文が入っていないので（画面を早く出すため）、描いたあとで texts.json を読んで入れる
+// 前のデータで文がそろっていた会話のうち、依頼と応答の時刻と長さが変わっていないものは、前の文を使う（自動更新のたびに全部を読み直さない）。
+// 足りない会話があるときだけ texts.json を読む
+function applyData(j){ const prev = new Map(DATA.map(s => [s.id, s])), next = j.sessions || [];
+  let missing = false; if (LIVE) next.forEach(s => { if (!carryTexts(prev.get(s.id), s)) missing = true; });
+  DATA = next; WEEKS = j.weeks || {}; MONTHS = j.months || {}; META = j.meta; GENERATED = j.generated; localizeTitles(DATA); if (st.sel && !DATA.some(s => s.id === st.sel)) st.sel = null;
+  if (LIVE){ TEXTS = !missing; if (missing) setTimeout(loadTexts, 0); } }
+// HAS_TEXT は、文の入っているセッション
+const HAS_TEXT = new WeakSet();
+// carryTexts は、前のデータの同じ会話 o の文を s に写す。依頼の数・時刻・切った長さ、応答の有無・時刻・長さのどれかが違えば写さない（false）
+function carryTexts(o, s){
+  if (!o || !HAS_TEXT.has(o) || !Array.isArray(s.prompts) || o.prompts.length !== s.prompts.length) return false;
+  const same = (a, b) => a.t === b.t && (a.len || 0) === (b.len || 0);
+  for (let k = 0; k < s.prompts.length; k++){ const a = o.prompts[k], b = s.prompts[k];
+    if (!same(a, b) || !a.reply !== !b.reply || (a.reply && !same(a.reply, b.reply))) return false; }
+  s.prompts.forEach((b, k) => { const a = o.prompts[k]; b.text = a.text; if (b.reply) b.reply.text = a.reply.text; });
+  HAS_TEXT.add(s); return true;
+}
+// TEXTS は、依頼文と応答の文がそろっているか（HTML のファイルは埋め込んであるので、はじめから true）
+let TEXTS = true;
+// loadTexts は、文のないセッションの文を texts.json で読んで DATA に入れ、描き直す。少なければ（自動更新で変わった会話）その会話の分だけ頼む。
+// 読んでいる間にデータが入れかわったら（自動更新）捨てる（入れかえた側が読み直す）。読めなければ少しあとで読み直す
+async function loadTexts(){
+  const want = DATA, ids = [...new Set(DATA.filter(s => !HAS_TEXT.has(s)).map(s => s.id))];
+  const q = ids.length && ids.length <= 50 ? "?" + ids.map(id => "id=" + encodeURIComponent(id)).join("&") : "";
+  try { const r = await kfetch("texts.json" + q); if (!r.ok) throw new Error(String(r.status)); const j = await r.json();
+    if (DATA !== want) return;
+    if (!applyTexts(j)) throw new Error("bad"); render();
+  } catch(e){ if (DATA === want) setTimeout(() => { if (DATA === want && !TEXTS) loadTexts(); }, 3000); }
+}
+// applyTexts は texts.json の文を、文のないセッションの依頼と応答に入れる。ID と依頼の数が合うものだけに入れ、文字列でないものは入れない
+function applyTexts(j){
+  const L = j && j.sessions; if (!Array.isArray(L)) return false;
+  const by = new Map(); L.forEach(x => { if (Array.isArray(x) && typeof x[0] === "string" && Array.isArray(x[1])){ if (!by.has(x[0])) by.set(x[0], []); by.get(x[0]).push(x[1]); } });
+  DATA.forEach(s => { if (HAS_TEXT.has(s)) return;
+    const ps = (by.get(s.id) || []).find(ps => ps.length === s.prompts.length); if (!ps) return;
+    ps.forEach((pr, k) => { const p = s.prompts[k]; if (!Array.isArray(pr)) return;
+      if (typeof pr[0] === "string") p.text = pr[0];
+      if (p.reply && typeof pr[1] === "string") p.reply.text = pr[1]; });
+    HAS_TEXT.add(s); });
+  localizeTitles(DATA);
+  DATA = DATA.slice(); SQ = new WeakMap(); // 文から作る覚え（検索・繰り返したプロンプト）は、DATA と SQ ごと作り直す
+  TEXTS = true; return true;
+}
 /* デモ（GitHub Pages）と、tools/html の --week / --month で書き出した期間だけのファイルは、作った人の時間帯の時計で見せる。
    どこから開いても「朝から夜に作業した」ように見え、日ごとの集計（作った時間帯で区切っている）とも食い違わない。
    時刻らしい数（UNIX 秒）と「今」を同じだけずらす */

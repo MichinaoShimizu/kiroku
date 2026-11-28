@@ -5,4 +5,5 @@ function promptBtn(id, label){
   return `<button class="pill ai-copy" id="${id}" type="button" title="${esc(label)}">${ico("copy")}<span>${esc(t("Copy prompt"))}</span></button>`;
 }
 const PROMPT_COPIED = () => t("Copied the prompt. kiroku didn't run or send anything. Paste it into your AI agent.");
-const copyPrompt = (button, prompt) => copy(prompt, PROMPT_COPIED(), 6000, button);
+// 依頼文がまだ届いていないとき（kiroku serve で開いた直後）は、文の抜けたプロンプトをコピーしない
+const copyPrompt = (button, prompt) => TEXTS ? copy(prompt, PROMPT_COPIED(), 6000, button) : toast(t("Still loading your prompts. Try again in a moment."), 3000);

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -35,7 +36,9 @@ type live struct {
 	mu    sync.RWMutex
 	snap  snapshot
 	html  []byte
-	json  []byte
+	json  []byte                    // /data.json（依頼文と応答の文は入れない。画面を早く出すため）
+	texts []byte                    // /texts.json（依頼文と応答の文。画面は data.json で描いてから読む）
+	byID  map[string][]sessionTexts // /texts.json?id=…（自動更新で変わった会話の文だけを読む）
 	load  func() snapshot
 	paths []string // 履歴の場所
 	roots []string // /history で見せてよいファイルの場所（履歴の場所と kiroku archive のコピーの場所）
@@ -63,7 +66,14 @@ func (l *live) refresh() error {
 		}
 		snap.meta["prs"] = true
 	}
-	parts, err := web.Marshal(snap.data, snap.weeks, snap.months, snap.meta, snap.gen) // /data.json
+	// /data.json は依頼文と応答の文を抜いたもの（1 年分の履歴で 19 MB のうち 7 割が文）。文は /texts.json で別に配り、
+	// 画面は数字と時刻で先に描いてから読む
+	lean, texts := splitTexts(snap.data)
+	tjs, err := json.Marshal(texts)
+	if err != nil {
+		return err
+	}
+	parts, err := web.Marshal(lean, snap.weeks, snap.months, snap.meta, snap.gen) // /data.json
 	if err != nil {
 		return err
 	}
@@ -79,7 +89,11 @@ func (l *live) refresh() error {
 	}
 	js := parts.JSON()
 	l.mu.Lock()
-	l.snap, l.html, l.json, l.stale = snap, []byte(html), js, false
+	byID := make(map[string][]sessionTexts, len(texts.Sessions))
+	for _, st := range texts.Sessions {
+		byID[st.id] = append(byID[st.id], st)
+	}
+	l.snap, l.html, l.json, l.texts, l.byID, l.stale = snap, []byte(html), js, tjs, byID, false
 	l.mu.Unlock()
 	return nil
 }
@@ -265,6 +279,38 @@ func (l *live) handler() http.Handler {
 		l.mu.RLock()
 		defer l.mu.RUnlock()
 		send(w, "application/json", l.json)
+	})
+	// /texts.json は依頼文と応答の文（splitTexts）。/data.json と同じく鍵が要る。
+	// ?id=<セッション ID> を（textsMaxIDs 個まで）付けると、その会話の文だけ（自動更新で変わった会話）
+	mux.HandleFunc("/texts.json", func(w http.ResponseWriter, r *http.Request) {
+		if !l.loaded(w) {
+			return
+		}
+		ids := r.URL.Query()["id"]
+		l.mu.RLock()
+		defer l.mu.RUnlock()
+		if len(ids) == 0 {
+			send(w, "application/json", l.texts)
+			return
+		}
+		if len(ids) > textsMaxIDs {
+			http.Error(w, "too many ids", http.StatusBadRequest)
+			return
+		}
+		out := textsJSON{Sessions: []sessionTexts{}}
+		seen := map[string]bool{}
+		for _, id := range ids {
+			if !seen[id] {
+				seen[id] = true
+				out.Sessions = append(out.Sessions, l.byID[id]...)
+			}
+		}
+		b, err := json.Marshal(out)
+		if err != nil {
+			http.Error(w, "could not encode", http.StatusInternalServerError)
+			return
+		}
+		send(w, "application/json", b)
 	})
 	// /history?id=<セッション ID> は、そのセッションの履歴ファイルをそのまま見せる（テキストの履歴だけ）。
 	// 読めるのは読み込んだセッションの履歴ファイルだけで、任意のパスは受け付けない。
@@ -696,4 +742,50 @@ func serveLiveWith(addr string, allow []string, every time.Duration, picked []so
 		return nil
 	}
 	return err
+}
+
+// textsMaxIDs は /texts.json?id= で一度に頼める会話の数（それより多く変わったら、画面は全部を読む）。
+const textsMaxIDs = 50
+
+// sessionTexts は /texts.json の 1 つのセッション: ID と、依頼ごとの [依頼文, 応答の文（なければ null）]。
+// 並びは /data.json の sessions と同じ（画面は ID と依頼の数を確かめてから入れる。ID が同じ会話が 2 つあれば、依頼の数で見分ける）。
+type sessionTexts struct {
+	id    string
+	pairs [][2]*string
+}
+
+func (t sessionTexts) MarshalJSON() ([]byte, error) {
+	return json.Marshal([]any{t.id, t.pairs})
+}
+
+// textsJSON は /texts.json の中身。
+type textsJSON struct {
+	Sessions []sessionTexts `json:"sessions"`
+}
+
+// splitTexts は、依頼文と応答の文を抜いたセッション（/data.json 用。もとのセッションは変えず、浅く写したもの）と、
+// 抜いた文（/texts.json 用）に分ける。切った長さ（Len）は data.json に残すので、長すぎる依頼の数え方は変わらない。
+func splitTexts(data []*core.Session) ([]*core.Session, textsJSON) {
+	lean := make([]*core.Session, len(data))
+	out := textsJSON{Sessions: make([]sessionTexts, len(data))}
+	for i, s := range data {
+		c := *s
+		c.Prompts = make([]core.Prompt, len(s.Prompts))
+		pairs := make([][2]*string, len(s.Prompts))
+		for k, p := range s.Prompts {
+			text := p.Text
+			pairs[k][0] = &text
+			p.Text = ""
+			if p.Reply != nil {
+				r := *p.Reply
+				rt := r.Text
+				pairs[k][1] = &rt
+				r.Text = ""
+				p.Reply = &r
+			}
+			c.Prompts[k] = p
+		}
+		lean[i], out.Sessions[i] = &c, sessionTexts{id: s.ID, pairs: pairs}
+	}
+	return lean, out
 }
